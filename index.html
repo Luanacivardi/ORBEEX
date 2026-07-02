@@ -3389,11 +3389,15 @@ ${corpoHTML}
       ? `${fmtData(dataseSel[0])} a ${fmtData(dataseSel[dataseSel.length - 1])}`
       : 'Período selecionado';
 
-    let faturas = '';
-    Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
-      const totalH  = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
-      const totalV  = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
-      const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
+    const descontoTotal = getDesconto();
+const nClientes = Object.keys(porcl).length;
+let faturas = '';
+Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
+  const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
+  const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
+  const desconto = descontoTotal / nClientes;
+  const totalPagar = Math.max(0, totalV - desconto);
+  const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
 
       const linhas = ts.slice().sort((a,b) => a.data.localeCompare(b.data)).map(t => `
         <tr>
@@ -3558,9 +3562,6 @@ ${corpoHTML}
     const periodoFmt  = datasaSel2.length
       ? `${fmtData(datasaSel2[0])} a ${fmtData(datasaSel2[datasaSel2.length - 1])}`
       : 'Registros selecionados';
-
-    const descontoTotal = getDesconto();
-    const nClientes = Object.keys(porcl).length;
    
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
@@ -3607,15 +3608,14 @@ ${corpoHTML}
           <tbody>${linhas}</tbody>
           <tfoot><tr class="total-row"><td colspan="3"><strong>TOTAL GERAL</strong></td><td class="tr"><strong>${totalH.toFixed(1)}h</strong></td><td></td><td class="tr total-valor">R$ ${fmtVal(totalV)}</td></tr></tfoot>
         </table>
-        <div class="resumo">
-          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
-          ${cobrado > 0 ? `<div class="resumo-item"><span class="resumo-label">Valor Já Cobrado</span><span class="resumo-val pago">R$ ${fmtVal(cobrado)}</span></div>` : ''}
-          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${fmtVal(desconto)}</span></div>` : ''}
-          <div class="resumo-item destaque"><span class="resumo-label" style="color:rgba(255,255,255,.7)">SALDO PENDENTE</span><span class="resumo-val" style="color:#E8B84B;font-size:18px">R$ ${fmtVal(pendente)}</span></div>
+  <div class="resumo">
+          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
+          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
+          <div class="resumo-item destaque">
+            <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
+          </div>
         </div>
-        <div class="rodape-fatura"><div>ORBEEX · Assessoria em Sistemas de Gestão · lulycivardi@gmail.com · Bento Gonçalves – RS</div><div style="margin-top:4px;font-size:9px;color:#aaa">Gerado em ${agora.toLocaleDateString('pt-BR')}</div></div>
-      </div>`;
-    });
 
     const janela = window.open('', '', 'width=1050,height=800');
     janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fatura ORBEEX</title>
