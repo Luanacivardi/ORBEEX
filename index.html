@@ -3366,8 +3366,8 @@ ${corpoHTML}
       </div>`;
     atualizarToolbarCobranca();
   }
-
-  function gerarRelatorioCobranca() {
+  
+function gerarRelatorioCobranca() {
     const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => parseInt(c.value));
     if (!ids.length) return;
     if (!confirm(`Gerar relatório e marcar ${ids.length} registro(s) como Cobrado?`)) return;
@@ -3390,20 +3390,21 @@ ${corpoHTML}
       : 'Período selecionado';
 
     const descontoTotal = getDesconto();
-const nClientes = Object.keys(porcl).length;
-let faturas = '';
-Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
-  const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
-  const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
-  const desconto = descontoTotal / nClientes;
-  const totalPagar = Math.max(0, totalV - desconto);
-  const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
+    const nClientes = Object.keys(porcl).length;
+    let faturas = '';
+    Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
+      const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
+      const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
+      const desconto = descontoTotal / nClientes;
+      const totalPagar = Math.max(0, totalV - desconto);
+      const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
 
       const linhas = ts.slice().sort((a,b) => a.data.localeCompare(b.data)).map(t => `
         <tr>
           <td>${fmtData(t.data)}</td>
           <td>${t.atividade || '—'}</td>
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
+          <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
           <td class="tr">R$ ${(parseFloat(t.taxa)||0).toFixed(2).replace('.',',')}</td>
           <td class="tr valor-cel">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</td>
@@ -3433,11 +3434,11 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
         </div>
         <div class="sec-titulo"><i>📋</i> Horas Realizadas</div>
         <table class="srv-table">
-          <thead><tr><th>Data</th><th>Descrição da Atividade</th><th class="tc">Horário</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
+          <thead><tr><th>Data</th><th>Descrição da Atividade</th><th class="tc">Horário</th><th class="tc">Modalidade</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
           <tbody>${linhas}</tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="3"><strong>TOTAL GERAL</strong></td>
+              <td colspan="4"><strong>TOTAL GERAL</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
               <td class="tr total-valor">R$ ${totalV.toFixed(2).replace('.',',')}</td>
@@ -3445,9 +3446,11 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
           </tfoot>
         </table>
         <div class="resumo">
+          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
+          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
           <div class="resumo-item destaque">
             <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
-            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalV.toFixed(2).replace('.',',')}</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
           </div>
         </div>
         <div class="rodape-fatura">
@@ -3497,6 +3500,9 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
     filtrarCobranca();
     setStatus(`✓ ${ids.length} registro(s) marcado(s) como cobrado e relatório gerado`);
   }
+  
+
+  
 
   function atualizarToolbarCobranca() {
     const chks  = [...document.querySelectorAll('.cob-chk:checked')];
@@ -3562,7 +3568,10 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
     const periodoFmt  = datasaSel2.length
       ? `${fmtData(datasaSel2[0])} a ${fmtData(datasaSel2[datasaSel2.length - 1])}`
       : 'Registros selecionados';
-   
+
+    const descontoTotal = getDesconto();
+    const nClientes = Object.keys(porcl).length;
+    let faturas = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
       const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
@@ -3575,6 +3584,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
           <td>${fmtData(t.data)}</td>
           <td>${t.atividade || '—'}</td>
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
+          <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
           <td class="tr">R$ ${fmtVal(parseFloat(t.taxa)||0)}</td>
           <td class="tr valor-cel">R$ ${fmtVal(parseFloat(t.valor)||0)}</td>
@@ -3604,18 +3614,19 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
         </div>
         <div class="sec-titulo"><i>📋</i> Serviços Prestados</div>
         <table class="srv-table">
-          <thead><tr><th>Data</th><th>Descrição</th><th class="tc">Horário</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
+          <thead><tr><th>Data</th><th>Descrição</th><th class="tc">Horário</th><th class="tc">Modalidade</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
           <tbody>${linhas}</tbody>
-          <tfoot><tr class="total-row"><td colspan="3"><strong>TOTAL GERAL</strong></td><td class="tr"><strong>${totalH.toFixed(1)}h</strong></td><td></td><td class="tr total-valor">R$ ${fmtVal(totalV)}</td></tr></tfoot>
+          <tfoot><tr class="total-row"><td colspan="4"><strong>TOTAL GERAL</strong></td><td class="tr"><strong>${totalH.toFixed(1)}h</strong></td><td></td><td class="tr total-valor">R$ ${fmtVal(totalV)}</td></tr></tfoot>
         </table>
-  <div class="resumo">
-          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
-          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
-          <div class="resumo-item destaque">
-            <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
-            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
-          </div>
+        <div class="resumo">
+          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
+          ${cobrado > 0 ? `<div class="resumo-item"><span class="resumo-label">Valor Já Cobrado</span><span class="resumo-val pago">R$ ${fmtVal(cobrado)}</span></div>` : ''}
+          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${fmtVal(desconto)}</span></div>` : ''}
+          <div class="resumo-item destaque"><span class="resumo-label" style="color:rgba(255,255,255,.7)">SALDO PENDENTE</span><span class="resumo-val" style="color:#E8B84B;font-size:18px">R$ ${fmtVal(pendente)}</span></div>
         </div>
+        <div class="rodape-fatura"><div>ORBEEX · Assessoria em Sistemas de Gestão · lulycivardi@gmail.com · Bento Gonçalves – RS</div><div style="margin-top:4px;font-size:9px;color:#aaa">Gerado em ${agora.toLocaleDateString('pt-BR')}</div></div>
+      </div>`;
+    });
 
     const janela = window.open('', '', 'width=1050,height=800');
     janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Fatura ORBEEX</title>
@@ -3650,8 +3661,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
     janela.document.close();
     setTimeout(() => janela.print(), 400);
   }
-
-  function imprimirCobranca() {
+function imprimirCobranca() {
     const clienteId = document.getElementById('cobranca-cliente').value;
     const inicioVal = document.getElementById('cobranca-inicio').value;
     const fimVal    = document.getElementById('cobranca-fim').value;
@@ -3678,7 +3688,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
     // Uma fatura por cliente
     const descontoTotalGerar = getDesconto();
     const nClientesGerar = Object.keys(porcl).length;
-   
+    let faturas = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
       const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
@@ -3697,6 +3707,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
             <td>${fmtData(t.data)}</td>
             <td>${t.atividade || '—'}</td>
             <td class="tc">${t.entrada || ''} ${t.entrada && t.saida ? '–' : ''} ${t.saida || ''}</td>
+            <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
             <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
             <td class="tr">R$ ${fmtVal(parseFloat(t.taxa)||0)}</td>
             <td class="tr valor-cel">R$ ${fmtVal(parseFloat(t.valor)||0)}</td>
@@ -3748,6 +3759,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
               <th>Data</th>
               <th>Descrição da Atividade</th>
               <th class="tc">Horário</th>
+              <th class="tc">Modalidade</th>
               <th class="tr">Horas</th>
               <th class="tr">Valor/h</th>
               <th class="tr">Valor R$</th>
@@ -3756,7 +3768,7 @@ Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
           <tbody>${linhas}</tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="3"><strong>TOTAL GERAL</strong></td>
+              <td colspan="4"><strong>TOTAL GERAL</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
               <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
@@ -3918,7 +3930,7 @@ ${faturas}
     j.document.close();
     setTimeout(() => j.print(), 500);
   }
-
+ 
   function exportarCSV() {
     const clienteId = document.getElementById('cobranca-cliente').value;
     const inicio = new Date(document.getElementById('cobranca-inicio').value || '2000-01-01');
