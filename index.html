@@ -1992,14 +1992,10 @@
     const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
     const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
-    const descontoTotal = getDesconto();
-    const nClientes = Object.keys(porcl).length;
-    let faturas = '';
-    Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
-      const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
-      const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
-      const desconto = descontoTotal / nClientes;
-      const totalPagar = Math.max(0, totalV - desconto);
+   let faturas = '';
+    Object.entries(porCli).forEach(([nomeCliente, ps], idx) => {
+      const totalH   = ps.reduce((s, p) => s + (parseFloat(p.horas)||0), 0);
+      const totalV   = ps.reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
       const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
       const datas = ps.map(p => p.inicio).sort();
       const periodoFmt = datas.length > 1
@@ -2063,12 +2059,10 @@
             </tr>
           </tfoot>
         </table>
-       <div class="resumo">
-          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
-          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
+      <div class="resumo">
           <div class="resumo-item destaque">
             <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
-            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalV.toFixed(2).replace('.',',')}</span>
           </div>
         </div>
         <div class="rodape-fatura">
