@@ -1925,11 +1925,15 @@
     const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
     const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 
+    const descontoTotal = getDesconto();
+    const nClientes = Object.keys(porcl).length;
     let faturas = '';
-    Object.entries(porCli).forEach(([nomeCliente, ps], idx) => {
-      const totalH = ps.reduce((s, p) => s + (parseFloat(p.horas)||0), 0);
-      const totalV = ps.reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
-      const cliObj = clientes.find(c => c.nome === nomeCliente) || {};
+    Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
+      const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
+      const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
+      const desconto = descontoTotal / nClientes;
+      const totalPagar = Math.max(0, totalV - desconto);
+      const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
       const datas = ps.map(p => p.inicio).sort();
       const periodoFmt = datas.length > 1
         ? `${fmtData(datas[0])} a ${fmtData(datas[datas.length-1])}`
@@ -1992,10 +1996,12 @@
             </tr>
           </tfoot>
         </table>
-        <div class="resumo">
+       <div class="resumo">
+          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
+          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
           <div class="resumo-item destaque">
-            <span class="resumo-label" style="font-size:14px;font-weight:700">VALOR TOTAL PREVISTO</span>
-            <span class="resumo-val" style="font-size:20px;font-weight:800;color:#252538">R$ ${totalV.toFixed(2).replace('.',',')}</span>
+            <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
           </div>
         </div>
         <div class="rodape-fatura">
@@ -3430,9 +3436,11 @@ ${corpoHTML}
   .srv-table tfoot .total-row td{background:#f4f4f8;font-size:12px;padding:10px}
   .tc{text-align:center}.tr{text-align:right}.valor-cel{font-weight:600;color:#252538}
   .total-valor{font-size:14px;font-weight:800;color:#252538}
-  .resumo{margin:20px 36px 8px;display:flex;justify-content:flex-end}
-  .resumo-item{padding:14px 24px;border-radius:8px;display:flex;align-items:center;gap:24px}
-  .resumo-item.destaque{background:#252538}
+  .resumo{margin:20px 36px 8px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
+  .resumo-item{padding:10px 16px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:24px;width:280px;background:#f8f8fc}
+  .resumo-item .resumo-label{font-size:11px;color:#6b6b8a}
+  .resumo-item .resumo-val{font-weight:700;font-size:14px}
+  .resumo-item.destaque{background:#252538;width:320px;padding:14px 24px}
   .rodape-fatura{margin:20px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
   @media print{body{background:#fff}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}@page{size:A4;margin:8mm}}
 </style></head><body>${faturas}</body></html>`);
@@ -3511,7 +3519,7 @@ ${corpoHTML}
 
     const descontoTotal = getDesconto();
     const nClientes = Object.keys(porcl).length;
-    let faturas = '';
+   
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
       const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
@@ -3628,7 +3636,7 @@ ${corpoHTML}
     // Uma fatura por cliente
     const descontoTotalGerar = getDesconto();
     const nClientesGerar = Object.keys(porcl).length;
-    let faturas = '';
+   
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
       const totalV   = ts.reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
