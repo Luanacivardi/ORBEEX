@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Redefinir senha · Gestor de Horas</title>
+<script src="config.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #1a1a2e; min-height: 100vh; margin: 0; display: flex; align-items: center; justify-content: center; }
+  .card { background: #fff; padding: 2.5rem; border-radius: 12px; width: 100%; max-width: 340px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); }
+  h1 { font-size: 18px; color: #1a1a2e; margin-bottom: 1.5rem; text-align: center; }
+  p.info { font-size: 13px; color: #6b6b8a; text-align: center; margin-bottom: 1.2rem; }
+  input { width: 100%; padding: 12px; border: 1px solid #e2e2ee; border-radius: 8px; font-size: 14px; margin-bottom: 1rem; }
+  button { width: 100%; padding: 12px; border: none; border-radius: 8px; background: #E8B84B; color: #1a1a2e; font-weight: 700; font-size: 14px; cursor: pointer; }
+  button:disabled { opacity: .6; cursor: default; }
+  button:hover:not(:disabled) { background: #c99d38; }
+  .erro { color: #ef4444; font-size: 13px; margin-bottom: 1rem; text-align: center; }
+  .sucesso { color: #10b981; font-size: 13px; margin-bottom: 1rem; text-align: center; }
+</style>
+</head>
+<body>
+  <form class="card" id="form-redefinir">
+    <h1>🔒 Nova senha</h1>
+    <p class="info">Digite sua nova senha de acesso.</p>
+    <div class="erro" id="erro" style="display:none;"></div>
+    <div class="sucesso" id="sucesso" style="display:none;"></div>
+    <input type="password" id="nova-senha" placeholder="Nova senha (mín. 6 caracteres)" required autocomplete="new-password" minlength="6">
+    <input type="password" id="confirmar-senha" placeholder="Confirme a nova senha" required autocomplete="new-password" minlength="6">
+    <button type="submit" id="btn-salvar">Salvar nova senha</button>
+  </form>
+
+<script>
+  var accessToken = null;
+
+  // O Supabase manda o token na URL depois do "#", tipo:
+  // redefinir-senha.html#access_token=xxxx&type=recovery
+  (function () {
+    var hash = window.location.hash.substring(1);
+    var params = new URLSearchParams(hash);
+    accessToken = params.get('access_token');
+    if (!accessToken) {
+      document.getElementById('erro').textContent = 'Link inválido ou expirado. Solicite um novo link de recuperação na tela de login.';
+      document.getElementById('erro').style.display = 'block';
+      document.getElementById('btn-salvar').disabled = true;
+    }
+  })();
+
+  document.getElementById('form-redefinir').addEventListener('submit', function (ev) {
+    ev.preventDefault();
+    var novaSenha = document.getElementById('nova-senha').value;
+    var confirmar = document.getElementById('confirmar-senha').value;
+    var erroEl = document.getElementById('erro');
+    var sucessoEl = document.getElementById('sucesso');
+    var btn = document.getElementById('btn-salvar');
+
+    erroEl.style.display = 'none';
+    sucessoEl.style.display = 'none';
+
+    if (novaSenha.length < 6) {
+      erroEl.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+      erroEl.style.display = 'block';
+      return;
+    }
+    if (novaSenha !== confirmar) {
+      erroEl.textContent = 'As senhas não coincidem.';
+      erroEl.style.display = 'block';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    fetch(window.SUPABASE_URL + '/auth/v1/user', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': window.SUPABASE_ANON_KEY,
+        'Authorization': 'Bearer ' + accessToken
+      },
+      body: JSON.stringify({ password: novaSenha })
+    })
+      .then(function (r) { return r.json().then(function (data) { return { ok: r.ok, data: data }; }); })
+      .then(function (res) {
+        if (!res.ok) {
+          throw new Error((res.data && res.data.msg) || 'Não foi possível alterar a senha.');
+        }
+        sucessoEl.textContent = '✓ Senha alterada com sucesso! Redirecionando para o login...';
+        sucessoEl.style.display = 'block';
+        setTimeout(function () { window.location.href = 'login.html'; }, 2000);
+      })
+      .catch(function (e) {
+        erroEl.textContent = e.message || 'Erro ao salvar a nova senha. Tente solicitar um novo link.';
+        erroEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Salvar nova senha';
+      });
+  });
+</script>
+</body>
+</html>
