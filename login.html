@@ -24,7 +24,28 @@
     <input type="email" id="email" placeholder="E-mail" autofocus required autocomplete="username">
     <input type="password" id="senha" placeholder="Senha" required autocomplete="current-password">
     <button type="submit" id="btn-entrar">Entrar</button>
+    <div style="text-align:center;margin-top:14px">
+      <a href="#" onclick="abrirRecuperarSenha();return false;" style="font-size:12px;color:#6b6b8a;text-decoration:underline;cursor:pointer">
+        Esqueci minha senha
+      </a>
+    </div>
   </form>
+
+<div id="modal-recuperar-senha" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;align-items:center;justify-content:center">
+    <div style="background:#fff;border-radius:12px;max-width:340px;width:90%;padding:24px">
+      <h3 style="margin:0 0 6px;font-size:16px;color:#1a1a2e">Recuperar senha</h3>
+      <p style="font-size:13px;color:#6b6b8a;margin:0 0 14px">
+        Informe seu e-mail cadastrado. Você receberá um link para criar uma nova senha.
+      </p>
+      <input type="email" id="recuperar-email" placeholder="seu@email.com"
+        style="width:100%;padding:10px;border:1px solid #e2e2ee;border-radius:8px;font-size:13px;margin-bottom:12px;box-sizing:border-box">
+      <div id="recuperar-msg" style="font-size:12px;margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button type="button" onclick="fecharRecuperarSenha()" style="width:auto;padding:9px 14px;border:1px solid #e2e2ee;background:#fff;color:#1a1a2e;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500">Cancelar</button>
+        <button type="button" onclick="enviarRecuperarSenha()" style="width:auto;padding:9px 14px;border:none;background:#E8B84B;color:#1a1a2e;font-weight:700;border-radius:8px;cursor:pointer;font-size:13px">Enviar link</button>
+      </div>
+    </div>
+  </div>
 
 <script>
   var SB_SESSION_KEY = 'sb_session_gestorhoras';
@@ -70,8 +91,44 @@
         erroEl.style.display = 'block';
         btn.disabled = false;
         btn.textContent = 'Entrar';
-      });
+     });
   });
+
+  function abrirRecuperarSenha() {
+    document.getElementById('recuperar-msg').textContent = '';
+    document.getElementById('recuperar-email').value = document.getElementById('email').value || '';
+    document.getElementById('modal-recuperar-senha').style.display = 'flex';
+  }
+  function fecharRecuperarSenha() {
+    document.getElementById('modal-recuperar-senha').style.display = 'none';
+  }
+  function enviarRecuperarSenha() {
+    var email = document.getElementById('recuperar-email').value.trim();
+    var msg = document.getElementById('recuperar-msg');
+    if (!email) { msg.style.color = '#ef4444'; msg.textContent = 'Informe um e-mail válido.'; return; }
+
+    msg.style.color = '#6b6b8a';
+    msg.textContent = 'Enviando...';
+
+    fetch(window.SUPABASE_URL + '/auth/v1/recover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_ANON_KEY },
+      body: JSON.stringify({ email: email })
+    })
+      .then(function (r) {
+        if (r.ok) {
+          msg.style.color = '#10b981';
+          msg.textContent = '✓ Se este e-mail estiver cadastrado, você receberá um link em instantes. Verifique também o spam.';
+        } else {
+          msg.style.color = '#ef4444';
+          msg.textContent = 'Não foi possível enviar. Tente novamente em instantes.';
+        }
+      })
+      .catch(function () {
+        msg.style.color = '#ef4444';
+        msg.textContent = 'Erro de conexão. Verifique sua internet.';
+      });
+  }
 </script>
 </body>
 </html>
