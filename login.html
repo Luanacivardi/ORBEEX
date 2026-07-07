@@ -110,7 +110,7 @@
     msg.style.color = '#6b6b8a';
     msg.textContent = 'Enviando...';
 
-    fetch(window.SUPABASE_URL + '/auth/v1/recover', {
+    fetch(window.SUPABASE_URL + '/auth/v1/recover?redirect_to=' + encodeURIComponent('https://orbeex.com.br/redefinir-senha.html'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'apikey': window.SUPABASE_ANON_KEY },
       body: JSON.stringify({ email: email })
