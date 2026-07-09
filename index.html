@@ -863,7 +863,11 @@
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" id="desp-btn-salvar" onclick="salvarDespesa()"><i class="ti ti-plus"></i> Lançar Despesa</button>
+  <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="cliente-btn-salvar" onclick="adicionarCliente()"><i class="ti ti-plus"></i> Adicionar Cliente</button>
+        <button class="btn btn-sm" id="cliente-btn-cancelar" onclick="cancelarEdicaoCliente()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+      </div>
+    </div
         <button class="btn btn-sm" id="desp-btn-cancelar" onclick="cancelarEdicaoDespesa()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
     </div>
@@ -1676,16 +1680,54 @@
   }
 
   // ===== CLIENTES =====
+let clienteEditandoId = null;
+
   function adicionarCliente() {
     const nome = document.getElementById('cliente-nome').value;
     const projeto = document.getElementById('cliente-projeto').value;
     const taxa = parseFloat(document.getElementById('cliente-taxa').value);
     const obs = document.getElementById('cliente-obs').value;
     if (!nome || !projeto || !taxa) { alert('Preencha todos os campos obrigatórios'); return; }
+
+    if (clienteEditandoId) {
+      // Modo edição: atualiza o cliente existente (mantém o mesmo id).
+      // Registros já lançados (planejamento/horas) guardam sua própria taxa/valor
+      // travados no momento em que foram criados, então o histórico não é afetado.
+      const c = clientes.find(c => c.id === clienteEditandoId);
+      if (c) Object.assign(c, { nome, projeto, taxa, obs });
+      salvarDados();
+      cancelarEdicaoCliente();
+      renderizarClientes(); atualizarSelectsClientes();
+      alert('Cliente atualizado! A nova taxa vale a partir de agora — o histórico não foi alterado.');
+      return;
+    }
+
     clientes.push({ id: Date.now(), nome, projeto, taxa, obs });
     salvarDados();
     ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs'].forEach(id => document.getElementById(id).value = '');
     renderizarClientes(); atualizarSelectsClientes();
+  }
+
+  function editarCliente(id) {
+    const c = clientes.find(c => c.id === id);
+    if (!c) return;
+    clienteEditandoId = id;
+    document.getElementById('cliente-nome').value    = c.nome;
+    document.getElementById('cliente-projeto').value = c.projeto;
+    document.getElementById('cliente-taxa').value    = c.taxa;
+    document.getElementById('cliente-obs').value     = c.obs || '';
+    const btn = document.getElementById('cliente-btn-salvar');
+    btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Alterações';
+    document.getElementById('cliente-btn-cancelar').style.display = '';
+    btn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function cancelarEdicaoCliente() {
+    clienteEditandoId = null;
+    ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs'].forEach(id => document.getElementById(id).value = '');
+    const btn = document.getElementById('cliente-btn-salvar');
+    btn.innerHTML = '<i class="ti ti-plus"></i> Adicionar Cliente';
+    document.getElementById('cliente-btn-cancelar').style.display = 'none';
   }
 
   function renderizarClientes() {
@@ -1698,7 +1740,10 @@
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${c.projeto}</div>
         <div style="font-weight:500;margin-bottom:8px">R$ ${c.taxa.toFixed(2).replace('.',',')}/h</div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
-        <button class="btn btn-icon btn-danger" onclick="deletarCliente(${c.id})" title="Remover"><i class="ti ti-trash"></i></button>
+         <div class="btn-acao-row">
+          <button class="btn btn-icon" onclick="editarCliente(${c.id})" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-icon btn-danger" onclick="deletarCliente(${c.id})" title="Remover"><i class="ti ti-trash"></i></button>
+        </div>
       </div>`).join('');
 }
   function deletarCliente(id) {
