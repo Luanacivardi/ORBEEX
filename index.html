@@ -862,12 +862,8 @@
           <select id="desp-cliente"><option value="">— Sem cliente —</option></select>
         </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-  <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" id="cliente-btn-salvar" onclick="adicionarCliente()"><i class="ti ti-plus"></i> Adicionar Cliente</button>
-        <button class="btn btn-sm" id="cliente-btn-cancelar" onclick="cancelarEdicaoCliente()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-      </div>
-    </div
+<div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="desp-btn-salvar" onclick="salvarDespesa()"><i class="ti ti-plus"></i> Lançar Despesa</button>
         <button class="btn btn-sm" id="desp-btn-cancelar" onclick="cancelarEdicaoDespesa()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
     </div>
@@ -915,7 +911,10 @@
         <div class="form-group"><label>Taxa Horária (R$)</label><input type="number" id="cliente-taxa" placeholder="150.00" step="10"></div>
         <div class="form-group"><label>Observações</label><input type="text" id="cliente-obs" placeholder="Informações adicionais"></div>
       </div>
-      <button class="btn btn-primary" onclick="adicionarCliente()"><i class="ti ti-plus"></i> Adicionar Cliente</button>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="cliente-btn-salvar" onclick="adicionarCliente()"><i class="ti ti-plus"></i> Adicionar Cliente</button>
+        <button class="btn btn-sm" id="cliente-btn-cancelar" onclick="cancelarEdicaoCliente()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+      </div>
     </div>
     <div class="card">
       <div class="card-header"><i class="ti ti-list"></i> Meus Clientes</div>
