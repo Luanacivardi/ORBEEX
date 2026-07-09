@@ -2490,10 +2490,11 @@
   // ===== AGENDA OUTLOOK =====
   function corCliente(nome) {
     const m = { 'Tedesco': '#800020', 'Maxicorte': '#FF6B00', 'Qualytool': '#000000', 'Livre': '#6b7280' };
-    return m[nome] || '#252538';
+   return m[nome] || '#252538';
   }
 
   function isoData(d) {
+
     return d.getFullYear() + '-' +
       String(d.getMonth() + 1).padStart(2, '0') + '-' +
       String(d.getDate()).padStart(2, '0');
