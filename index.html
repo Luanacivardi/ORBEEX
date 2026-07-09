@@ -4102,9 +4102,10 @@ ${faturas}
     // planejamento não registrado ainda + todas as tarefas do mês
     const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const vPlanMes    = vPlanPend + vTarMesTot;
+     const vPlanMes    = vPlanPend + vTarMesTot;
     const vConfMes    = planMes.filter(p=>p.confirmado).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
+    const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
 
     // ── INDICADORES COMPARATIVOS ─────────────────────────────
     const pctFat   = vConf > 0 ? Math.min(vFat /vConf*100,100) : 0;
@@ -4160,7 +4161,7 @@ ${faturas}
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Horas realizadas ainda não faturadas', cor:'#ef4444' },
       { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#252538' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
-      { label:'% Atingido do Planejamento',    value: pctMes.toFixed(0)+'%',       sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctMes>=80?'#10b981':pctMes>=50?'#E8B84B':'#ef4444' },
+    { label:'% Atingido do Planejamento',    value: pctFatMes.toFixed(0)+'%',    sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctFatMes>=80?'#10b981':pctFatMes>=50?'#E8B84B':'#ef4444' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
