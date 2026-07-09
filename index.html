@@ -2532,10 +2532,15 @@ let clienteEditandoId = null;
     if (t) { t.cobrado = !t.cobrado; salvarDados(); renderizarTarefas(); }
   }
 
-  // ===== AGENDA OUTLOOK =====
+ // ===== AGENDA OUTLOOK =====
   function corCliente(nome) {
-    const m = { 'Tedesco': '#800020', 'Maxicorte': '#FF6B00', 'Qualytool': '#000000', 'Livre': '#6b7280' };
-   return m[nome] || '#252538';
+    if (!nome) return '#252538';
+    const n = nome.toLowerCase();
+    if (n.includes('tedesco'))   return '#800020';
+    if (n.includes('maxicorte')) return '#FF6B00';
+    if (n.includes('qualytool')) return '#000000';
+    if (n.includes('livre'))     return '#6b7280';
+    return '#252538';
   }
 
   function isoData(d) {
@@ -4335,16 +4340,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       </tr>`;
     }).join('');
 
-    // ── Tabela mensal com drill-down por cliente ──────────────
+   // ── Tabela mensal com drill-down por cliente ──────────────
     try {
-const CORES_CLI = { 'Tedesco':'#800020','Maxicorte':'#FF6B00','Qualytool':'#000000','Livre':'#6b7280' };
-      const CORES_FALLBACK = ['#3730a3','#2563eb','#7c3aed','#059669','#ea580c','#0891b2'];
-      const mapaCorCli = {};
-      let idxCor = 0;
       function getCorCli(nome) {
-        if (CORES_CLI[nome]) return CORES_CLI[nome];
-        if (!mapaCorCli[nome]) mapaCorCli[nome] = CORES_FALLBACK[idxCor++ % CORES_FALLBACK.length];
-        return mapaCorCli[nome];
+        return corCliente(nome);
       }
 
       function barinha(pct, cor) {
@@ -4460,11 +4459,8 @@ const CORES_CLI = { 'Tedesco':'#800020','Maxicorte':'#FF6B00','Qualytool':'#0000
       }
     });
 
-   const coresCliMap = { 'Tedesco':'#800020','Maxicorte':'#FF6B00','Qualytool':'#000000','Livre':'#6b7280' };
-    const coresFallback = ['#3730a3','#2563eb','#7c3aed','#059669','#ea580c','#0891b2'];
-    let cIdx = 0;
-    const linhasCli = Object.entries(porCliTabela).sort((a,b) => b[1].vPlan - a[1].vPlan).map(([nome, d]) => {
-      const cor = coresCliMap[nome] || coresFallback[cIdx++ % coresFallback.length];
+ const linhasCli = Object.entries(porCliTabela).sort((a,b) => b[1].vPlan - a[1].vPlan).map(([nome, d]) => {
+      const cor = corCliente(nome);
       const pctConf = d.vPlan > 0 ? Math.min(d.vConf/d.vPlan*100,100) : 0;
       const pctFat  = d.vConf > 0 ? Math.min(d.vFat /d.vConf*100,100) : 0;
       return `
