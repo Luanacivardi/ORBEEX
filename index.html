@@ -1275,12 +1275,6 @@
       <div class="card-header"><i class="ti ti-table"></i> Resumo Mensal — Planejado × Faturado</div>
       <div id="dash-tabela-mensal"></div>
     </div>
-    <!-- Evolução mensal (largura total) -->
-    <div class="card" style="margin-bottom:1rem">
-      <div class="card-header"><i class="ti ti-chart-bar"></i> Evolução Mensal — Planejado × Confirmado × Faturado</div>
-      <div id="dash-val-evolucao" style="display:flex;gap:1.5rem;margin-bottom:0.75rem;flex-wrap:wrap"></div>
-      <canvas id="chart-evolucao" height="90"></canvas>
-    </div>
 
     <!-- Horas + Histórico -->
     <div class="dash-row">
@@ -2497,6 +2491,7 @@
   function corCliente(nome) {
     const m = { 'Tedesco': '#800020', 'Maxicorte': '#FF6B00', 'Qualytool': '#000000', 'Livre': '#6b7280' };
     return m[nome] || '#252538';
+  }
 
   function isoData(d) {
     return d.getFullYear() + '-' +
