@@ -2342,10 +2342,9 @@ let clienteEditandoId = null;
           <div class="home-agenda-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
           <div class="home-agenda-pauta">${a.titulo}</div>
         </div>
-        ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
+           ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
       </div>`;
     }).join('');
-  }
   }
 
   function selecionarTarefaRapida(id) {
