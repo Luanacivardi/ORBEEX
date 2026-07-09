@@ -2342,10 +2342,113 @@ let clienteEditandoId = null;
           <div class="home-agenda-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
           <div class="home-agenda-pauta">${a.titulo}</div>
         </div>
-           ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
+            ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
       </div>`;
     }).join('');
   }
+
+  function filtrarPlan(filtro, ev) {
+    filtroPlanoAtual = filtro;
+    document.querySelectorAll('[onclick*="filtrarPlan"]').forEach(b => b.classList.remove('active'));
+    if (ev && ev.target) ev.target.classList.add('active');
+    renderizarPlanejamento();
+  }
+
+  function renderizarPlanejamento() {
+    const fCliente    = (document.getElementById('filtro-atv-cliente')?.value    || '');
+    const fModalidade = (document.getElementById('filtro-atv-modalidade')?.value || '');
+    const fDtIni      = (document.getElementById('filtro-atv-dt-ini')?.value     || '');
+    const fDtFim      = (document.getElementById('filtro-atv-dt-fim')?.value     || '');
+    // Oculta tarefas confirmadas que já foram registradas em horas
+    const idsRegistrados = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
+    let dados = planejamento.filter(p => !(p.confirmado && idsRegistrados.has(p.id)));
+    if (filtroPlanoAtual === 'Não confirmado') dados = dados.filter(p => !p.confirmado);
+    else if (filtroPlanoAtual === 'Confirmado') dados = dados.filter(p => p.confirmado);
+    if (fCliente)    dados = dados.filter(p => p.clienteId == fCliente);
+    if (fModalidade) dados = dados.filter(p => (p.modalidade || 'Presencial') === fModalidade);
+    if (fDtIni)      dados = dados.filter(p => p.inicio >= fDtIni);
+    if (fDtFim)      dados = dados.filter(p => p.inicio <= fDtFim);
+    dados = [...dados].sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+    const modIcon = m => m === 'Home Office' ? '🏠' : '🏢';
+    document.getElementById('tbody-plan').innerHTML = dados.map(p => {
+      const horas = parseFloat(p.horas) || 0;
+      const valor = parseFloat(p.valor) || 0;
+      return `
+      <tr data-plan-id="${p.id}">
+        <td style="text-align:center"><input type="checkbox" class="plan-chk" value="${p.id}" onchange="atualizarToolbarPlan()"></td>
+        <td>${p.clienteNome || '—'}</td>
+        <td>${fmtData(p.inicio)}${p.termino && p.termino !== p.inicio ? ' – '+fmtData(p.termino) : ''}</td>
+        <td>${p.entrada && p.saida ? p.entrada + ' – ' + p.saida : '—'}</td>
+        <td style="color:var(--text-secondary);font-size:12px">${p.atividade && p.atividade !== '—' ? p.atividade : '<em>sem pauta</em>'}</td>
+        <td style="white-space:nowrap">${modIcon(p.modalidade)} ${p.modalidade || 'Presencial'}</td>
+        <td>${horas > 0 ? horas.toFixed(1)+'h' : '—'}</td>
+        <td>R$ ${valor.toFixed(2).replace('.',',')}</td>
+        <td><span class="status-badge">${p.confirmado ? '✓ Confirmado' : '◯ Não confirmado'}</span></td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="editarPlanejamento(${p.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            ${!p.confirmado
+              ? `<button class="btn btn-icon btn-success" onclick="confirmarERegistrar(${p.id})" title="Confirmar"><i class="ti ti-check"></i></button>`
+              : `<button class="btn btn-icon" onclick="confirmarPlanejamento(${p.id})" title="Desconfirmar" style="background:#f59e0b;color:#fff"><i class="ti ti-rotate-clockwise"></i></button>`}
+            <button class="btn btn-icon btn-danger" onclick="deletarPlanejamento(${p.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+    atualizarToolbarPlan();
+  }
+
+  function atualizarDashboardPlan() {
+    const agora = new Date();
+    const prim = new Date(agora.getFullYear(), agora.getMonth(), 1);
+    const ult = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
+    const planMes = planejamento.filter(p => new Date(p.inicio) <= ult && new Date(p.termino) >= prim);
+    const totalH = planMes.reduce((s, p) => s + (parseFloat(p.horas)||0), 0);
+    const totalV = planMes.reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
+    const confirmV = planMes.filter(p => p.confirmado).reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
+    let dias = 0;
+    for (let d = new Date(prim); d <= ult; d.setDate(d.getDate() + 1))
+      if (d.getDay() !== 0 && d.getDay() !== 6) dias++;
+    document.getElementById('dashboard-plan').innerHTML = `
+      <div class="dashboard-card"><div class="dashboard-card-label">Horas Previstas</div><div class="dashboard-card-value">${totalH.toFixed(1)}h</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Faturamento Estimado</div><div class="dashboard-card-value">R$ ${totalV.toFixed(2).replace('.',',')}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Confirmado</div><div class="dashboard-card-value">R$ ${confirmV.toFixed(2).replace('.',',')}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Dias Úteis</div><div class="dashboard-card-value">${dias}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Média/dia</div><div class="dashboard-card-value">${dias > 0 ? (totalH / dias).toFixed(1) : 0}h</div></div>`;
+  }
+
+  // ===== REGISTRAR HORAS =====
+  function preencherTarefasConfirmadas() {
+    // Mostra apenas confirmadas que ainda não tiveram horas registradas
+    const idsRegistrados = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
+    const conf = planejamento.filter(p => p.confirmado && !idsRegistrados.has(p.id));
+    const todas = planejamento.filter(p => p.confirmado);
+
+    const sel = document.getElementById('horas-tarefa-plan');
+    sel.innerHTML = '<option value="">-- Selecione uma tarefa (opcional) --</option>';
+    conf.forEach(t => {
+      const o = document.createElement('option');
+      o.value = t.id; o.textContent = `${t.clienteNome} - ${t.atividade} (${t.horas}h)`;
+      sel.appendChild(o);
+    });
+    const cont = document.getElementById('tarefas-confirmadas-cards');
+    if (!conf.length) {
+      document.getElementById('aviso-tarefas').textContent =
+        todas.length ? `Todas as ${todas.length} tarefa(s) confirmada(s) já foram registradas.` : 'Nenhuma tarefa confirmada.';
+      cont.innerHTML = ''; return;
+    }
+    document.getElementById('aviso-tarefas').textContent = `${conf.length} tarefa(s) pendente(s) de registro.`;
+    cont.innerHTML = conf.map(t => `
+      <div class="card-item" onclick="selecionarTarefaRapida(${t.id})">
+        <div style="font-weight:600;margin-bottom:8px">${t.atividade}</div>
+        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">${t.clienteNome}</div>
+        <div style="display:flex;justify-content:space-between;font-size:12px">
+          <span>${t.horas}h</span><span style="font-weight:600">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</span>
+        </div>
+      </div>`).join('');
+  }
+
+  function selecionarTarefaRapida(id) {
   
   function selecionarTarefaRapida(id) {
     document.getElementById('horas-tarefa-plan').value = id; preencherComTarefa();
