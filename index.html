@@ -165,8 +165,15 @@
       cursor: pointer; transition: box-shadow .15s, border-color .15s, transform .15s;
     }
     .home-agenda-item:hover { border-color: var(--gold); box-shadow: 0 6px 18px rgba(232,184,75,.18); transform: translateY(-2px); }
-    .home-agenda-item.registrado { cursor: default; opacity: .65; }
+   .home-agenda-item.registrado { cursor: default; opacity: .65; }
     .home-agenda-item.registrado:hover { border-color: var(--border); box-shadow: none; transform: none; }
+    .home-agenda-item.item-atrasada { border-left: 5px solid #ef4444; background: #fef2f2; }
+    .home-agenda-item.item-atrasada .home-agenda-hora { background: #fee2e2; color: #b91c1c; }
+    .home-agenda-item.item-hoje { border-left: 5px solid #3b82f6; background: #eff6ff; }
+    .home-agenda-item.item-hoje .home-agenda-hora { background: #dbeafe; color: #1d4ed8; }
+    .home-agenda-item.item-concluida { border-left: 5px solid #10b981; background: #f0fdf4; opacity: .75; }
+    .home-agenda-item.item-concluida .home-agenda-hora { background: #d1fae5; color: #047857; }
+    .home-agenda-vazio-mini { text-align: center; padding: 1.2rem 1rem; color: var(--text-secondary); font-size: 12px; background: #fff; border: 1px dashed var(--border); border-radius: 12px; }
     .home-agenda-hora {
       width: 64px; flex-shrink: 0; text-align: center; font-weight: 700; font-size: 13px; color: var(--navy);
       background: var(--surface-1); border-radius: 8px; padding: 8px 4px; line-height: 1.3;
@@ -587,8 +594,19 @@
     .agenda-list-event-info .ev-cliente { font-weight: 600; font-size: 13px; }
     .agenda-list-event-info .ev-atividade { font-size: 12px; color: var(--text-secondary); }
     .agenda-list-event-meta { text-align: right; white-space: nowrap; }
-    .agenda-list-event-meta .ev-horas { font-size: 13px; font-weight: 600; }
+   .agenda-list-event-meta .ev-horas { font-size: 13px; font-weight: 600; }
     .agenda-list-event-meta .ev-valor { font-size: 11px; color: var(--text-secondary); }
+
+    .agenda-turno-bloco { margin-bottom: 24px; }
+    .agenda-turno-titulo {
+      display: flex; align-items: baseline; gap: 8px; font-size: 15px; font-weight: 700;
+      color: var(--navy); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--gold);
+    }
+    .agenda-turno-titulo small { font-weight: 500; font-size: 11px; color: var(--text-secondary); }
+    .agenda-turno-vazio { text-align: center; padding: 1rem; color: var(--text-secondary); font-size: 12px; background: #fafafa; border: 1px dashed var(--border); border-radius: 8px; }
+    .agenda-list-event.turno-atrasada { border-left: 4px solid #ef4444; background: #fef2f2; }
+    .agenda-list-event.turno-hoje { border-left: 4px solid #3b82f6; background: #eff6ff; }
+    .agenda-list-event.turno-concluida { border-left: 4px solid #10b981; background: #f0fdf4; opacity: .8; }
 
     /* Painel de detalhe do dia */
     .detalhe-dia-panel {
@@ -794,13 +812,27 @@
         <h2>Bem-vinda, Luana 👋</h2>
         <p id="home-data-hora"></p>
     </div>
-      <div class="home-stats" id="home-stats"></div>
+
       <div class="home-agenda">
         <div class="home-agenda-header">
-          <h3><i class="ti ti-calendar-event"></i> Programado para hoje</h3>
+          <h3><i class="ti ti-calendar-event"></i> Programação do dia</h3>
           <button class="home-agenda-link" onclick="irPara('planejamento')">Ver planejamento completo <i class="ti ti-arrow-right"></i></button>
         </div>
         <div id="home-agenda-lista"></div>
+      </div>
+
+      <div class="home-agenda">
+        <div class="home-agenda-header">
+          <h3><i class="ti ti-alert-triangle" style="color:#ef4444"></i> Tarefas atrasadas</h3>
+        </div>
+        <div id="home-agenda-atrasadas"></div>
+      </div>
+
+      <div class="home-agenda">
+        <div class="home-agenda-header">
+          <h3><i class="ti ti-list-check" style="color:#6d28d9"></i> Ainda não registradas/concluídas</h3>
+        </div>
+        <div id="home-agenda-pendentes"></div>
       </div>
     </div>
   </div>
@@ -1150,10 +1182,10 @@
       </div>
 
       <!-- Legenda -->
-      <div class="agenda-legenda">
-        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#252538"></div>Tedesco</div>
-        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#10b981"></div>Maxicorte</div>
-        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#f59e0b"></div>Qualytool</div>
+         <div class="agenda-legenda">
+        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#800020"></div>Tedesco</div>
+        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#FF6B00"></div>Maxicorte</div>
+        <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#000000"></div>Qualytool</div>
         <div class="agenda-legenda-item"><div class="agenda-legenda-dot" style="background:#6b7280"></div>Livre</div>
       </div>
 
@@ -1220,11 +1252,11 @@
       <span style="font-size:12px;color:var(--text-secondary)">Indicadores calculados com base no planejamento e nos registros de horas do ano selecionado</span>
     </div>
 
+    <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
+    <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
+
     <!-- Indicadores: Funil Anual + Mês Atual -->
     <div class="dash-indicadores" id="dash-indicadores" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"></div>
-
-    <!-- 3 KPIs únicos -->
-    <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
 
     <!-- Modalidade + Donut -->
     <div class="dash-row" style="margin-bottom:1rem">
@@ -1238,6 +1270,11 @@
       </div>
     </div>
 
+    <!-- Tabela resumo mensal (substitui o gráfico de evolução de faturamento mensal) -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header"><i class="ti ti-table"></i> Resumo Mensal — Planejado × Faturado</div>
+      <div id="dash-tabela-mensal"></div>
+    </div>
     <!-- Evolução mensal (largura total) -->
     <div class="card" style="margin-bottom:1rem">
       <div class="card-header"><i class="ti ti-chart-bar"></i> Evolução Mensal — Planejado × Confirmado × Faturado</div>
@@ -1259,9 +1296,8 @@
       </div>
     </div>
 
-    <!-- elementos ocultos mantidos para não quebrar referências JS -->
+  <!-- elementos ocultos mantidos para não quebrar referências JS -->
     <tbody id="tbody-mensal" style="display:none"></tbody>
-    <div id="dash-tabela-mensal" style="display:none"></div>
     <div id="dash-planejado-clientes" style="display:none"></div>
 
     <!-- ===== REGISTRO HISTÓRICO MANUAL ===== -->
@@ -1660,15 +1696,17 @@
 
   function renderizarClientes() {
     document.getElementById('lista-clientes').innerHTML = clientes.map(c => `
-      <div class="card-item">
-        <div style="font-weight:600;margin-bottom:8px">${c.nome}</div>
+      <div class="card-item" style="border-left:4px solid ${corCliente(c.nome)}">
+        <div style="font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:7px">
+          <span style="width:10px;height:10px;border-radius:50%;background:${corCliente(c.nome)};flex-shrink:0"></span>
+          ${c.nome}
+        </div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${c.projeto}</div>
         <div style="font-weight:500;margin-bottom:8px">R$ ${c.taxa.toFixed(2).replace('.',',')}/h</div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
         <button class="btn btn-icon btn-danger" onclick="deletarCliente(${c.id})" title="Remover"><i class="ti ti-trash"></i></button>
       </div>`).join('');
-  }
-
+}
   function deletarCliente(id) {
     if (!confirm('Remover este cliente?')) return;
     clientes = clientes.filter(c => c.id !== id);
@@ -2152,6 +2190,7 @@
   }
 
   function renderizarHome() {
+    function renderizarHome() {
     const agora = new Date();
     const diasSemana = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
     const meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
@@ -2159,34 +2198,10 @@
     const el = document.getElementById('home-data-hora');
     if (el) el.textContent = dataHora;
 
-    // Stats rápidos
     const hoje = agora.toISOString().split('T')[0];
-    const mesAtual = agora.getMonth();
-    const anoAtual = agora.getFullYear();
-    const prefMes  = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}`;
-
-    const idsReg     = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
-    const planPend   = planejamento.filter(p => p.confirmado && !idsReg.has(p.id)).length;
-    const anotPend   = anotacoes.filter(a => !a.concluida).length;
-    const anotHoje   = anotacoes.filter(a => !a.concluida && a.data === hoje).length;
-    const cobPend    = tarefas.filter(t => !t.cobrado);
-    const vPend      = cobPend.reduce((s,t) => s + (parseFloat(t.valor)||0), 0);
-    const hMes       = tarefas.filter(t => t.data.startsWith(prefMes)).reduce((s,t) => s + (parseFloat(t.horas)||0), 0);
-
-    const stats = document.getElementById('home-stats');
-    if (stats) stats.innerHTML = [
-      { val: planPend,               label: 'Tarefas p/ registrar', cor: planPend > 0 ? '#E8B84B' : '#10b981', tab: 'horas' },
-      { val: anotHoje,               label: 'Anotações para hoje',  cor: anotHoje > 0 ? '#f59e0b' : '#10b981', tab: 'anotacoes' },
-      { val: anotPend,               label: 'Pendências abertas',   cor: anotPend > 0 ? '#6d28d9' : '#10b981', tab: 'anotacoes' },
-      { val: `R$ ${fmtVal(vPend)}`,  label: 'Valor p/ cobrar',      cor: vPend    > 0 ? '#252538' : '#10b981', tab: 'cobranca' },
-      { val: `${hMes.toFixed(1)}h`,  label: 'Horas este mês',       cor: '#252538',                            tab: 'dashboard' },
-    ].map(s => `
-      <div class="home-stat" onclick="irPara('${s.tab}')" style="cursor:pointer;transition:box-shadow .15s,border-color .15s" onmouseenter="this.style.borderColor='var(--gold)';this.style.boxShadow='0 4px 14px rgba(232,184,75,.22)'" onmouseleave="this.style.borderColor='';this.style.boxShadow=''">
-        <div class="home-stat-val" style="color:${s.cor}">${s.val}</div>
-        <div class="home-stat-label">${s.label}</div>
-      </div>`).join('');
-
     renderizarHomeAgendaDia(hoje);
+    renderizarHomeAtrasadas(hoje);
+    renderizarHomePendentes(hoje);
   }
 
   function renderizarHomeAgendaDia(hoje) {
@@ -2214,8 +2229,9 @@
       const registrado = idsReg.has(p.id);
       const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
       const clickAction = registrado ? "irPara('horas')" : `confirmarERegistrar(${p.id})`;
+      const destaque = registrado ? 'item-concluida' : 'item-hoje';
       return `
-      <div class="home-agenda-item ${registrado ? 'registrado' : ''}" onclick="${clickAction}">
+      <div class="home-agenda-item ${registrado ? 'registrado' : ''} ${destaque}" onclick="${clickAction}">
         <div class="home-agenda-hora">${p.entrada && p.saida ? `${p.entrada}<small>${p.saida}</small>` : '—'}</div>
         <div class="home-agenda-info">
           <div class="home-agenda-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
@@ -2226,105 +2242,66 @@
     }).join('');
   }
 
-  function filtrarPlan(filtro, ev) {
-    filtroPlanoAtual = filtro;
-    document.querySelectorAll('[onclick*="filtrarPlan"]').forEach(b => b.classList.remove('active'));
-    if (ev && ev.target) ev.target.classList.add('active');
-    renderizarPlanejamento();
-  }
+  /* Tarefas atrasadas: planejamento de dias anteriores ainda não registrado em horas */
+  function renderizarHomeAtrasadas(hoje) {
+    const cont = document.getElementById('home-agenda-atrasadas');
+    if (!cont) return;
 
-  function renderizarPlanejamento() {
-    const fCliente    = (document.getElementById('filtro-atv-cliente')?.value    || '');
-    const fModalidade = (document.getElementById('filtro-atv-modalidade')?.value || '');
-    const fDtIni      = (document.getElementById('filtro-atv-dt-ini')?.value     || '');
-    const fDtFim      = (document.getElementById('filtro-atv-dt-fim')?.value     || '');
-    // Oculta tarefas confirmadas que já foram registradas em horas
-    const idsRegistrados = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
-    let dados = planejamento.filter(p => !(p.confirmado && idsRegistrados.has(p.id)));
-    if (filtroPlanoAtual === 'Não confirmado') dados = dados.filter(p => !p.confirmado);
-    else if (filtroPlanoAtual === 'Confirmado') dados = dados.filter(p => p.confirmado);
-    if (fCliente)    dados = dados.filter(p => p.clienteId == fCliente);
-    if (fModalidade) dados = dados.filter(p => (p.modalidade || 'Presencial') === fModalidade);
-    if (fDtIni)      dados = dados.filter(p => p.inicio >= fDtIni);
-    if (fDtFim)      dados = dados.filter(p => p.inicio <= fDtFim);
-    dados = [...dados].sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+    const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
     const modIcon = m => m === 'Home Office' ? '🏠' : '🏢';
-    document.getElementById('tbody-plan').innerHTML = dados.map(p => {
-      const horas = parseFloat(p.horas) || 0;
-      const valor = parseFloat(p.valor) || 0;
-      return `
-      <tr data-plan-id="${p.id}">
-        <td style="text-align:center"><input type="checkbox" class="plan-chk" value="${p.id}" onchange="atualizarToolbarPlan()"></td>
-        <td>${p.clienteNome || '—'}</td>
-        <td>${fmtData(p.inicio)}${p.termino && p.termino !== p.inicio ? ' – '+fmtData(p.termino) : ''}</td>
-        <td>${p.entrada && p.saida ? p.entrada + ' – ' + p.saida : '—'}</td>
-        <td style="color:var(--text-secondary);font-size:12px">${p.atividade && p.atividade !== '—' ? p.atividade : '<em>sem pauta</em>'}</td>
-        <td style="white-space:nowrap">${modIcon(p.modalidade)} ${p.modalidade || 'Presencial'}</td>
-        <td>${horas > 0 ? horas.toFixed(1)+'h' : '—'}</td>
-        <td>R$ ${valor.toFixed(2).replace('.',',')}</td>
-        <td><span class="status-badge">${p.confirmado ? '✓ Confirmado' : '◯ Não confirmado'}</span></td>
-        <td>
-          <div class="btn-acao-row">
-            <button class="btn btn-icon" onclick="editarPlanejamento(${p.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-            ${!p.confirmado
-              ? `<button class="btn btn-icon btn-success" onclick="confirmarERegistrar(${p.id})" title="Confirmar"><i class="ti ti-check"></i></button>`
-              : `<button class="btn btn-icon" onclick="confirmarPlanejamento(${p.id})" title="Desconfirmar" style="background:#f59e0b;color:#fff"><i class="ti ti-rotate-clockwise"></i></button>`}
-            <button class="btn btn-icon btn-danger" onclick="deletarPlanejamento(${p.id})" title="Excluir"><i class="ti ti-trash"></i></button>
-          </div>
-        </td>
-      </tr>`;
-    }).join('');
-    atualizarToolbarPlan();
-  }
 
-  function atualizarDashboardPlan() {
-    const agora = new Date();
-    const prim = new Date(agora.getFullYear(), agora.getMonth(), 1);
-    const ult = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
-    const planMes = planejamento.filter(p => new Date(p.inicio) <= ult && new Date(p.termino) >= prim);
-    const totalH = planMes.reduce((s, p) => s + (parseFloat(p.horas)||0), 0);
-    const totalV = planMes.reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
-    const confirmV = planMes.filter(p => p.confirmado).reduce((s, p) => s + (parseFloat(p.valor)||0), 0);
-    let dias = 0;
-    for (let d = new Date(prim); d <= ult; d.setDate(d.getDate() + 1))
-      if (d.getDay() !== 0 && d.getDay() !== 6) dias++;
-    document.getElementById('dashboard-plan').innerHTML = `
-      <div class="dashboard-card"><div class="dashboard-card-label">Horas Previstas</div><div class="dashboard-card-value">${totalH.toFixed(1)}h</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Faturamento Estimado</div><div class="dashboard-card-value">R$ ${totalV.toFixed(2).replace('.',',')}</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Confirmado</div><div class="dashboard-card-value">R$ ${confirmV.toFixed(2).replace('.',',')}</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Dias Úteis</div><div class="dashboard-card-value">${dias}</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Média/dia</div><div class="dashboard-card-value">${dias > 0 ? (totalH / dias).toFixed(1) : 0}h</div></div>`;
-  }
+    const atrasadas = planejamento
+      .filter(p => (p.termino || p.inicio) < hoje && !idsReg.has(p.id))
+      .sort((a, b) => (a.inicio + (a.entrada||'')).localeCompare(b.inicio + (b.entrada||'')));
 
-  // ===== REGISTRAR HORAS =====
-  function preencherTarefasConfirmadas() {
-    // Mostra apenas confirmadas que ainda não tiveram horas registradas
-    const idsRegistrados = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
-    const conf = planejamento.filter(p => p.confirmado && !idsRegistrados.has(p.id));
-    const todas = planejamento.filter(p => p.confirmado);
-
-    const sel = document.getElementById('horas-tarefa-plan');
-    sel.innerHTML = '<option value="">-- Selecione uma tarefa (opcional) --</option>';
-    conf.forEach(t => {
-      const o = document.createElement('option');
-      o.value = t.id; o.textContent = `${t.clienteNome} - ${t.atividade} (${t.horas}h)`;
-      sel.appendChild(o);
-    });
-    const cont = document.getElementById('tarefas-confirmadas-cards');
-    if (!conf.length) {
-      document.getElementById('aviso-tarefas').textContent =
-        todas.length ? `Todas as ${todas.length} tarefa(s) confirmada(s) já foram registradas.` : 'Nenhuma tarefa confirmada.';
-      cont.innerHTML = ''; return;
+    if (atrasadas.length === 0) {
+      cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma tarefa atrasada. 🎉</div>`;
+      return;
     }
-    document.getElementById('aviso-tarefas').textContent = `${conf.length} tarefa(s) pendente(s) de registro.`;
-    cont.innerHTML = conf.map(t => `
-      <div class="card-item" onclick="selecionarTarefaRapida(${t.id})">
-        <div style="font-weight:600;margin-bottom:8px">${t.atividade}</div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">${t.clienteNome}</div>
-        <div style="display:flex;justify-content:space-between;font-size:12px">
-          <span>${t.horas}h</span><span style="font-weight:600">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</span>
+
+    cont.innerHTML = atrasadas.map(p => {
+      const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
+      return `
+      <div class="home-agenda-item item-atrasada" onclick="confirmarERegistrar(${p.id})">
+        <div class="home-agenda-hora">${fmtData(p.inicio)}${p.entrada ? `<small>${p.entrada}</small>` : ''}</div>
+        <div class="home-agenda-info">
+          <div class="home-agenda-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
+          <div class="home-agenda-pauta">${pauta}</div>
         </div>
-      </div>`).join('');
+        <span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>
+      </div>`;
+    }).join('');
+  }
+
+  /* Ainda não registradas/concluídas: pendências (anotações) em aberto, ordenadas por data */
+  function renderizarHomePendentes(hoje) {
+    const cont = document.getElementById('home-agenda-pendentes');
+    if (!cont) return;
+
+    const pendentes = anotacoes
+      .filter(a => !a.concluida)
+      .sort((a, b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+
+    if (pendentes.length === 0) {
+      cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma pendência em aberto. 🎉</div>`;
+      return;
+    }
+
+    cont.innerHTML = pendentes.map(a => {
+      const atrasada = a.data && a.data < hoje;
+      const ehHoje = a.data === hoje;
+      const destaque = atrasada ? 'item-atrasada' : (ehHoje ? 'item-hoje' : '');
+      return `
+      <div class="home-agenda-item ${destaque}" onclick="irPara('anotacoes')">
+        <div class="home-agenda-hora">${a.data ? `${fmtData(a.data)}${a.hora ? `<small>${a.hora}</small>` : ''}` : '—'}</div>
+        <div class="home-agenda-info">
+          <div class="home-agenda-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
+          <div class="home-agenda-pauta">${a.titulo}</div>
+        </div>
+        ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
+      </div>`;
+    }).join('');
+  }
   }
 
   function selecionarTarefaRapida(id) {
@@ -2518,9 +2495,8 @@
 
   // ===== AGENDA OUTLOOK =====
   function corCliente(nome) {
-    const m = { 'Tedesco': '#252538', 'Maxicorte': '#10b981', 'Qualytool': '#f59e0b', 'Livre': '#6b7280' };
+    const m = { 'Tedesco': '#800020', 'Maxicorte': '#FF6B00', 'Qualytool': '#000000', 'Livre': '#6b7280' };
     return m[nome] || '#252538';
-  }
 
   function isoData(d) {
     return d.getFullYear() + '-' +
@@ -2625,43 +2601,16 @@
   }
 
   /* ---- VISTA DIA ---- */
-  function renderizarDia(cont) {
+ function renderizarDia(cont) {
     const iso = isoData(agendaData);
     const hoje = hojeISO();
-    const diasNome = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
-    const mesNome = agendaData.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
     document.getElementById('agenda-titulo').textContent =
       agendaData.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
     const wrap = document.createElement('div');
-    wrap.className = 'outlook-day-view';
+    wrap.className = 'agenda-list-view';
 
-    // Header
-    const hdr = document.createElement('div');
-    hdr.className = 'outlook-day-header';
-    hdr.innerHTML = `<div class="col-time"></div>
-      <div class="col-day">
-        <div class="day-nome">${agendaData.toLocaleDateString('pt-BR',{weekday:'long'}).toUpperCase()}</div>
-        <div class="day-num${iso === hoje ? ' hoje' : ''}">${agendaData.getDate()}</div>
-      </div>`;
-    wrap.appendChild(hdr);
-
-    // Grid
-    const gridWrap = document.createElement('div');
-    gridWrap.className = 'outlook-timegrid-wrap';
-    const grid = document.createElement('div');
-    grid.className = 'outlook-timegrid';
-
-    grid.appendChild(buildTimegridSlots());
-
-    const dayCols = document.createElement('div');
-    dayCols.className = 'days-cols';
-    const dayCol = document.createElement('div');
-    dayCol.className = 'day-col';
-    const rows = buildDayRows();
-    dayCol.appendChild(rows);
-
-    // Anotações pendentes do dia (banner acima do timegrid)
+    // Anotações pendentes do dia (banner)
     const anotsD = anotsPendDia(iso);
     if (anotsD.length) {
       const banner = document.createElement('div');
@@ -2677,35 +2626,77 @@
       wrap.appendChild(banner);
     }
 
-    // Tarefas sem horário definido → cards "dia inteiro"
-    const semHorario = obterPlanFiltrado().filter(p => p.inicio <= iso && (p.termino || p.inicio) >= iso && !(p.entrada && p.saida));
-    if (semHorario.length) {
-      const allDay = document.createElement('div');
-      allDay.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;padding:6px 8px;border-bottom:1px solid var(--border);background:#f8f9fa';
-      semHorario.forEach(p => {
-        const chip = document.createElement('div');
-        chip.style.cssText = `background:${corCliente(p.clienteNome)};color:#fff;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;font-weight:500`;
-        chip.title = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta';
-        chip.innerHTML = `📅 <strong>${p.clienteNome}</strong>${p.atividade && p.atividade !== '—' ? ' · ' + p.atividade : ''}`;
-        chip.onclick = () => mostrarDetalhe(p.inicio);
-        allDay.appendChild(chip);
-      });
-      wrap.appendChild(allDay);
-    }
+    wrap.appendChild(buildTurnosDoDia(iso, hoje));
 
-    // Eventos do dia com horário
-    obterPlanFiltrado().filter(p => p.inicio === iso && p.entrada && p.saida).forEach(p => posicionarEvento(rows, p));
-
-    // Linha agora
-    if (iso === hoje) addNowLine(rows);
-
-    dayCols.appendChild(dayCol);
-    grid.appendChild(dayCols);
-    gridWrap.appendChild(grid);
-    wrap.appendChild(gridWrap);
     cont.innerHTML = '';
     cont.appendChild(wrap);
-    scrollParaHoraAtual(gridWrap);
+  }
+
+  /* ---- Constrói os blocos de turno (Manhã / Tarde) para um dia ---- */
+  function buildTurnosDoDia(iso, hoje) {
+    const container = document.createElement('div');
+
+    const doDia = obterPlanFiltrado().filter(p => p.inicio <= iso && (p.termino || p.inicio) >= iso);
+    const comHorario = doDia.filter(p => p.entrada && p.saida).sort((a,b) => a.entrada.localeCompare(b.entrada));
+    const semHorario = doDia.filter(p => !(p.entrada && p.saida));
+
+    const manha = comHorario.filter(p => p.entrada <= '11:59');
+    const tarde = comHorario.filter(p => p.entrada >= '12:00');
+    // Tarefas sem horário definido são exibidas ao final do turno da manhã
+    manha.push(...semHorario);
+
+    container.appendChild(buildTurnoBloco('🌅 Manhã', 'até 11:59', manha, iso, hoje));
+    container.appendChild(buildTurnoBloco('🌇 Tarde', 'a partir de 12:00', tarde, iso, hoje));
+
+    return container;
+  }
+
+  function buildTurnoBloco(titulo, subtitulo, eventos, iso, hoje) {
+    const bloco = document.createElement('div');
+    bloco.className = 'agenda-turno-bloco';
+
+    const hdr = document.createElement('div');
+    hdr.className = 'agenda-turno-titulo';
+    hdr.innerHTML = `<span>${titulo}</span><small>${subtitulo}</small>`;
+    bloco.appendChild(hdr);
+
+    if (!eventos.length) {
+      const vazio = document.createElement('div');
+      vazio.className = 'agenda-turno-vazio';
+      vazio.textContent = 'Nenhuma tarefa neste turno.';
+      bloco.appendChild(vazio);
+      return bloco;
+    }
+
+    eventos.forEach(ev => {
+      const evDiv = document.createElement('div');
+      const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
+      const registrado = idsReg.has(ev.id);
+      const atrasada = (ev.termino || ev.inicio) < hoje && !registrado;
+      const ehHoje = (ev.termino || ev.inicio) >= hoje && ev.inicio <= hoje;
+      evDiv.className = 'agenda-list-event' + (atrasada ? ' turno-atrasada' : ehHoje ? ' turno-hoje' : '') + (registrado ? ' turno-concluida' : '');
+      evDiv.onclick = () => mostrarDetalhe(ev.inicio);
+      const bar = document.createElement('div');
+      bar.className = 'agenda-list-event-bar';
+      bar.style.background = corCliente(ev.clienteNome);
+      const body = document.createElement('div');
+      body.className = 'agenda-list-event-body';
+      const pauta = ev.atividade && ev.atividade !== '—' ? ev.atividade : 'Sem pauta definida';
+      body.innerHTML = `
+        <div class="agenda-list-event-hora">${ev.entrada && ev.saida ? `${ev.entrada} – ${ev.saida}` : '— sem horário —'}</div>
+        <div class="agenda-list-event-info">
+          <div class="ev-cliente" style="color:${corCliente(ev.clienteNome)}">${ev.clienteNome}</div>
+          <div class="ev-atividade">${pauta}</div>
+        </div>
+        <div class="agenda-list-event-meta">
+          ${registrado ? '<span class="home-agenda-status feito">✓ Registrado</span>' : atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
+        </div>`;
+      evDiv.appendChild(bar);
+      evDiv.appendChild(body);
+      bloco.appendChild(evDiv);
+    });
+
+    return bloco;
   }
 
   /* ---- VISTA SEMANA ---- */
@@ -2971,7 +2962,14 @@
         div.appendChild(aDiv);
       });
 
-      eventos.forEach(ev => {
+// Eventos agrupados por turno (Manhã até 11:59 / Tarde a partir de 12:00)
+      const comHorarioL = eventos.filter(e => e.entrada && e.saida).sort((a,b) => a.entrada.localeCompare(b.entrada));
+      const semHorarioL = eventos.filter(e => !(e.entrada && e.saida));
+      const manhaL = comHorarioL.filter(e => e.entrada <= '11:59');
+      const tardeL = comHorarioL.filter(e => e.entrada >= '12:00');
+      manhaL.push(...semHorarioL); // sem horário → final do turno da manhã
+
+      function montarEventoLista(ev) {
         const evDiv = document.createElement('div');
         evDiv.className = 'agenda-list-event';
         evDiv.onclick = () => mostrarDetalhe(iso);
@@ -2981,19 +2979,36 @@
         const body = document.createElement('div');
         body.className = 'agenda-list-event-body';
         body.innerHTML = `
-          <div class="agenda-list-event-hora">${ev.entrada} – ${ev.saida}</div>
+          <div class="agenda-list-event-hora">${ev.entrada && ev.saida ? `${ev.entrada} – ${ev.saida}` : '— sem horário —'}</div>
           <div class="agenda-list-event-info">
             <div class="ev-cliente" style="color:${corCliente(ev.clienteNome)}">${ev.clienteNome}</div>
             <div class="ev-atividade">${ev.atividade}</div>
           </div>
           <div class="agenda-list-event-meta">
-            <div class="ev-horas">${ev.horas}h</div>
-            <div class="ev-valor">R$ ${ev.valor.toFixed(2).replace('.',',')}</div>
+            <div class="ev-horas">${ev.horas ? ev.horas+'h' : ''}</div>
+            <div class="ev-valor">${ev.valor ? 'R$ '+ev.valor.toFixed(2).replace('.',',') : ''}</div>
           </div>`;
         evDiv.appendChild(bar);
         evDiv.appendChild(body);
-        div.appendChild(evDiv);
-      });
+        return evDiv;
+      }
+
+      if (manhaL.length) {
+        const turnoHdr = document.createElement('div');
+        turnoHdr.className = 'agenda-turno-titulo';
+        turnoHdr.style.fontSize = '12px';
+        turnoHdr.innerHTML = '<span>🌅 Manhã</span><small>até 11:59</small>';
+        div.appendChild(turnoHdr);
+        manhaL.forEach(ev => div.appendChild(montarEventoLista(ev)));
+      }
+      if (tardeL.length) {
+        const turnoHdr = document.createElement('div');
+        turnoHdr.className = 'agenda-turno-titulo';
+        turnoHdr.style.fontSize = '12px';
+        turnoHdr.innerHTML = '<span>🌇 Tarde</span><small>a partir de 12:00</small>';
+        div.appendChild(turnoHdr);
+        tardeL.forEach(ev => div.appendChild(montarEventoLista(ev)));
+      }
 
       wrap.appendChild(div);
     });
@@ -4009,7 +4024,7 @@ ${faturas}
   }
 
   // ===== DASHBOARD =====
-  let chartEvolucao = null, chartClientes = null, chartHoras = null, chartHistorico = null;
+ let chartClientes = null, chartHoras = null, chartHistorico = null;
   let historico = lsGet('historico');
 
   function renderizarDashboard() {
@@ -4098,16 +4113,13 @@ ${faturas}
         </div>
       </div>`).join('');
 
-    // ── KPIs secundários ─────────────────────────────────────
+  // ── KPIs principais ─────────────────────────────────────
     const totalPendGeral = tarefas.filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0);
-    const txConversao    = vPlan > 0 ? (vFat / vPlan * 100) : 0;
-    const vHistAnual     = historico.filter(h=>h.ano===ano).reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
-    const vFatAnual      = tarFat.reduce((s,t)=>s+t.valor,0) + vHistAnual;
     document.getElementById('dash-kpis').innerHTML = [
-      { label:'Faturamento Anual ' + ano, value:'R$ '+fmtVal(vFatAnual), sub: `${tarFat.length} registros faturados`, cor:'#10b981' },
-      { label:'Pendente cobrança',        value:'R$ '+fmtVal(vPend),     sub: hReal.toFixed(1)+'h realizadas não cobradas', cor:'#ef4444' },
-      { label:'Pendente geral',           value:'R$ '+fmtVal(totalPendGeral), sub: 'Todos os períodos', cor:'#f59e0b' },
-      { label:'Conversão plan.→fat.',     value: txConversao.toFixed(0)+'%',  sub: vPlan>0?'do planejado virou faturamento':'Sem planejamento', cor: txConversao>=80?'#10b981':txConversao>=50?'#E8B84B':'#ef4444' },
+      { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Horas realizadas ainda não faturadas', cor:'#ef4444' },
+      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#252538' },
+      { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
+      { label:'% Atingido do Planejamento',    value: pctMes.toFixed(0)+'%',       sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctMes>=80?'#10b981':pctMes>=50?'#E8B84B':'#ef4444' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
@@ -4174,41 +4186,15 @@ ${faturas}
       </div>`;
 
     // ── Gráfico evolução ──────────────────────────────────────
-    const ctxEv = document.getElementById('chart-evolucao').getContext('2d');
-    if (chartEvolucao) chartEvolucao.destroy();
-    chartEvolucao = new Chart(ctxEv, {
-      type: 'bar',
-      data: {
-        labels: MESES,
-        datasets: [
-          { label:'Planejado',  data:dadosMensais.map(d=>d.vPlan), backgroundColor:'rgba(37,37,56,0.15)', borderRadius:4, order:3 },
-          { label:'Confirmado', data:dadosMensais.map(d=>d.vConf), backgroundColor:'rgba(232,184,75,0.55)', borderRadius:4, order:2 },
-          { label:'Faturado',   data:dadosMensais.map(d=>d.vFat),  backgroundColor:'#E8B84B', borderRadius:4, order:1 },
-        ]
-      },
-      options:{
-        responsive:true,
-        plugins:{
-          legend:{ position:'bottom', labels:{ boxWidth:12, font:{ size:11 } } },
-          tooltip:{ callbacks:{ label: ctx => ` ${ctx.dataset.label}: R$ ${fmtVal(ctx.parsed.y)}` } }
-        },
-        scales:{
-          x:{ grid:{ display:false } },
-          y:{ grid:{ color:'#f0f0f0' }, ticks:{ callback: v => 'R$'+formatK(v) } }
-        }
-      }
-    });
-
-    // ── Gráfico donut por cliente ─────────────────────────────
+  // ── Gráfico donut por cliente ─────────────────────────────
     const porCli = {};
     tarAno.forEach(t => { porCli[t.clienteNome]=(porCli[t.clienteNome]||0)+t.valor; });
     const ctxCl = document.getElementById('chart-clientes').getContext('2d');
     if (chartClientes) chartClientes.destroy();
-    const coresCli = ['#252538','#E8B84B','#10b981','#f59e0b','#6b7280','#3b82f6','#ec4899'];
     chartClientes = new Chart(ctxCl, {
       type:'doughnut',
       data:{ labels:Object.keys(porCli),
-        datasets:[{ data:Object.values(porCli), backgroundColor:coresCli, hoverOffset:6, borderWidth:2 }] },
+        datasets:[{ data:Object.values(porCli), backgroundColor:Object.keys(porCli).map(corCliente), hoverOffset:6, borderWidth:2 }] },
       options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{ size:11 } } } }, cutout:'62%' }
     });
 
@@ -4266,13 +4252,9 @@ ${faturas}
         + '<span style="font-size:15px;font-weight:700;color:' + cor + '">' + valor + '</span>'
         + '</div>';
     }
-    const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
+const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const totConf = dadosMensais.reduce((s,d)=>s+d.vConf,0);
     const totFat  = dadosMensais.reduce((s,d)=>s+d.vFat,0);
-    document.getElementById('dash-val-evolucao').innerHTML =
-      valChip('Planejado','R$ '+fmtVal(totPlan),'#252538') +
-      valChip('Confirmado','R$ '+fmtVal(totConf),'#c49a28') +
-      valChip('Faturado','R$ '+fmtVal(totFat),'#E8B84B');
 
     const totHPlan = dadosMensais.reduce((s,d)=>s+d.hPlan,0);
     const totHConf = dadosMensais.reduce((s,d)=>s+d.hConf,0);
@@ -4313,7 +4295,7 @@ ${faturas}
 
     // ── Tabela mensal com drill-down por cliente ──────────────
     try {
-      const CORES_CLI = { 'Tedesco':'#252538','Maxicorte':'#10b981','Qualytool':'#f59e0b','Livre':'#6b7280' };
+const CORES_CLI = { 'Tedesco':'#800020','Maxicorte':'#FF6B00','Qualytool':'#000000','Livre':'#6b7280' };
       const CORES_FALLBACK = ['#3730a3','#2563eb','#7c3aed','#059669','#ea580c','#0891b2'];
       const mapaCorCli = {};
       let idxCor = 0;
@@ -4436,7 +4418,7 @@ ${faturas}
       }
     });
 
-    const coresCliMap = { 'Tedesco':'#252538','Maxicorte':'#10b981','Qualytool':'#f59e0b','Livre':'#6b7280' };
+   const coresCliMap = { 'Tedesco':'#800020','Maxicorte':'#FF6B00','Qualytool':'#000000','Livre':'#6b7280' };
     const coresFallback = ['#3730a3','#2563eb','#7c3aed','#059669','#ea580c','#0891b2'];
     let cIdx = 0;
     const linhasCli = Object.entries(porCliTabela).sort((a,b) => b[1].vPlan - a[1].vPlan).map(([nome, d]) => {
