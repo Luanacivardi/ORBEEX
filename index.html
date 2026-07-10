@@ -4210,9 +4210,9 @@ ${faturas}
     const planMes     = planejamento.filter(p => p.inicio.startsWith(prefMes));
     const idsRegMes   = new Set(tarMes.map(t => t.planejamentoId).filter(Boolean));
     // planejamento não registrado ainda + todas as tarefas do mês
-     const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const vPlanMes    = planMes.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const vPlanMes    = vPlanPend + vTarMesTot;
     const vConfMes    = planMes.filter(p=>p.confirmado).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
     const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
@@ -4288,12 +4288,14 @@ ${faturas}
       const histM = historico.filter(h => h.ano === ano && h.mes === m+1);
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
+      const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
+      const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
       return {
         mes:   MESES[m],
-        hPlan: pM .reduce((s,p)=>s+p.horas,0),
+        hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
         hConf: pMC.reduce((s,p)=>s+p.horas,0),
         hReal: tM .reduce((s,t)=>s+t.horas,0) + hHistM,
-        vPlan: pM .reduce((s,p)=>s+p.valor,0),
+        vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0),
         vConf: pMC.reduce((s,p)=>s+p.valor,0),
         vFat:  tM .filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0) + vHistM,
         vPend: tM .filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0),
