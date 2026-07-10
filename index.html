@@ -4474,20 +4474,29 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         var isMesAt  = (m === mesAtual && ano === anoAtual);
         var did      = 'dd-' + m;
 
-        // sub-linhas por cliente
+      // sub-linhas por cliente
         var cliMes = {};
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref); }).forEach(function(p) {
+        var idsRegPref = new Set(
+          tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); })
+                .map(function(t){ return t.planejamentoId; }).filter(Boolean)
+        );
+        // Previsto por cliente = planejamento ainda não registrado + tudo já registrado (mesma lógica do total do mês)
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegPref.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vPlan += parseFloat(p.valor) || 0;
-          if (p.confirmado) cliMes[n].vConf += parseFloat(p.valor) || 0;
         });
-        tarAno.filter(function(t){ return t.data && t.data.startsWith(pref) && t.cobrado; }).forEach(function(t) {
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado; }).forEach(function(p) {
+          var n = p.clienteNome || 'Sem cliente';
+          if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
+          cliMes[n].vConf += parseFloat(p.valor) || 0;
+        });
+        tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); }).forEach(function(t) {
           var n = t.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
-          cliMes[n].vFat += parseFloat(t.valor) || 0;
+          cliMes[n].vPlan += parseFloat(t.valor) || 0;
+          if (t.cobrado) cliMes[n].vFat += parseFloat(t.valor) || 0;
         });
-
         var subLinhas = '';
         Object.keys(cliMes).forEach(function(nome) {
           var cv = cliMes[nome];
