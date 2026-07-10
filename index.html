@@ -4183,15 +4183,18 @@ ${faturas}
     const hHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
     const vHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
 
+// Planejado do ano = planejamento ainda não registrado + tudo já registrado (inclusive lançado direto) + histórico manual
     const idsRegAno   = new Set(tarAno.map(t => t.planejamentoId).filter(Boolean));
     const planAnoPend = planAno.filter(p => !idsRegAno.has(p.id));
+    // Confirmado = planejamento confirmado ainda não registrado + tudo já registrado (uma hora registrada já é "confirmada")
+    const planConfPend = planConf.filter(p => !idsRegAno.has(p.id));
 
     const hPlan  = planAnoPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
-    const hConf  = planConf.reduce((s,p) => s + p.horas, 0) + hHistAno;
+    const hConf  = planConfPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
     const hReal  = tarAno  .reduce((s,t) => s + t.horas, 0) + hHistAno;
 
     const vPlan  = planAnoPend.reduce((s,p) => s + p.valor, 0) + tarAno.reduce((s,t) => s + t.valor, 0) + vHistAno;
-    const vConf  = planConf.reduce((s,p) => s + p.valor, 0) + vHistAno;
+    const vConf  = planConfPend.reduce((s,p) => s + p.valor, 0) + tarAno.reduce((s,t) => s + t.valor, 0) + vHistAno;
     const vFat   = tarFat  .reduce((s,t) => s + t.valor, 0) + vHistAno;
     const vPend  = tarAno  .filter(t=>!t.cobrado).reduce((s,t) => s + t.valor, 0);
 
@@ -4207,7 +4210,7 @@ ${faturas}
     const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
     const vPlanMes    = vPlanPend + vTarMesTot;
-    const vConfMes    = planMes.filter(p=>p.confirmado).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+   const vConfMes    = planMes.filter(p=>p.confirmado && !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + vTarMesTot;
     const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
     const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
 
@@ -4282,20 +4285,20 @@ ${faturas}
       const histM = historico.filter(h => h.ano === ano && h.mes === m+1);
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
-      const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
+   const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
       const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
-     return {
+      const pMCPendente = pMC.filter(p => !idsRegM.has(p.id));
+      return {
         mes:   MESES[m],
         hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
-        hConf: pMC.reduce((s,p)=>s+p.horas,0) + hHistM,
+        hConf: pMCPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
         hReal: tM .reduce((s,t)=>s+t.horas,0) + hHistM,
         vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM,
-        vConf: pMC.reduce((s,p)=>s+p.valor,0) + vHistM,
+        vConf: pMCPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM,
         vFat:  tM .filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0) + vHistM,
         vPend: tM .filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0),
       };
     });
-
    // ── Gráfico horas ─────────────────────────────────────────
     const ctxH = document.getElementById('chart-horas').getContext('2d');
     if (chartHoras) chartHoras.destroy();
@@ -4425,15 +4428,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
                 .map(function(t){ return t.planejamentoId; }).filter(Boolean)
         );
         // Previsto por cliente = planejamento ainda não registrado + tudo já registrado (mesma lógica do total do mês)
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegPref.has(p.id); }).forEach(function(p) {
-          var n = p.clienteNome || 'Sem cliente';
-          if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
-          cliMes[n].vPlan += parseFloat(p.valor) || 0;
-        });
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado; }).forEach(function(p) {
+       planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado && !idsRegPref.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vConf += parseFloat(p.valor) || 0;
+        });
+        tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); }).forEach(function(t) {
+          var n = t.clienteNome || 'Sem cliente';
+          if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
+          cliMes[n].vPlan += parseFloat(t.valor) || 0;
+          cliMes[n].vConf += parseFloat(t.valor) || 0;
+          if (t.cobrado) cliMes[n].vFat += parseFloat(t.valor) || 0;
         });
             tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); }).forEach(function(t) {
           var n = t.clienteNome || 'Sem cliente';
