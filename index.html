@@ -4210,9 +4210,9 @@ ${faturas}
     const planMes     = planejamento.filter(p => p.inicio.startsWith(prefMes));
     const idsRegMes   = new Set(tarMes.map(t => t.planejamentoId).filter(Boolean));
     // planejamento não registrado ainda + todas as tarefas do mês
-    const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+     const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-     const vPlanMes    = vPlanPend + vTarMesTot;
+    const vPlanMes    = planMes.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vConfMes    = planMes.filter(p=>p.confirmado).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
     const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
