@@ -1242,20 +1242,8 @@
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
     <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
 
-    <!-- Indicadores: Funil Anual + Mês Atual -->
+   <!-- Indicadores: Funil Anual + Mês Atual -->
     <div class="dash-indicadores" id="dash-indicadores" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"></div>
-
-    <!-- Modalidade + Donut -->
-    <div class="dash-row" style="margin-bottom:1rem">
-      <div class="card" style="flex:1;min-width:220px">
-        <div class="card-header"><i class="ti ti-building"></i> Modalidade</div>
-        <div id="dash-modalidade"></div>
-      </div>
-      <div class="card dash-card-narrow">
-        <div class="card-header"><i class="ti ti-chart-donut"></i> Por Cliente (Realizado)</div>
-        <canvas id="chart-clientes" height="180"></canvas>
-      </div>
-    </div>
 
     <!-- Tabela resumo mensal (substitui o gráfico de evolução de faturamento mensal) -->
     <div class="card" style="margin-bottom:1rem">
@@ -4175,7 +4163,7 @@ ${faturas}
   }
 
   // ===== DASHBOARD =====
- let chartClientes = null, chartHoras = null, chartHistorico = null;
+  let chartHoras = null, chartHistorico = null;
   let historico = lsGet('historico');
 
   function renderizarDashboard() {
@@ -4186,19 +4174,25 @@ ${faturas}
     const anoAtual = new Date().getFullYear();
     const prefAno  = String(ano) + '-';
 
-    // ── helpers ──────────────────────────────────────────────
+   // ── helpers ──────────────────────────────────────────────
     const planAno  = planejamento.filter(p => p.inicio.startsWith(prefAno));
     const planConf = planAno.filter(p => p.confirmado);
     const tarAno   = tarefas.filter(t => t.data.startsWith(prefAno));
     const tarFat   = tarAno.filter(t => t.cobrado);
+    const histAno  = historico.filter(h => h.ano === ano);
+    const hHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
+    const vHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
 
-    const hPlan  = planAno .reduce((s,p) => s + p.horas, 0);
-    const hConf  = planConf.reduce((s,p) => s + p.horas, 0);
-    const hReal  = tarAno  .reduce((s,t) => s + t.horas, 0);
+    const idsRegAno   = new Set(tarAno.map(t => t.planejamentoId).filter(Boolean));
+    const planAnoPend = planAno.filter(p => !idsRegAno.has(p.id));
 
-    const vPlan  = planAno .reduce((s,p) => s + p.valor, 0);
-    const vConf  = planConf.reduce((s,p) => s + p.valor, 0);
-    const vFat   = tarFat  .reduce((s,t) => s + t.valor, 0);
+    const hPlan  = planAnoPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
+    const hConf  = planConf.reduce((s,p) => s + p.horas, 0) + hHistAno;
+    const hReal  = tarAno  .reduce((s,t) => s + t.horas, 0) + hHistAno;
+
+    const vPlan  = planAnoPend.reduce((s,p) => s + p.valor, 0) + tarAno.reduce((s,t) => s + t.valor, 0) + vHistAno;
+    const vConf  = planConf.reduce((s,p) => s + p.valor, 0) + vHistAno;
+    const vFat   = tarFat  .reduce((s,t) => s + t.valor, 0) + vHistAno;
     const vPend  = tarAno  .filter(t=>!t.cobrado).reduce((s,t) => s + t.valor, 0);
 
     // mês corrente — realizadas
@@ -4290,69 +4284,19 @@ ${faturas}
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
       const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
       const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
-      return {
+     return {
         mes:   MESES[m],
         hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
-        hConf: pMC.reduce((s,p)=>s+p.horas,0),
+        hConf: pMC.reduce((s,p)=>s+p.horas,0) + hHistM,
         hReal: tM .reduce((s,t)=>s+t.horas,0) + hHistM,
-        vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0),
-        vConf: pMC.reduce((s,p)=>s+p.valor,0),
+        vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM,
+        vConf: pMC.reduce((s,p)=>s+p.valor,0) + vHistM,
         vFat:  tM .filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0) + vHistM,
         vPend: tM .filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0),
       };
     });
 
-    // ── Modalidade breakdown ──────────────────────────────────
-    const modPresP = tarAno.filter(t=>(t.modalidade||'Presencial')==='Presencial');
-    const modHomeP = tarAno.filter(t=>(t.modalidade||'Presencial')==='Home Office');
-    const modPresH = modPresP.reduce((s,t)=>s+(parseFloat(t.horas)||0),0);
-    const modHomeH = modHomeP.reduce((s,t)=>s+(parseFloat(t.horas)||0),0);
-    const modPresV = modPresP.filter(t=>t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const modHomeV = modHomeP.filter(t=>t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const modTotal = modPresH + modHomeH || 1;
-    const pctPres  = (modPresH / modTotal * 100).toFixed(0);
-    const pctHome  = (modHomeH / modTotal * 100).toFixed(0);
-    document.getElementById('dash-modalidade').innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
-            <span style="font-weight:600">🏢 Presencial</span>
-            <span style="color:var(--text-secondary)">${modPresH.toFixed(1)}h · R$ ${fmtVal(modPresV)}</span>
-          </div>
-          <div style="height:10px;background:var(--surface-1);border-radius:5px;overflow:hidden">
-            <div style="height:100%;width:${pctPres}%;background:#252538;border-radius:5px;transition:width .5s"></div>
-          </div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">${pctPres}% das horas registradas</div>
-        </div>
-        <div>
-          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:5px">
-            <span style="font-weight:600">🏠 Home Office</span>
-            <span style="color:var(--text-secondary)">${modHomeH.toFixed(1)}h · R$ ${fmtVal(modHomeV)}</span>
-          </div>
-          <div style="height:10px;background:var(--surface-1);border-radius:5px;overflow:hidden">
-            <div style="height:100%;width:${pctHome}%;background:#E8B84B;border-radius:5px;transition:width .5s"></div>
-          </div>
-          <div style="font-size:11px;color:var(--text-secondary);margin-top:3px">${pctHome}% das horas registradas</div>
-        </div>
-        <div style="font-size:11px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:8px">
-          Total: ${(modPresH+modHomeH).toFixed(1)}h registradas em ${ano}
-        </div>
-      </div>`;
-
-    // ── Gráfico evolução ──────────────────────────────────────
-  // ── Gráfico donut por cliente ─────────────────────────────
-    const porCli = {};
-    tarAno.forEach(t => { porCli[t.clienteNome]=(porCli[t.clienteNome]||0)+t.valor; });
-    const ctxCl = document.getElementById('chart-clientes').getContext('2d');
-    if (chartClientes) chartClientes.destroy();
-    chartClientes = new Chart(ctxCl, {
-      type:'doughnut',
-      data:{ labels:Object.keys(porCli),
-        datasets:[{ data:Object.values(porCli), backgroundColor:Object.keys(porCli).map(corCliente), hoverOffset:6, borderWidth:2 }] },
-      options:{ responsive:true, plugins:{ legend:{ position:'bottom', labels:{ boxWidth:12, font:{ size:11 } } } }, cutout:'62%' }
-    });
-
-    // ── Gráfico horas ─────────────────────────────────────────
+   // ── Gráfico horas ─────────────────────────────────────────
     const ctxH = document.getElementById('chart-horas').getContext('2d');
     if (chartHoras) chartHoras.destroy();
     chartHoras = new Chart(ctxH, {
@@ -4491,11 +4435,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vConf += parseFloat(p.valor) || 0;
         });
-        tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); }).forEach(function(t) {
+            tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); }).forEach(function(t) {
           var n = t.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vPlan += parseFloat(t.valor) || 0;
           if (t.cobrado) cliMes[n].vFat += parseFloat(t.valor) || 0;
+        });
+        historico.filter(function(h){ return h.ano === ano && h.mes === (m+1); }).forEach(function(h) {
+          var n = h.cliente || 'Geral';
+          if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
+          var v = parseFloat(h.valor) || 0;
+          cliMes[n].vPlan += v;
+          cliMes[n].vConf += v;
+          cliMes[n].vFat  += v;
         });
         var subLinhas = '';
         Object.keys(cliMes).forEach(function(nome) {
