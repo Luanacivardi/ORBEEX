@@ -4269,7 +4269,7 @@ ${faturas}
     const totalPendGeral = tarefas.filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0);
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Horas realizadas ainda não faturadas', cor:'#ef4444' },
-      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#252538' },
+     { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
     { label:'% Atingido do Planejamento',    value: pctFatMes.toFixed(0)+'%',    sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctFatMes>=80?'#10b981':pctFatMes>=50?'#E8B84B':'#ef4444' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
