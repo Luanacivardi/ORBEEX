@@ -1885,7 +1885,7 @@ let clienteEditandoId = null;
           ${c.nome}
         </div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${c.projeto}</div>
-        <div style="font-weight:500;margin-bottom:8px">R$ ${c.taxa.toFixed(2).replace('.',',')}/h</div>
+        <div style="font-weight:500;margin-bottom:8px">R$ ${fmtVal(c.taxa)}/h</div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
          <div class="btn-acao-row">
           <button class="btn btn-icon" onclick="editarCliente(${c.id})" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
@@ -1987,7 +1987,7 @@ let clienteEditandoId = null;
     const taxa = parseFloat(document.getElementById('plan-taxa').value) || 0;
     document.getElementById('plan-valor').value = (horas * taxa).toFixed(2);
     if (lbH) lbH.textContent = horas.toFixed(1) + 'h';
-    if (lbV) lbV.textContent = taxa > 0 ? 'R$ ' + (horas * taxa).toFixed(2).replace('.',',') : '—';
+    if (lbV) lbV.textContent = taxa > 0 ? 'R$ ' + fmtVal((horas * taxa)) : '—';
   }
 
   function adicionarPlanejamento() {
@@ -2240,8 +2240,8 @@ let clienteEditandoId = null;
           <td>${p.atividade || '—'}</td>
           <td class="tc">${p.entrada && p.saida ? p.entrada+' – '+p.saida : '—'}</td>
           <td class="tr">${(parseFloat(p.horas)||0).toFixed(1)}h</td>
-          <td class="tr">R$ ${(parseFloat(p.valor)||0)>0 && (parseFloat(p.horas)||0)>0 ? ((parseFloat(p.valor)||0)/(parseFloat(p.horas)||1)).toFixed(2).replace('.',',') : '—'}</td>
-          <td class="tr valor-cel">R$ ${(parseFloat(p.valor)||0).toFixed(2).replace('.',',')}</td>
+          <td class="tr">R$ ${(parseFloat(p.valor)||0)>0 && (parseFloat(p.horas)||0)>0 ? fmtVal(((parseFloat(p.valor)||0)/(parseFloat(p.horas)||1))) : '—'}</td>
+          <td class="tr valor-cel">R$ ${fmtVal((parseFloat(p.valor)||0))}</td>
         </tr>`).join('');
 
       faturas += `
@@ -2288,14 +2288,14 @@ let clienteEditandoId = null;
               <td colspan="3"><strong>TOTAL PREVISTO</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
-              <td class="tr total-valor">R$ ${totalV.toFixed(2).replace('.',',')}</td>
+              <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
             </tr>
           </tfoot>
         </table>
       <div class="resumo">
           <div class="resumo-item destaque">
             <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
-            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalV.toFixed(2).replace('.',',')}</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${fmtVal(totalV)}</span>
           </div>
         </div>
         <div class="rodape-fatura">
@@ -2607,7 +2607,7 @@ let clienteEditandoId = null;
         <td style="color:var(--text-secondary);font-size:12px">${p.atividade && p.atividade !== '—' ? p.atividade : '<em>sem pauta</em>'}</td>
         <td style="white-space:nowrap">${modIcon(p.modalidade)} ${p.modalidade || 'Presencial'}</td>
         <td>${horas > 0 ? horas.toFixed(1)+'h' : '—'}</td>
-        <td>R$ ${valor.toFixed(2).replace('.',',')}</td>
+        <td>R$ ${fmtVal(valor)}</td>
         <td><span class="status-badge">${p.confirmado ? '✓ Confirmado' : '◯ Não confirmado'}</span></td>
         <td>
           <div class="btn-acao-row">
@@ -2638,8 +2638,8 @@ let clienteEditandoId = null;
       if (d.getDay() !== 0 && d.getDay() !== 6) dias++;
     el.innerHTML = `
       <div class="dashboard-card"><div class="dashboard-card-label">Horas Previstas</div><div class="dashboard-card-value">${totalH.toFixed(1)}h</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Faturamento Estimado</div><div class="dashboard-card-value">R$ ${totalV.toFixed(2).replace('.',',')}</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Confirmado</div><div class="dashboard-card-value">R$ ${confirmV.toFixed(2).replace('.',',')}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Faturamento Estimado</div><div class="dashboard-card-value">R$ ${fmtVal(totalV)}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Confirmado</div><div class="dashboard-card-value">R$ ${fmtVal(confirmV)}</div></div>
       <div class="dashboard-card"><div class="dashboard-card-label">Dias Úteis</div><div class="dashboard-card-value">${dias}</div></div>
       <div class="dashboard-card"><div class="dashboard-card-label">Média/dia</div><div class="dashboard-card-value">${dias > 0 ? (totalH / dias).toFixed(1) : 0}h</div></div>`;
   }
@@ -2670,7 +2670,7 @@ let clienteEditandoId = null;
         <div style="font-weight:600;margin-bottom:8px">${t.atividade}</div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">${t.clienteNome}</div>
         <div style="display:flex;justify-content:space-between;font-size:12px">
-          <span>${t.horas}h</span><span style="font-weight:600">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</span>
+          <span>${t.horas}h</span><span style="font-weight:600">R$ ${fmtVal((parseFloat(t.valor)||0))}</span>
         </div>
       </div>`).join('');
   }
@@ -2733,7 +2733,7 @@ let clienteEditandoId = null;
   function calcularValorHoras() {
     const h = parseFloat(document.getElementById('horas-total').value) || 0;
     const t = parseFloat(document.getElementById('horas-taxa').value) || 0;
-    document.getElementById('horas-valor').value = `R$ ${(h * t).toFixed(2).replace('.',',')}`;
+    document.getElementById('horas-valor').value = `R$ ${fmtVal((h * t))}`;
   }
 
   function adicionarHoras() {
@@ -2779,7 +2779,7 @@ let clienteEditandoId = null;
           <td>${t.atividade}</td>
           <td style="white-space:nowrap">${modIcon(t.modalidade)} ${t.modalidade || 'Presencial'}</td>
           <td>${(parseFloat(t.horas)||0).toFixed(1)}h</td>
-          <td>R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</td>
+          <td>R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
           <td><span class="badge ${t.cobrado ? 'badge-success' : 'badge-warning'}">${t.cobrado ? 'Cobrado' : 'Pendente'}</span></td>
           <td>
             <div class="btn-acao-row">
@@ -2809,7 +2809,7 @@ let clienteEditandoId = null;
     document.getElementById('horas-descricao').value  = t.descricao || '';
     document.getElementById('horas-total').value      = t.horas;
     document.getElementById('horas-taxa').value       = t.taxa;
-    document.getElementById('horas-valor').value      = `R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}`;
+    document.getElementById('horas-valor').value      = `R$ ${fmtVal((parseFloat(t.valor)||0))}`;
 
 
     const btn = document.getElementById('horas-btn-salvar');
@@ -2979,7 +2979,7 @@ let clienteEditandoId = null;
     ev.className = 'outlook-event';
     ev.style.cssText = `top:${topMin}px;height:${altura}px;background:${corCliente(tarefa.clienteNome)};`;
     ev.innerHTML = `<div class="ev-hora">${tarefa.entrada} – ${tarefa.saida}</div><div class="ev-titulo">${tarefa.clienteNome} · ${tarefa.atividade}</div>`;
-    ev.title = `${tarefa.clienteNome}\n${tarefa.entrada} a ${tarefa.saida}\n${tarefa.horas}h · R$ ${tarefa.valor.toFixed(2).replace('.',',')}`;
+    ev.title = `${tarefa.clienteNome}\n${tarefa.entrada} a ${tarefa.saida}\n${tarefa.horas}h · R$ ${fmtVal(tarefa.valor)}`;
     ev.onclick = () => mostrarDetalhe(tarefa.inicio);
     dayCol.appendChild(ev);
   }
@@ -3398,7 +3398,7 @@ let clienteEditandoId = null;
           </div>
           <div class="agenda-list-event-meta">
             <div class="ev-horas">${ev.horas ? ev.horas+'h' : ''}</div>
-            <div class="ev-valor">${ev.valor ? 'R$ '+ev.valor.toFixed(2).replace('.',',') : ''}</div>
+            <div class="ev-valor">${ev.valor ? 'R$ '+fmtVal(ev.valor) : ''}</div>
           </div>`;
         evDiv.appendChild(bar);
         evDiv.appendChild(body);
@@ -3502,7 +3502,7 @@ let clienteEditandoId = null;
           </div>
           <div>
             <div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">HORAS / VALOR</div>
-            <div style="font-weight:600">${ev.horas}h · R$ ${ev.valor.toFixed(2).replace('.',',')}</div>
+            <div style="font-weight:600">${ev.horas}h · R$ ${fmtVal(ev.valor)}</div>
           </div>
           ${ev.obs ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">OBS</div><div style="font-size:12px">${ev.obs}</div></div>` : ''}
           <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap">
@@ -3554,7 +3554,7 @@ let clienteEditandoId = null;
     const horas     = calcularHorasEntradaSaida(entrada, saida, intervalo);
     const valor     = horas * taxa;
     const lb = document.getElementById('ag-edit-resumo');
-    if (lb) lb.textContent = entrada && saida ? `⏱ ${horas.toFixed(1)}h  |  💰 R$ ${valor.toFixed(2).replace('.',',')}` : '';
+    if (lb) lb.textContent = entrada && saida ? `⏱ ${horas.toFixed(1)}h  |  💰 R$ ${fmtVal(valor)}` : '';
     document.getElementById('ag-edit-horas').value = horas;
     document.getElementById('ag-edit-taxa').value  = taxa;
     document.getElementById('ag-edit-valor').value = valor;
@@ -3825,8 +3825,8 @@ ${corpoHTML}
         <td>${t.atividade || '—'}</td>
         <td style="text-align:center;white-space:nowrap">${t.entrada || ''} ${t.entrada && t.saida ? '–' : ''} ${t.saida || ''}</td>
         <td style="text-align:right">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
-        <td style="text-align:right">R$ ${(parseFloat(t.taxa)||0).toFixed(2).replace('.',',')}</td>
-        <td style="text-align:right;font-weight:700;color:var(--navy)">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</td>
+        <td style="text-align:right">R$ ${fmtVal((parseFloat(t.taxa)||0))}</td>
+        <td style="text-align:right;font-weight:700;color:var(--navy)">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
         <td style="text-align:center">
           <span class="badge ${t.cobrado ? 'badge-success' : 'badge-warning'}">${t.cobrado ? 'Cobrado' : 'Pendente'}</span>
         </td>
@@ -3891,8 +3891,8 @@ function gerarRelatorioCobranca() {
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
           <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
-          <td class="tr">R$ ${(parseFloat(t.taxa)||0).toFixed(2).replace('.',',')}</td>
-          <td class="tr valor-cel">R$ ${(parseFloat(t.valor)||0).toFixed(2).replace('.',',')}</td>
+          <td class="tr">R$ ${fmtVal((parseFloat(t.taxa)||0))}</td>
+          <td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
         </tr>`).join('');
 
       faturas += `
@@ -3926,16 +3926,16 @@ function gerarRelatorioCobranca() {
               <td colspan="4"><strong>TOTAL GERAL</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
-              <td class="tr total-valor">R$ ${totalV.toFixed(2).replace('.',',')}</td>
+              <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
             </tr>
           </tfoot>
         </table>
         <div class="resumo">
-          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${totalV.toFixed(2).replace('.',',')}</span></div>
-          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${desconto.toFixed(2).replace('.',',')}</span></div>` : ''}
+          <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
+          ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${fmtVal(desconto)}</span></div>` : ''}
           <div class="resumo-item destaque">
             <span class="resumo-label" style="color:rgba(255,255,255,.7);font-size:14px;font-weight:700">VALOR A PAGAR</span>
-            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${totalPagar.toFixed(2).replace('.',',')}</span>
+            <span class="resumo-val" style="color:#E8B84B;font-size:22px;font-weight:800">R$ ${fmtVal(totalPagar)}</span>
           </div>
         </div>
         <div class="rodape-fatura">
@@ -4459,8 +4459,8 @@ ${faturas}
       t.saida || '',
       t.intervalo || 0,
       (parseFloat(t.horas)||0).toFixed(1).replace('.',','),
-      (parseFloat(t.taxa)||0).toFixed(2).replace('.',','),
-      (parseFloat(t.valor)||0).toFixed(2).replace('.',','),
+      fmtVal((parseFloat(t.taxa)||0)),
+      fmtVal((parseFloat(t.valor)||0)),
       t.cobrado ? 'Cobrado' : 'Pendente'
     ]);
     baixarCSV(`cobranca_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
@@ -4488,8 +4488,8 @@ ${faturas}
         fmtData(t.data), t.clienteNome || '', t.atividade || '', t.entrada || '', t.saida || '',
         t.intervalo || 0, t.modalidade || 'Presencial',
         (parseFloat(t.horas)||0).toFixed(1).replace('.',','),
-        (parseFloat(t.taxa)||0).toFixed(2).replace('.',','),
-        (parseFloat(t.valor)||0).toFixed(2).replace('.',','),
+        fmtVal((parseFloat(t.taxa)||0)),
+        fmtVal((parseFloat(t.valor)||0)),
         t.cobrado ? 'Cobrado' : 'Pendente'
       ]);
       baixarCSV(`registro_horas_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
@@ -4508,7 +4508,7 @@ ${faturas}
         fmtData(p.inicio), fmtData(p.termino || p.inicio), p.clienteNome || '', p.atividade || '',
         p.entrada || '', p.saida || '', p.modalidade || 'Presencial',
         (parseFloat(p.horas)||0).toFixed(1).replace('.',','),
-        (parseFloat(p.valor)||0).toFixed(2).replace('.',','),
+        fmtVal((parseFloat(p.valor)||0)),
         p.confirmado ? 'Confirmado' : 'Não confirmado'
       ]);
       baixarCSV(`planejamento_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
@@ -5280,9 +5280,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (resumoEl) {
       const cards = CATEGORIAS_DESPESA.map(cat => {
         const tot = baseResumo.filter(d => d.categoria === cat).reduce((s, d) => s + (parseFloat(d.valor) || 0), 0);
-        return `<div class="dashboard-card"><div class="dashboard-card-label">${ICON_DESPESA[cat]} ${cat}</div><div class="dashboard-card-value">R$ ${tot.toFixed(2).replace('.',',')}</div></div>`;
+        return `<div class="dashboard-card"><div class="dashboard-card-label">${ICON_DESPESA[cat]} ${cat}</div><div class="dashboard-card-value">R$ ${fmtVal(tot)}</div></div>`;
       }).join('');
-      resumoEl.innerHTML = cards + `<div class="dashboard-card" style="border-left-color:#ef4444"><div class="dashboard-card-label">💰 Total${fMes ? ' do mês' : ''}</div><div class="dashboard-card-value">R$ ${totalGeral.toFixed(2).replace('.',',')}</div></div>`;
+      resumoEl.innerHTML = cards + `<div class="dashboard-card" style="border-left-color:#ef4444"><div class="dashboard-card-label">💰 Total${fMes ? ' do mês' : ''}</div><div class="dashboard-card-value">R$ ${fmtVal(totalGeral)}</div></div>`;
     }
 
     const tbody = document.getElementById('tbody-despesas');
@@ -5297,7 +5297,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td>${ICON_DESPESA[d.categoria] || '📦'} ${d.categoria}</td>
         <td style="color:var(--text-secondary);font-size:12px">${d.descricao || '<em>sem descrição</em>'}</td>
         <td>${d.clienteNome || '—'}</td>
-        <td>R$ ${(parseFloat(d.valor)||0).toFixed(2).replace('.',',')}</td>
+        <td>R$ ${fmtVal((parseFloat(d.valor)||0))}</td>
         <td>
           <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="editarDespesa(${d.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
@@ -5434,9 +5434,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       ['CLIENTES CADASTRADOS', clientes.length],
       ['TAREFAS PLANEJADAS',   planejamento.length],
       ['HORAS REGISTRADAS',    totalHoras.toFixed(1) + 'h'],
-      ['VALOR TOTAL',          'R$ ' + totalValor.toFixed(2).replace('.', ',')],
-      ['VALOR COBRADO',        'R$ ' + totalCobrado.toFixed(2).replace('.', ',')],
-      ['VALOR PENDENTE',       'R$ ' + totalPendente.toFixed(2).replace('.', ',')],
+      ['VALOR TOTAL',          'R$ ' + fmtVal(totalValor)],
+      ['VALOR COBRADO',        'R$ ' + fmtVal(totalCobrado)],
+      ['VALOR PENDENTE',       'R$ ' + fmtVal(totalPendente)],
       [],
       ['HORAS POR CLIENTE'],
       ['Cliente', 'Horas', 'Valor R$', 'Cobrado R$'],
