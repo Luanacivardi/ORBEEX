@@ -219,6 +219,19 @@
     input:read-only, input:disabled { background: var(--surface-1); cursor: not-allowed; opacity: 0.7; }
     textarea { resize: vertical; min-height: 80px; }
 
+    /* ---- Variante compacta de card (formulários menores) ---- */
+    .card-compact { padding: 1rem; }
+    .card-compact .card-header { margin-bottom: 0.85rem; font-size: 12.5px; padding-bottom: 7px; }
+    .card-compact .form-group { margin-bottom: 0.6rem; }
+    .card-compact .form-row { gap: 0.6rem; margin-bottom: 0.6rem; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+    .card-compact label { margin-bottom: 3px; font-size: 12px; }
+    .card-compact input[type="text"], .card-compact input[type="email"], .card-compact input[type="number"],
+    .card-compact input[type="date"], .card-compact input[type="time"], .card-compact select, .card-compact textarea {
+      padding: 6px 8px; font-size: 12.5px;
+    }
+    .card-compact textarea { min-height: 50px; }
+    .card-compact .btn { padding: 7px 12px; font-size: 12.5px; }
+
     .btn {
       padding: 10px 16px; border: none; border-radius: var(--radius);
       font-weight: 500; cursor: pointer; font-size: 13px; transition: all 0.2s;
@@ -1170,7 +1183,7 @@
       </div>
       <div class="grid-cards" id="tarefas-confirmadas-cards"></div>
 
-      <div class="card">
+      <div class="card card-compact">
         <div class="card-header"><i class="ti ti-clock-plus"></i> Registrar Horas de Trabalho</div>
         <div class="form-row">
           <div class="form-group"><label>Usar Tarefa Planejada</label>
@@ -1329,9 +1342,6 @@
       <span style="font-size:12px;color:var(--text-secondary)">Indicadores calculados com base no planejamento e nos registros de horas do ano selecionado</span>
     </div>
 
-    <!-- Resumo do mês corrente (Horas Previstas, Faturamento, Confirmado, Dias Úteis, Média/dia) -->
-    <div class="dashboard-grid" id="dashboard-plan" style="margin-bottom:1.5rem"></div>
-
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
     <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
 
@@ -1358,9 +1368,17 @@
       </div>
     </div>
 
+    <!-- Planejado × Confirmado × Faturado por Cliente (inclui valores lançados só no registro de horas) -->
+    <div class="card" style="margin-bottom:1rem">
+      <div class="card-header"><i class="ti ti-users"></i> Planejado × Confirmado por Cliente</div>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:.75rem">
+        Planejado inclui tudo que foi programado e o que só está no registro de horas (sem planejamento prévio). Confirmado inclui o que foi marcado como confirmado no planejamento e tudo que já foi efetivamente registrado em horas.
+      </p>
+      <div id="dash-planejado-clientes"></div>
+    </div>
+
   <!-- elementos ocultos mantidos para não quebrar referências JS -->
     <div id="tbody-mensal" style="display:none"></div>
-    <div id="dash-planejado-clientes" style="display:none"></div>
 
     <!-- ===== REGISTRO HISTÓRICO MANUAL ===== -->
     <div class="card" style="border-top:3px solid var(--gold)">
@@ -2561,6 +2579,8 @@ let clienteEditandoId = null;
   }
 
   function atualizarDashboardPlan() {
+    const el = document.getElementById('dashboard-plan');
+    if (!el) return; // card de resumo foi removido do Dashboard a pedido da usuária
     const agora = new Date();
     const prim = new Date(agora.getFullYear(), agora.getMonth(), 1);
     const ult = new Date(agora.getFullYear(), agora.getMonth() + 1, 0);
@@ -2571,7 +2591,7 @@ let clienteEditandoId = null;
     let dias = 0;
     for (let d = new Date(prim); d <= ult; d.setDate(d.getDate() + 1))
       if (d.getDay() !== 0 && d.getDay() !== 6) dias++;
-    document.getElementById('dashboard-plan').innerHTML = `
+    el.innerHTML = `
       <div class="dashboard-card"><div class="dashboard-card-label">Horas Previstas</div><div class="dashboard-card-value">${totalH.toFixed(1)}h</div></div>
       <div class="dashboard-card"><div class="dashboard-card-label">Faturamento Estimado</div><div class="dashboard-card-value">R$ ${totalV.toFixed(2).replace('.',',')}</div></div>
       <div class="dashboard-card"><div class="dashboard-card-label">Confirmado</div><div class="dashboard-card-value">R$ ${confirmV.toFixed(2).replace('.',',')}</div></div>
@@ -4468,9 +4488,9 @@ ${faturas}
 
 // Planejado do ano = planejamento ainda não registrado + tudo já registrado (inclusive lançado direto) + histórico manual
     const idsRegAno   = new Set(tarAno.map(t => t.planejamentoId).filter(Boolean));
- const planAnoPend = planAno.filter(p => !idsRegAno.has(p.id) && p.inicio >= hojeISOStr);
+    const planAnoPend = planAno.filter(p => !idsRegAno.has(p.id));
     // Confirmado = planejamento confirmado ainda não registrado + tudo já registrado (uma hora registrada já é "confirmada")
-const planConfPend = planConf.filter(p => !idsRegAno.has(p.id) && p.inicio >= hojeISOStr);
+    const planConfPend = planConf.filter(p => !idsRegAno.has(p.id));
 
     const hPlan  = planAnoPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
     const hConf  = planConfPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
@@ -4490,10 +4510,10 @@ const planConfPend = planConf.filter(p => !idsRegAno.has(p.id) && p.inicio >= ho
     const planMes     = planejamento.filter(p => p.inicio.startsWith(prefMes));
     const idsRegMes   = new Set(tarMes.map(t => t.planejamentoId).filter(Boolean));
     // planejamento não registrado ainda + todas as tarefas do mês
-   const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id) && p.inicio >= hojeISOStr).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+   const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
     const vPlanMes    = vPlanPend + vTarMesTot;
-   const vConfMes    = planMes.filter(p=>p.confirmado && !idsRegMes.has(p.id) && p.inicio >= hojeISOStr).reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + vTarMesTot;
+   const vConfMes    = planMes.filter(p=>p.confirmado && !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + vTarMesTot;
     const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
     const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
 
@@ -4546,9 +4566,13 @@ const planConfPend = planConf.filter(p => !idsRegAno.has(p.id) && p.inicio >= ho
       </div>`).join('');
 
   // ── KPIs principais ─────────────────────────────────────
-    const totalPendGeral = tarefas.filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0);
+    // Valor a faturar = tudo que já foi CONFIRMADO (planejado e ainda não registrado, ou já registrado em horas) e ainda não foi marcado como cobrado
+    const idsRegGeral = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
+    const vConfNaoRegGeral = planejamento.filter(p => p.confirmado && !idsRegGeral.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const vRegNaoCobradoGeral = tarefas.filter(t => !t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
+    const totalPendGeral = vConfNaoRegGeral + vRegNaoCobradoGeral;
     document.getElementById('dash-kpis').innerHTML = [
-      { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Horas realizadas ainda não faturadas', cor:'#ef4444' },
+      { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
     { label:'% Atingido do Planejamento',    value: pctFatMes.toFixed(0)+'%',    sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctFatMes>=80?'#10b981':pctFatMes>=50?'#E8B84B':'#ef4444' },
@@ -4569,8 +4593,8 @@ const planConfPend = planConf.filter(p => !idsRegAno.has(p.id) && p.inicio >= ho
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
    const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
-const pMPendente  = pM.filter(p => !idsRegM.has(p.id) && p.inicio >= hojeISOStr);
-      const pMCPendente = pMC.filter(p => !idsRegM.has(p.id) && p.inicio >= hojeISOStr);
+const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
+      const pMCPendente = pMC.filter(p => !idsRegM.has(p.id));
       return {
         mes:   MESES[m],
         hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
@@ -4710,13 +4734,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); })
                 .map(function(t){ return t.planejamentoId; }).filter(Boolean)
         );
-   // Previsto por cliente = planejamento ainda não registrado (e cuja data ainda não passou) + tudo já registrado
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegPref.has(p.id) && p.inicio >= hojeISOStr; }).forEach(function(p) {
+   // Previsto por cliente = planejamento ainda não registrado (qualquer data) + tudo já registrado
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegPref.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vPlan += parseFloat(p.valor) || 0;
         });
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado && !idsRegPref.has(p.id) && p.inicio >= hojeISOStr; }).forEach(function(p) {
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado && !idsRegPref.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vConf += parseFloat(p.valor) || 0;
@@ -4725,6 +4749,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           var n = t.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vPlan += parseFloat(t.valor) || 0;
+          cliMes[n].vConf += parseFloat(t.valor) || 0;
           if (t.cobrado) cliMes[n].vFat += parseFloat(t.valor) || 0;
         });
         historico.filter(function(h){ return h.ano === ano && h.mes === (m+1); }).forEach(function(h) {
@@ -4792,9 +4817,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       if (el) el.innerHTML = '<p style="color:#ef4444;padding:1rem">Erro ao carregar tabela mensal: ' + e.message + '</p>';
     }
 
-    // ── Planejado por cliente ─────────────────────────────────
+    // ── Planejado por cliente (inclui o que só está no registro de horas) ─────────────────────────────
     const porCliTabela = {};
-    planAno.forEach(p => {
+    planAno.filter(p => !idsRegAno.has(p.id)).forEach(p => {
       const n = p.clienteNome || 'Sem cliente';
       if (!porCliTabela[n]) porCliTabela[n] = { hPlan:0, vPlan:0, hConf:0, vConf:0, hFat:0, vFat:0 };
       porCliTabela[n].hPlan += parseFloat(p.horas)||0;
@@ -4807,6 +4832,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     tarAno.forEach(t => {
       const n = t.clienteNome || 'Sem cliente';
       if (!porCliTabela[n]) porCliTabela[n] = { hPlan:0, vPlan:0, hConf:0, vConf:0, hFat:0, vFat:0 };
+      // toda hora registrada já é planejamento executado e automaticamente confirmado
+      porCliTabela[n].hPlan += parseFloat(t.horas)||0;
+      porCliTabela[n].vPlan += parseFloat(t.valor)||0;
+      porCliTabela[n].hConf += parseFloat(t.horas)||0;
+      porCliTabela[n].vConf += parseFloat(t.valor)||0;
       if (t.cobrado) {
         porCliTabela[n].hFat += parseFloat(t.horas)||0;
         porCliTabela[n].vFat += parseFloat(t.valor)||0;
