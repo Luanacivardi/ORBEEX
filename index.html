@@ -904,26 +904,19 @@
     </div>
       <div class="home-stats" id="home-stats"></div>
 
-      <div class="card" id="card-diario" style="margin-bottom:1.5rem">
-        <div class="card-header" style="justify-content:space-between">
+      <div class="card card-compact" id="card-diario" style="margin-bottom:1rem">
+        <div class="card-header" style="justify-content:space-between;margin-bottom:.5rem">
           <span><i class="ti ti-notes"></i> Diario do Dia</span>
-          <span style="font-size:11px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
+          <span style="font-size:10px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
         </div>
-        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:.75rem">
-          Va anotando o que fizer ao longo do dia, sem precisar formalizar um registro de horas. E so um rascunho pessoal para nao esquecer nada na hora de lancar depois.
-        </p>
-        <div class="form-row" style="align-items:flex-end;margin-bottom:.75rem">
-          <div class="form-group" style="max-width:200px">
-            <label>Dia</label>
-            <input type="date" id="diario-data" onchange="carregarDiarioDoDia()">
-          </div>
-          <div class="form-group" style="flex:0">
-            <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()">Hoje</button>
-          </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
+          <input type="date" id="diario-data" onchange="carregarDiarioDoDia()" style="width:auto;padding:5px 8px;font-size:12px">
+          <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()" style="padding:5px 10px;font-size:11px">Hoje</button>
+          <span style="font-size:11px;color:var(--text-secondary)">Vira rascunho da atividade quando você confirmar uma tarefa desse dia</span>
         </div>
-        <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco sobre PNC; 11h ajustei a IT de inspecao; 14h ligacao Qualytool..." style="min-height:140px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:.5rem">
-          <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)"><i class="ti ti-device-floppy"></i> Salvar agora</button>
+        <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:60px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
+          <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)" style="padding:5px 10px;font-size:11px"><i class="ti ti-device-floppy"></i> Salvar agora</button>
         </div>
       </div>
 
@@ -2027,6 +2020,11 @@ let clienteEditandoId = null;
     renderizarPlanejamento();
   }
 
+  function obterTextoDiario(dataISO) {
+    const reg = diario.find(d => d.data === dataISO);
+    return reg && reg.texto ? reg.texto.trim() : '';
+  }
+
   function confirmarPlanejamento(id) {
     const p = planejamento.find(p => p.id === id);
     if (p) { p.confirmado = !p.confirmado; salvarDados(); renderizarPlanejamento(); atualizarDashboardPlan(); }
@@ -2042,7 +2040,11 @@ let clienteEditandoId = null;
     // Preenche modal de confirmação
     document.getElementById('modal-conf-titulo').textContent = `${p.clienteNome} — ${fmtData(p.inicio)}`;
     const pautaInput = document.getElementById('modal-conf-pauta');
-    pautaInput.value = p.atividade && p.atividade !== '—' ? p.atividade : '';
+    const textoDiario = obterTextoDiario(p.inicio);
+    const temPauta = p.atividade && p.atividade !== '—';
+    pautaInput.value = temPauta ? p.atividade : textoDiario;
+    const avisoDiario = document.getElementById('modal-conf-aviso-diario');
+    if (avisoDiario) avisoDiario.style.display = (!temPauta && textoDiario) ? '' : 'none';
 
     // Busca outras tarefas do mesmo cliente/data ainda não registradas
     const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
@@ -2108,9 +2110,9 @@ let clienteEditandoId = null;
     if (pauta) p.atividade = pauta;
     p.confirmado = true;
     salvarDados();
+    const idCopy = _planConfirmandoId; // capturado antes de fecharModalConfirmar zerar a variável
     fecharModalConfirmar();
     irPara('horas');
-    const idCopy = _planConfirmandoId;
     setTimeout(() => {
       document.getElementById('horas-tarefa-plan').value = idCopy;
       preencherComTarefa();
@@ -2692,6 +2694,12 @@ let clienteEditandoId = null;
       document.getElementById('horas-modalidade').value  = p.modalidade || 'Presencial';
       if (p.entrada) document.getElementById('horas-entrada').value = p.entrada;
       if (p.saida)   document.getElementById('horas-saida').value   = p.saida;
+      // Traz o rascunho do Diário do Dia como ponto de partida da descrição detalhada
+      const descEl = document.getElementById('horas-descricao');
+      if (descEl && !descEl.value.trim()) {
+        const textoDiario = obterTextoDiario(p.inicio);
+        if (textoDiario) descEl.value = textoDiario;
+      }
       calcularValorHoras();
     }
   }
@@ -6183,7 +6191,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <p style="font-size:14px;font-weight:600;color:var(--navy);margin:0" id="modal-conf-titulo"></p>
       <div>
         <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">O que foi executado?</label>
-        <input type="text" id="modal-conf-pauta" placeholder="Descreva o que foi realizado (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <textarea id="modal-conf-pauta" rows="3" placeholder="Descreva o que foi realizado (opcional)" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:var(--font-sans);resize:vertical"></textarea>
+        <p id="modal-conf-aviso-diario" style="display:none;font-size:11px;color:#7a5c00;background:var(--gold-bg);padding:5px 8px;border-radius:6px;margin-top:5px">
+          <i class="ti ti-notes" style="font-size:11px"></i> Preenchido automaticamente com o rascunho do Diário do Dia — revise antes de confirmar.
+        </p>
       </div>
       <div id="modal-conf-lista-wrap" style="margin-top:4px">
         <p style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:0 0 8px">Outras tarefas para este cliente/dia:</p>
