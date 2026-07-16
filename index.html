@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ORBEEX · Gestor de Horas</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="theme-color" content="#1a1a2e">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gestor de Horas">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/tabler-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -857,6 +864,9 @@
   </div>
   <div class="topbar-right" style="display:flex;align-items:center;gap:8px;">
     <label id="xlsx-status" style="font-size:11px;color:rgba(255,255,255,0.45);margin-right:4px;"></label>
+    <button id="btn-instalar-app" onclick="instalarApp()" style="display:none;background:var(--gold);border:none;color:var(--navy);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;">
+      <i class="ti ti-download"></i> Instalar App
+    </button>
     <input type="file" id="xlsx-import" accept=".xlsx,.xls" style="display:none" onchange="importarExcel(this)">
     <button onclick="sbLogout()" title="Sair" style="background:transparent;border:1px solid rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);border-radius:6px;padding:5px 10px;font-size:11px;cursor:pointer;">
       <i class="ti ti-logout"></i> Sair
@@ -1549,6 +1559,39 @@
 
 <script src="config.js"></script>
 <script>
+  // ===== PWA: instalação e service worker =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    });
+  }
+
+  let __deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault();
+    __deferredInstallPrompt = e;
+    const btn = document.getElementById('btn-instalar-app');
+    if (btn) btn.style.display = '';
+  });
+
+  function instalarApp() {
+    const btn = document.getElementById('btn-instalar-app');
+    if (!__deferredInstallPrompt) {
+      alert('Para instalar no iPhone: toque no ícone de Compartilhar do Safari e escolha "Adicionar à Tela de Início".');
+      return;
+    }
+    __deferredInstallPrompt.prompt();
+    __deferredInstallPrompt.userChoice.finally(function () {
+      __deferredInstallPrompt = null;
+      if (btn) btn.style.display = 'none';
+    });
+  }
+
+  window.addEventListener('appinstalled', function () {
+    const btn = document.getElementById('btn-instalar-app');
+    if (btn) btn.style.display = 'none';
+  });
+
   // ===== TROCA DE ABAS (definida primeiro para garantir funcionamento) =====
   function trocarAba(btn, tabName) {
     try {
