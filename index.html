@@ -608,6 +608,35 @@
     .agenda-list-event.turno-hoje { border-left: 4px solid #3b82f6; background: #eff6ff; }
     .agenda-list-event.turno-concluida { border-left: 4px solid #10b981; background: #f0fdf4; opacity: .8; }
 
+    /* ---- Vista Semana por turnos (Manhã / Tarde) ---- */
+    .semana-turnos { border-top: 1px solid var(--border); }
+    .semana-turno-linha { display: flex; border-bottom: 1px solid var(--border); }
+    .semana-turno-label {
+      width: 64px; min-width: 64px; flex-shrink: 0; border-right: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center; text-align: center;
+      font-size: 11px; font-weight: 700; color: var(--text-secondary); padding: 8px 4px; background: var(--surface-1);
+    }
+    .semana-turno-dias { display: flex; flex: 1; min-width: 0; }
+    .semana-turno-dia {
+      flex: 1; min-width: 0; border-right: 1px solid var(--border); padding: 6px; display: flex;
+      flex-direction: column; gap: 4px; min-height: 64px; cursor: pointer;
+    }
+    .semana-turno-dia:last-child { border-right: none; }
+    .semana-turno-dia:hover { background: #fafafa; }
+    .semana-turno-dia.hoje { background: #fdf6e3; }
+    .semana-turno-vazio { font-size: 11px; color: var(--text-secondary); opacity: .5; text-align: center; padding-top: 6px; }
+    .semana-turno-evento {
+      background: #fff; border: 1px solid var(--border); border-left: 3px solid var(--gold);
+      border-radius: 5px; padding: 4px 6px; cursor: pointer; transition: box-shadow .15s;
+    }
+    .semana-turno-evento:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.12); }
+    .semana-turno-evento-hora { font-size: 10px; font-weight: 700; color: var(--text-secondary); }
+    .semana-turno-evento-cliente { font-size: 11px; font-weight: 700; }
+    .semana-turno-evento-pauta { font-size: 10px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 900px) {
+      .semana-turno-evento-pauta { display: none; }
+    }
+
     /* Painel de detalhe do dia */
     .detalhe-dia-panel {
       background: var(--surface-2); border: 1px solid var(--border);
@@ -734,6 +763,44 @@
     .anot-descricao { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; white-space: pre-line; }
     .anot-actions { display: flex; gap: 6px; }
 
+    /* ===== QUADRO KANBAN (Anotações) ===== */
+    .kanban-board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 4px; }
+    .kanban-coluna {
+      flex: 1; min-width: 220px; background: var(--surface-1); border-radius: 10px;
+      display: flex; flex-direction: column; max-height: 70vh;
+    }
+    .kanban-coluna.kanban-dragover { outline: 2px dashed var(--gold); outline-offset: -4px; }
+    .kanban-coluna-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.4px; border-radius: 10px 10px 0 0; color: #fff;
+    }
+    .kanban-cor-pendente   { background: #6b7280; }
+    .kanban-cor-andamento  { background: #E8B84B; color: var(--navy); }
+    .kanban-cor-concluida  { background: #10b981; }
+    .kanban-count {
+      background: rgba(255,255,255,0.3); border-radius: 10px; padding: 1px 8px; font-size: 11px;
+    }
+    .kanban-coluna-corpo {
+      flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
+      min-height: 80px;
+    }
+    .kanban-coluna-vazio { text-align: center; color: var(--text-secondary); font-size: 11px; padding: 1.5rem 0.5rem; opacity: .6; }
+    .kanban-card {
+      background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--gold);
+      border-radius: 8px; padding: 10px 12px; cursor: grab; box-shadow: 0 1px 3px rgba(37,37,56,0.06);
+      transition: box-shadow .15s;
+    }
+    .kanban-card:hover { box-shadow: 0 3px 10px rgba(37,37,56,0.12); }
+    .kanban-card.dragging { opacity: 0.4; }
+    .kanban-card.vencida { border-left-color: #ef4444; }
+    .kanban-card.urgente { border-left-color: #ef4444; }
+    .kanban-card-titulo { font-weight: 600; font-size: 13px; color: var(--navy); margin-bottom: 4px; }
+    .kanban-card-meta { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
+    .kanban-card-data { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
+    .kanban-card-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; white-space: pre-line; }
+    .kanban-card-acoes { display: flex; gap: 4px; justify-content: flex-end; }
+
     /* ===== SUB-ABAS (dentro de Atividades) ===== */
     .subtabs {
       display: flex; gap: 0; margin-bottom: 1.5rem;
@@ -813,6 +880,30 @@
         <p id="home-data-hora"></p>
     </div>
       <div class="home-stats" id="home-stats"></div>
+
+      <div class="card" id="card-diario" style="margin-bottom:1.5rem">
+        <div class="card-header" style="justify-content:space-between">
+          <span><i class="ti ti-notes"></i> Diario do Dia</span>
+          <span style="font-size:11px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
+        </div>
+        <p style="font-size:12px;color:var(--text-secondary);margin-bottom:.75rem">
+          Va anotando o que fizer ao longo do dia, sem precisar formalizar um registro de horas. E so um rascunho pessoal para nao esquecer nada na hora de lancar depois.
+        </p>
+        <div class="form-row" style="align-items:flex-end;margin-bottom:.75rem">
+          <div class="form-group" style="max-width:200px">
+            <label>Dia</label>
+            <input type="date" id="diario-data" onchange="carregarDiarioDoDia()">
+          </div>
+          <div class="form-group" style="flex:0">
+            <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()">Hoje</button>
+          </div>
+        </div>
+        <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco sobre PNC; 11h ajustei a IT de inspecao; 14h ligacao Qualytool..." style="min-height:140px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:.5rem">
+          <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)"><i class="ti ti-device-floppy"></i> Salvar agora</button>
+        </div>
+      </div>
+
       <div class="home-agenda">
         <div class="home-agenda-header">
           <h3><i class="ti ti-calendar-event"></i> Programado para hoje</h3>
@@ -924,6 +1015,7 @@
         <input type="date" id="filtro-atv-dt-fim" style="width:auto;padding:7px 10px;font-size:13px" title="Data fim">
         <button class="btn btn-primary btn-sm btn-inline" onclick="aplicarFiltroAtv()"><i class="ti ti-filter"></i> Filtrar</button>
         <button class="btn btn-secondary btn-sm btn-inline" onclick="limparFiltroAtv()"><i class="ti ti-x"></i> Limpar</button>
+        <button class="btn btn-secondary btn-sm btn-inline" style="margin-left:auto" onclick="exportarCSVAtividades()"><i class="ti ti-download"></i> Exportar CSV</button>
       </div>
     </div>
 
@@ -973,8 +1065,6 @@
         <button class="btn btn-primary" id="plan-btn-agendar" onclick="adicionarPlanejamento()"><i class="ti ti-calendar-plus"></i> Agendar</button>
         <button class="btn btn-sm" id="plan-btn-cancelar-edicao" onclick="cancelarEdicaoPlan()" style="display:none;margin-left:8px;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
-
-      <div class="dashboard-grid" id="dashboard-plan" style="margin-bottom:1.5rem"></div>
 
       <div class="card">
         <div class="card-header"><i class="ti ti-list"></i> Tarefas Planejadas</div>
@@ -1239,6 +1329,9 @@
       <span style="font-size:12px;color:var(--text-secondary)">Indicadores calculados com base no planejamento e nos registros de horas do ano selecionado</span>
     </div>
 
+    <!-- Resumo do mês corrente (Horas Previstas, Faturamento, Confirmado, Dias Úteis, Média/dia) -->
+    <div class="dashboard-grid" id="dashboard-plan" style="margin-bottom:1.5rem"></div>
+
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
     <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
 
@@ -1376,6 +1469,14 @@
           </div>
         </div>
         <div class="form-group">
+          <label>Status inicial</label>
+          <select id="anot-status">
+            <option value="pendente">A Fazer</option>
+            <option value="andamento">Em Andamento</option>
+            <option value="concluida">Concluído</option>
+          </select>
+        </div>
+        <div class="form-group">
           <label>Descrição</label>
           <textarea id="anot-descricao" placeholder="Detalhes, contexto, links..." style="min-height:100px"></textarea>
         </div>
@@ -1385,23 +1486,43 @@
         </div>
       </div>
 
-      <!-- Painel direito: filtros + lista -->
-      <div style="flex:2;min-width:300px;display:flex;flex-direction:column;gap:1rem">
+      <!-- Painel direito: filtros rápidos + quadro Kanban -->
+      <div style="flex:2;min-width:340px;display:flex;flex-direction:column;gap:1rem">
 
-        <!-- Filtros -->
+        <!-- Filtros rápidos -->
         <div class="card" style="padding:1rem">
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
             <button class="anot-filtro-btn active" onclick="filtrarAnotacoes('todas',this)">Todas</button>
-            <button class="anot-filtro-btn" onclick="filtrarAnotacoes('pendentes',this)">Pendentes</button>
-            <button class="anot-filtro-btn" onclick="filtrarAnotacoes('concluidas',this)">Concluídas</button>
             <button class="anot-filtro-btn" onclick="filtrarAnotacoes('urgente',this)">🔴 Urgente</button>
             <button class="anot-filtro-btn" onclick="filtrarAnotacoes('hoje',this)">📅 Hoje</button>
             <button class="anot-filtro-btn" onclick="filtrarAnotacoes('vencidas',this)">⚠️ Vencidas</button>
           </div>
         </div>
 
-        <!-- Lista de anotações -->
-        <div id="lista-anotacoes" style="display:flex;flex-direction:column;gap:10px"></div>
+        <!-- Quadro Kanban -->
+        <div class="kanban-board" id="kanban-board">
+          <div class="kanban-coluna" data-status="pendente" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'pendente')">
+            <div class="kanban-coluna-header kanban-cor-pendente">
+              <span>A Fazer</span>
+              <span class="kanban-count" id="kanban-count-pendente">0</span>
+            </div>
+            <div class="kanban-coluna-corpo" id="kanban-lista-pendente"></div>
+          </div>
+          <div class="kanban-coluna" data-status="andamento" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'andamento')">
+            <div class="kanban-coluna-header kanban-cor-andamento">
+              <span>Em Andamento</span>
+              <span class="kanban-count" id="kanban-count-andamento">0</span>
+            </div>
+            <div class="kanban-coluna-corpo" id="kanban-lista-andamento"></div>
+          </div>
+          <div class="kanban-coluna" data-status="concluida" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'concluida')">
+            <div class="kanban-coluna-header kanban-cor-concluida">
+              <span>Concluído</span>
+              <span class="kanban-count" id="kanban-count-concluida">0</span>
+            </div>
+            <div class="kanban-coluna-corpo" id="kanban-lista-concluida"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1419,11 +1540,11 @@
       if (el) el.classList.add('active');
       if (btn) btn.classList.add('active');
       try {
-        if (tabName === 'atividades') { renderizarPlanejamento(); atualizarDashboardPlan(); preencherTarefasConfirmadas(); renderizarTarefas(); }
+        if (tabName === 'atividades') { renderizarPlanejamento(); preencherTarefasConfirmadas(); renderizarTarefas(); }
         else if (tabName === 'home') { renderizarHome(); }
         else if (tabName === 'agenda') { atualizarFiltroClienteAgenda(); renderizarAgenda(); }
         else if (tabName === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); }
-        else if (tabName === 'dashboard') { renderizarDashboard(); }
+        else if (tabName === 'dashboard') { atualizarDashboardPlan(); renderizarDashboard(); }
         else if (tabName === 'anotacoes') { renderizarAnotacoes(); }
         else if (tabName === 'despesas') { renderizarDespesas(); }
         else if (tabName === 'clientes') { renderizarClientes(); }
@@ -1465,7 +1586,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [] };
   window.__SRV_ERRO__ = false;
   (function carregarDadosServidorSync() {
     var session = sbGetSession();
@@ -1505,6 +1626,7 @@
   let tarefas     = lsGet('tarefas');
  let planejamento= lsGet('planejamento');
   let despesas    = lsGet('despesas');
+  let diario      = lsGet('diario');
 
   let filtroPlanoAtual = 'Todas';
   let tarefaSelecionadaId = null;
@@ -2233,6 +2355,58 @@ let clienteEditandoId = null;
       </div>`).join('');
 
     renderizarHomeAgendaDia(hoje);
+    inicializarDiario(hoje);
+  }
+
+  // ===== DIÁRIO DO DIA (rascunho pessoal, sem virar registro de horas) =====
+  let __diarioTimer = null;
+  function inicializarDiario(hoje) {
+    const inp = document.getElementById('diario-data');
+    if (!inp) return;
+    if (!inp.value) inp.value = hoje;
+    carregarDiarioDoDia();
+  }
+
+  function irParaDiarioHoje() {
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('diario-data').value = hoje;
+    carregarDiarioDoDia();
+  }
+
+  function carregarDiarioDoDia() {
+    const data = document.getElementById('diario-data').value;
+    const reg = diario.find(d => d.data === data);
+    const txt = document.getElementById('diario-texto');
+    txt.value = reg ? (reg.texto || '') : '';
+    atualizarStatusDiario(reg ? reg.atualizadoEm : null);
+  }
+
+  function agendarSalvarDiario() {
+    atualizarStatusDiario(null, true);
+    clearTimeout(__diarioTimer);
+    __diarioTimer = setTimeout(() => salvarDiario(false), 1200);
+  }
+
+  function salvarDiario(manual) {
+    clearTimeout(__diarioTimer);
+    const data = document.getElementById('diario-data').value;
+    if (!data) return;
+    const texto = document.getElementById('diario-texto').value;
+    const agora = new Date().toISOString();
+    let reg = diario.find(d => d.data === data);
+    if (reg) { reg.texto = texto; reg.atualizadoEm = agora; }
+    else { diario.push({ data, texto, atualizadoEm: agora }); }
+    salvarDados();
+    atualizarStatusDiario(agora);
+  }
+
+  function atualizarStatusDiario(quando, digitando) {
+    const el = document.getElementById('diario-status');
+    if (!el) return;
+    if (digitando) { el.textContent = 'digitando...'; return; }
+    if (!quando) { el.textContent = ''; return; }
+    const h = new Date(quando);
+    el.textContent = 'salvo às ' + String(h.getHours()).padStart(2,'0') + ':' + String(h.getMinutes()).padStart(2,'0');
   }
 
   function renderizarHomeAgendaDia(hoje) {
@@ -2908,39 +3082,67 @@ let clienteEditandoId = null;
     });
     if (temAlgumaAnot) wrap.appendChild(anotRow);
 
-    // Grid
-    const gridWrap = document.createElement('div');
-    gridWrap.className = 'outlook-timegrid-wrap';
-    const grid = document.createElement('div');
-    grid.className = 'outlook-timegrid';
-    grid.appendChild(buildTimegridSlots());
+    // Blocos de turno (Manhã / Tarde) — cada dia mostra suas tarefas agrupadas por turno
+    const turnosWrap = document.createElement('div');
+    turnosWrap.className = 'semana-turnos';
 
-    const dayCols = document.createElement('div');
-    dayCols.className = 'days-cols';
+    [
+      { titulo: '🌅 Manhã', ehTarde: false },
+      { titulo: '🌇 Tarde', ehTarde: true }
+    ].forEach(turno => {
+      const linha = document.createElement('div');
+      linha.className = 'semana-turno-linha';
 
-    dias.forEach(d => {
-      const iso = isoData(d);
-      const dayCol = document.createElement('div');
-      dayCol.className = 'day-col';
-      const rows = buildDayRows();
-      dayCol.appendChild(rows);
+      const label = document.createElement('div');
+      label.className = 'semana-turno-label';
+      label.textContent = turno.titulo;
+      linha.appendChild(label);
 
-      obterPlanFiltrado().filter(p => p.inicio === iso && p.entrada && p.saida).forEach(p => posicionarEvento(rows, p));
-      if (iso === hoje) addNowLine(rows);
+      const diasWrap = document.createElement('div');
+      diasWrap.className = 'semana-turno-dias';
 
-      dayCol.onclick = (e) => {
-        if (e.target === dayCol || e.target === rows) mostrarDetalhe(iso);
-      };
+      dias.forEach(d => {
+        const iso = isoData(d);
+        const diaCol = document.createElement('div');
+        diaCol.className = 'semana-turno-dia' + (iso === hoje ? ' hoje' : '');
+        diaCol.onclick = () => mostrarDetalhe(iso);
 
-      dayCols.appendChild(dayCol);
+        const doDia = obterPlanFiltrado().filter(p => p.inicio === iso);
+        const doTurno = turno.ehTarde
+          ? doDia.filter(p => p.entrada && p.saida && p.entrada >= '12:00')
+          : doDia.filter(p => !(p.entrada && p.saida) || p.entrada <= '11:59');
+        doTurno.sort((a,b) => (a.entrada || '').localeCompare(b.entrada || ''));
+
+        if (!doTurno.length) {
+          const vazio = document.createElement('div');
+          vazio.className = 'semana-turno-vazio';
+          vazio.textContent = '—';
+          diaCol.appendChild(vazio);
+        } else {
+          doTurno.forEach(p => {
+            const chip = document.createElement('div');
+            chip.className = 'semana-turno-evento';
+            chip.style.borderLeftColor = corCliente(p.clienteNome);
+            chip.title = `${p.clienteNome}${p.atividade && p.atividade !== '—' ? ' · ' + p.atividade : ''}`;
+            chip.innerHTML = `
+              <div class="semana-turno-evento-hora">${p.entrada && p.saida ? p.entrada + '–' + p.saida : 'sem horário'}</div>
+              <div class="semana-turno-evento-cliente" style="color:${corCliente(p.clienteNome)}">${p.clienteNome}</div>
+              <div class="semana-turno-evento-pauta">${p.atividade && p.atividade !== '—' ? p.atividade : ''}</div>`;
+            chip.onclick = (e) => { e.stopPropagation(); mostrarDetalhe(iso); };
+            diaCol.appendChild(chip);
+          });
+        }
+
+        diasWrap.appendChild(diaCol);
+      });
+
+      linha.appendChild(diasWrap);
+      turnosWrap.appendChild(linha);
     });
 
-    grid.appendChild(dayCols);
-    gridWrap.appendChild(grid);
-    wrap.appendChild(gridWrap);
+    wrap.appendChild(turnosWrap);
     cont.innerHTML = '';
     cont.appendChild(wrap);
-    scrollParaHoraAtual(gridWrap);
   }
 
   /* ---- VISTA MÊS ---- */
@@ -4143,23 +4345,103 @@ ${faturas}
     setTimeout(() => j.print(), 500);
   }
  
+  // ===== EXPORTAÇÃO CSV (formatada — ponto e vírgula, BOM UTF-8, pronta para Excel BR) =====
+  function csvEscapar(valor) {
+    const s = (valor === null || valor === undefined) ? '' : String(valor);
+    if (/[;"\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  function baixarCSV(nomeArquivo, colunas, linhas) {
+    const BOM = '\uFEFF';
+    let csv = colunas.map(csvEscapar).join(';') + '\r\n';
+    linhas.forEach(linha => { csv += linha.map(csvEscapar).join(';') + '\r\n'; });
+    const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = nomeArquivo;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   function exportarCSV() {
     const clienteId = document.getElementById('cobranca-cliente').value;
     const inicio = new Date(document.getElementById('cobranca-inicio').value || '2000-01-01');
     const fim = new Date(document.getElementById('cobranca-fim').value || '2099-12-31');
+    const status = (document.getElementById('cobranca-status') || {value:'pendente'}).value;
     let dados = tarefas.filter(t => {
       const dt = new Date(t.data);
-      return (!clienteId || t.clienteId == clienteId) && dt >= inicio && dt <= fim;
-    });
-    let csv = 'Data,Cliente,Atividade,Entrada,Saída,Horas,Taxa,Valor\n';
-    dados.forEach(t => {
-      csv += `${fmtData(t.data)},"${t.clienteNome}","${t.atividade}",${t.entrada},${t.saida},${t.horas.toFixed(1)},${t.taxa.toFixed(2)},${t.valor.toFixed(2)}\n`;
-    });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `cobranca_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+      const clienteOk = !clienteId || t.clienteId == clienteId;
+      const periodoOk = dt >= inicio && dt <= fim;
+      const statusOk  = status === 'todos' ? true : status === 'cobrado' ? t.cobrado : !t.cobrado;
+      return clienteOk && periodoOk && statusOk;
+    }).sort((a,b) => a.data.localeCompare(b.data) || a.clienteNome.localeCompare(b.clienteNome));
+
+    if (!dados.length) { alert('Nenhum registro para exportar com os filtros atuais.'); return; }
+
+    const colunas = ['Data','Cliente','Atividade','Entrada','Saída','Intervalo (min)','Horas','Valor/Hora (R$)','Valor Total (R$)','Status'];
+    const linhas = dados.map(t => [
+      fmtData(t.data),
+      t.clienteNome || '',
+      t.atividade || '',
+      t.entrada || '',
+      t.saida || '',
+      t.intervalo || 0,
+      (parseFloat(t.horas)||0).toFixed(1).replace('.',','),
+      (parseFloat(t.taxa)||0).toFixed(2).replace('.',','),
+      (parseFloat(t.valor)||0).toFixed(2).replace('.',','),
+      t.cobrado ? 'Cobrado' : 'Pendente'
+    ]);
+    baixarCSV(`cobranca_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
+  }
+
+  // ===== EXPORTAÇÃO CSV — ABA ATIVIDADES (Planejamento ou Registrar Horas, conforme sub-aba ativa) =====
+  function exportarCSVAtividades() {
+    const fCliente    = document.getElementById('filtro-atv-cliente')?.value    || '';
+    const fModalidade = document.getElementById('filtro-atv-modalidade')?.value || '';
+    const fDtIni      = document.getElementById('filtro-atv-dt-ini')?.value     || '';
+    const fDtFim      = document.getElementById('filtro-atv-dt-fim')?.value     || '';
+    const modIcon = m => m === 'Home Office' ? '🏢' : '🏠';
+    const subHoras = document.getElementById('subtab-horas')?.classList.contains('active');
+
+    if (subHoras) {
+      let dados = [...tarefas];
+      if (fCliente)    dados = dados.filter(t => t.clienteId == fCliente);
+      if (fModalidade) dados = dados.filter(t => (t.modalidade || 'Presencial') === fModalidade);
+      if (fDtIni)      dados = dados.filter(t => t.data >= fDtIni);
+      if (fDtFim)      dados = dados.filter(t => t.data <= fDtFim);
+      dados.sort((a,b) => a.data.localeCompare(b.data));
+      if (!dados.length) { alert('Nenhum registro de horas para exportar com os filtros atuais.'); return; }
+      const colunas = ['Data','Cliente','Atividade','Entrada','Saída','Intervalo (min)','Modalidade','Horas','Valor/Hora (R$)','Valor Total (R$)','Status'];
+      const linhas = dados.map(t => [
+        fmtData(t.data), t.clienteNome || '', t.atividade || '', t.entrada || '', t.saida || '',
+        t.intervalo || 0, t.modalidade || 'Presencial',
+        (parseFloat(t.horas)||0).toFixed(1).replace('.',','),
+        (parseFloat(t.taxa)||0).toFixed(2).replace('.',','),
+        (parseFloat(t.valor)||0).toFixed(2).replace('.',','),
+        t.cobrado ? 'Cobrado' : 'Pendente'
+      ]);
+      baixarCSV(`registro_horas_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
+    } else {
+      let dados = [...planejamento];
+      if (filtroPlanoAtual === 'Não confirmado') dados = dados.filter(p => !p.confirmado);
+      else if (filtroPlanoAtual === 'Confirmado') dados = dados.filter(p => p.confirmado);
+      if (fCliente)    dados = dados.filter(p => p.clienteId == fCliente);
+      if (fModalidade) dados = dados.filter(p => (p.modalidade || 'Presencial') === fModalidade);
+      if (fDtIni)      dados = dados.filter(p => p.inicio >= fDtIni);
+      if (fDtFim)      dados = dados.filter(p => p.inicio <= fDtFim);
+      dados.sort((a,b) => new Date(a.inicio) - new Date(b.inicio));
+      if (!dados.length) { alert('Nenhuma tarefa planejada para exportar com os filtros atuais.'); return; }
+      const colunas = ['Data Início','Data Término','Cliente','Pauta','Entrada','Saída','Modalidade','Horas','Valor (R$)','Status'];
+      const linhas = dados.map(p => [
+        fmtData(p.inicio), fmtData(p.termino || p.inicio), p.clienteNome || '', p.atividade || '',
+        p.entrada || '', p.saida || '', p.modalidade || 'Presencial',
+        (parseFloat(p.horas)||0).toFixed(1).replace('.',','),
+        (parseFloat(p.valor)||0).toFixed(2).replace('.',','),
+        p.confirmado ? 'Confirmado' : 'Não confirmado'
+      ]);
+      baixarCSV(`planejamento_${new Date().toISOString().split('T')[0]}.csv`, colunas, linhas);
+    }
   }
 
   // ===== DASHBOARD =====
@@ -4649,9 +4931,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       : '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum registro histórico. Use o formulário acima para adicionar.</td></tr>';
   }
 
-  // ===== ANOTAÇÕES =====
+  // ===== ANOTAÇÕES (Kanban: A Fazer / Em Andamento / Concluído) =====
   let anotacoes = lsGet('anotacoes');
   let filtroAnotacoes = 'todas';
+  const KANBAN_STATUS = ['pendente','andamento','concluida'];
+  const KANBAN_LABEL  = { pendente: 'A Fazer', andamento: 'Em Andamento', concluida: 'Concluído' };
+
+  // Compatibilidade com dados antigos (só tinham "concluida": true/false)
+  function statusAnot(a) {
+    if (a.status && KANBAN_STATUS.includes(a.status)) return a.status;
+    return a.concluida ? 'concluida' : 'pendente';
+  }
 
   function adicionarAnotacao() {
     const titulo = document.getElementById('anot-titulo').value.trim();
@@ -4660,6 +4950,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const cliSel = document.getElementById('anot-cliente');
     const cliId  = cliSel ? cliSel.value : '';
     const cliObj = clientes.find(c => c.id == cliId);
+    const status = document.getElementById('anot-status').value || 'pendente';
     const dados = {
       titulo,
       clienteId:   cliId,
@@ -4669,12 +4960,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       categoria:   document.getElementById('anot-categoria').value,
       prioridade:  document.getElementById('anot-prioridade').value,
       descricao:   document.getElementById('anot-descricao').value.trim(),
+      status,
+      concluida:   status === 'concluida',
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
       if (a) Object.assign(a, dados);
     } else {
-      anotacoes.unshift({ id: Date.now(), ...dados, concluida: false, criadaEm: hoje });
+      anotacoes.unshift({ id: Date.now(), ...dados, criadaEm: hoje });
     }
     salvarDados();
     cancelarEdicaoAnot();
@@ -4692,6 +4985,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-hora').value       = a.hora || '';
     document.getElementById('anot-categoria').value  = a.categoria || 'Geral';
     document.getElementById('anot-prioridade').value = a.prioridade || 'Normal';
+    document.getElementById('anot-status').value     = statusAnot(a);
     document.getElementById('anot-descricao').value  = a.descricao || '';
     const cliSel = document.getElementById('anot-cliente');
     if (cliSel) cliSel.value = a.clienteId || '';
@@ -4710,6 +5004,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-data').value = hoje;
     document.getElementById('anot-categoria').value = 'Geral';
     document.getElementById('anot-prioridade').value = 'Normal';
+    document.getElementById('anot-status').value = 'pendente';
     const cliSel = document.getElementById('anot-cliente'); if (cliSel) cliSel.value = '';
     const btn = document.getElementById('anot-btn-salvar');
     if (btn) { btn.innerHTML = '<i class="ti ti-plus"></i> Adicionar'; btn.style.background = ''; }
@@ -4717,9 +5012,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (btnC) btnC.style.display = 'none';
   }
 
-  function toggleAnotacao(id) {
+  function moverAnotacao(id, novoStatus) {
     const a = anotacoes.find(a => a.id === id);
-    if (a) { a.concluida = !a.concluida; salvarDados(); renderizarAnotacoes(); }
+    if (!a) return;
+    a.status = novoStatus;
+    a.concluida = novoStatus === 'concluida';
+    salvarDados();
+    renderizarAnotacoes();
   }
 
   function deletarAnotacao(id) {
@@ -4735,60 +5034,75 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     renderizarAnotacoes();
   }
 
+  // ---- Drag and drop entre colunas ----
+  let __kanbanArrastando = null;
+  function kanbanDragStart(ev, id) {
+    __kanbanArrastando = id;
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.target.classList.add('dragging');
+  }
+  function kanbanDragEnd(ev) {
+    ev.target.classList.remove('dragging');
+    document.querySelectorAll('.kanban-coluna').forEach(c => c.classList.remove('kanban-dragover'));
+  }
+  function kanbanDragOver(ev) {
+    ev.preventDefault();
+    ev.currentTarget.classList.add('kanban-dragover');
+  }
+  function kanbanDrop(ev, novoStatus) {
+    ev.preventDefault();
+    ev.currentTarget.classList.remove('kanban-dragover');
+    if (__kanbanArrastando != null) { moverAnotacao(__kanbanArrastando, novoStatus); __kanbanArrastando = null; }
+  }
+
   function renderizarAnotacoes() {
     const hoje = new Date().toISOString().split('T')[0];
     let lista = [...anotacoes];
 
-    if (filtroAnotacoes === 'pendentes')  lista = lista.filter(a => !a.concluida);
-    if (filtroAnotacoes === 'concluidas') lista = lista.filter(a => a.concluida);
-    if (filtroAnotacoes === 'urgente')    lista = lista.filter(a => a.prioridade === 'Crítica' || a.categoria === 'Urgente');
-    if (filtroAnotacoes === 'hoje')       lista = lista.filter(a => a.data === hoje);
-    if (filtroAnotacoes === 'vencidas')   lista = lista.filter(a => !a.concluida && a.data < hoje);
+    if (filtroAnotacoes === 'urgente')  lista = lista.filter(a => a.prioridade === 'Crítica' || a.categoria === 'Urgente');
+    if (filtroAnotacoes === 'hoje')     lista = lista.filter(a => a.data === hoje);
+    if (filtroAnotacoes === 'vencidas') lista = lista.filter(a => statusAnot(a) !== 'concluida' && a.data < hoje);
 
-    lista.sort((a,b) => {
-      if (a.concluida !== b.concluida) return a.concluida ? 1 : -1;
-      return a.data.localeCompare(b.data);
-    });
+    lista.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
-    const cont = document.getElementById('lista-anotacoes');
-    if (!lista.length) {
-      cont.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--text-secondary);font-size:13px">
-        <i class="ti ti-notes-off" style="font-size:32px;display:block;margin-bottom:8px;opacity:0.3"></i>
-        Nenhuma anotação encontrada
-      </div>`; return;
-    }
+    KANBAN_STATUS.forEach(status => {
+      const doColuna = lista.filter(a => statusAnot(a) === status);
+      const contEl = document.getElementById('kanban-lista-' + status);
+      const countEl = document.getElementById('kanban-count-' + status);
+      if (countEl) countEl.textContent = doColuna.length;
+      if (!contEl) return;
 
-    cont.innerHTML = lista.map(a => {
-      const vencida   = !a.concluida && a.data < hoje;
-      const dataLabel = new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR', {weekday:'short',day:'2-digit',month:'short',year:'numeric'});
-      const classCard = 'anot-card' + (a.concluida ? ' concluida' : vencida ? ' vencida' : a.prioridade==='Crítica' ? ' urgente' : '');
-      const badgePrio = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
+      if (!doColuna.length) {
+        contEl.innerHTML = '<div class="kanban-coluna-vazio">Nenhuma anotação aqui.</div>';
+        return;
+      }
 
-      return `<div class="${classCard}">
-        <div class="anot-header">
-          <div class="anot-titulo${a.concluida?' concluida':''}">${a.titulo}</div>
-          <div class="anot-badges">
-            ${vencida   ? '<span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}
-            ${a.concluida ? '<span class="anot-badge anot-badge-concluida">✓ Concluída</span>' : ''}
+      contEl.innerHTML = doColuna.map(a => {
+        const vencida   = status !== 'concluida' && a.data && a.data < hoje;
+        const dataLabel = a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'short'}) : '';
+        const classCard = 'kanban-card' + (vencida ? ' vencida' : a.prioridade==='Crítica' ? ' urgente' : '');
+        const badgePrio = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
+        const proximoStatus = { pendente:'andamento', andamento:'concluida', concluida:'pendente' }[status];
+        const proximoIcone  = { pendente:'arrow-right', andamento:'check', concluida:'rotate-2' }[status];
+        const proximoTitulo = { pendente:'Mover para Em Andamento', andamento:'Mover para Concluído', concluida:'Reabrir (voltar para A Fazer)' }[status];
+
+        return `<div class="${classCard}" draggable="true" ondragstart="kanbanDragStart(event,${a.id})" ondragend="kanbanDragEnd(event)">
+          <div class="kanban-card-titulo">${a.titulo}</div>
+          <div class="kanban-card-meta">
+            ${vencida ? '<span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}
             <span class="anot-badge anot-badge-categoria">${a.categoria}</span>
             <span class="anot-badge ${badgePrio}">${a.prioridade}</span>
           </div>
-        </div>
-        <div class="anot-data">
-          <i class="ti ti-calendar" style="font-size:12px"></i>
-          ${dataLabel}${a.hora ? ' · ' + a.hora : ''}
-          ${a.clienteNome ? `&nbsp;·&nbsp;<span style="font-weight:600;color:${corCliente(a.clienteNome)}">${a.clienteNome}</span>` : ''}
-        </div>
-        ${a.descricao ? `<div class="anot-descricao">${a.descricao}</div>` : ''}
-        <div class="btn-acao-row">
-          <button class="btn btn-icon" onclick="editarAnotacao(${a.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-          <button class="btn btn-icon ${a.concluida ? 'btn-secondary' : 'btn-success'}" onclick="toggleAnotacao(${a.id})" title="${a.concluida ? 'Reabrir' : 'Concluir'}">
-            <i class="ti ti-${a.concluida ? 'rotate-2' : 'check'}"></i>
-          </button>
-          <button class="btn btn-icon btn-danger" onclick="deletarAnotacao(${a.id})" title="Excluir"><i class="ti ti-trash"></i></button>
-        </div>
-      </div>`;
-    }).join('');
+          ${a.data ? `<div class="kanban-card-data"><i class="ti ti-calendar" style="font-size:11px"></i> ${dataLabel}${a.hora ? ' · '+a.hora : ''}${a.clienteNome ? ' · <span style="font-weight:600;color:'+corCliente(a.clienteNome)+'">'+a.clienteNome+'</span>' : ''}</div>` : ''}
+          ${a.descricao ? `<div class="kanban-card-desc">${a.descricao}</div>` : ''}
+          <div class="kanban-card-acoes">
+            <button class="btn btn-icon" onclick="editarAnotacao(${a.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon btn-success" onclick="moverAnotacao(${a.id},'${proximoStatus}')" title="${proximoTitulo}"><i class="ti ti-${proximoIcone}"></i></button>
+            <button class="btn btn-icon btn-danger" onclick="deletarAnotacao(${a.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+          </div>
+        </div>`;
+      }).join('');
+    });
   }
 // ===== DESPESAS =====
   let despesaEditandoId = null;
@@ -4915,7 +5229,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // ===== LIMPAR TODOS OS DADOS =====
   function limparTodosDados() {
     if (!confirm('⚠️ Isso vai apagar TODOS os dados (planejamento, horas, clientes, anotações e histórico) do banco de dados no Supabase.\n\nDeseja continuar?')) return;
-    const vazio = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [] };
+    const vazio = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [] };
     sbSalvarPayload(vazio)
       .then(() => location.reload())
       .catch(() => alert('Erro ao limpar dados no servidor.'));
@@ -4955,7 +5269,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (__salvarEmAndamento) { __salvarPendente = true; return; }
     __salvarEmAndamento = true;
     setStatus('💾 Salvando...');
-    sbSalvarPayload({ clientes, planejamento, tarefas, anotacoes, historico, despesas })
+    sbSalvarPayload({ clientes, planejamento, tarefas, anotacoes, historico, despesas, diario })
       .then(() => { setStatus('💾 Salvo'); })
       .catch(() => { setStatus('⚠️ Erro ao salvar — verifique a conexão'); })
       .finally(() => {
