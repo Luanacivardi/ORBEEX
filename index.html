@@ -1309,9 +1309,13 @@
           </select>
         </div>
       </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="btn btn-secondary" onclick="exportarCSV()"><i class="ti ti-download"></i> Exportar CSV</button>
         <button class="btn btn-secondary" onclick="imprimirCobranca()"><i class="ti ti-printer"></i> Imprimir completo</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-left:8px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="cob-incluir-modalidade" checked style="width:auto;cursor:pointer">
+          Incluir modalidade no relatório
+        </label>
       </div>
     </div>
     <div class="card">
@@ -1609,7 +1613,6 @@
 // ===== CONFIGURAÇÃO SUPABASE (definida em config.js) =====
   var SUPABASE_URL = window.SUPABASE_URL;
   var SUPABASE_ANON_KEY = window.SUPABASE_ANON_KEY;
-  var SB_TABLE = '/rest/v1/dados_app';
   var SB_AUTH  = '/auth/v1/token';
   var SB_SESSION_KEY = 'sb_session_gestorhoras';
 
@@ -1639,48 +1642,115 @@
     return null;
   }
 
-  // ===== CARREGAMENTO DE DADOS (banco de dados Supabase) =====
+  // ===== PERSISTÊNCIA (banco de dados via Supabase REST, tabelas relacionais gh_*) =====
+  function sbAuthHeaders(extra) {
+    var session = sbGetSession();
+    var h = {
+      'apikey': SUPABASE_ANON_KEY,
+      'Authorization': 'Bearer ' + (session ? session.access_token : ''),
+      'Content-Type': 'application/json'
+    };
+    return Object.assign(h, extra || {});
+  }
+
+  function checarResposta(r) {
+    if (r.status === 401) { sbLogout(); throw new Error('sessão expirada'); }
+    if (!r.ok) throw new Error('erro na requisição (' + r.status + ')');
+    return r;
+  }
+
+  // Helper genérico de CRUD por linha, reusado por todas as entidades (evita reenviar o array inteiro a cada mudança)
+  function sbTable(nome) {
+    var base = SUPABASE_URL + '/rest/v1/' + nome;
+    return {
+      insert: function(row) {
+        return fetch(base, { method: 'POST', headers: sbAuthHeaders({ Prefer: 'return=minimal' }), body: JSON.stringify(row) }).then(checarResposta);
+      },
+      insertMany: function(rows) {
+        if (!rows.length) return Promise.resolve();
+        return fetch(base, { method: 'POST', headers: sbAuthHeaders({ Prefer: 'return=minimal' }), body: JSON.stringify(rows) }).then(checarResposta);
+      },
+      update: function(id, patch) {
+        return fetch(base + '?id=eq.' + encodeURIComponent(id), { method: 'PATCH', headers: sbAuthHeaders({ Prefer: 'return=minimal' }), body: JSON.stringify(patch) }).then(checarResposta);
+      },
+      updateMany: function(ids, patch) {
+        if (!ids.length) return Promise.resolve();
+        var lista = ids.map(function(id){ return encodeURIComponent(id); }).join(',');
+        return fetch(base + '?id=in.(' + lista + ')', { method: 'PATCH', headers: sbAuthHeaders({ Prefer: 'return=minimal' }), body: JSON.stringify(patch) }).then(checarResposta);
+      },
+      remove: function(id) {
+        return fetch(base + '?id=eq.' + encodeURIComponent(id), { method: 'DELETE', headers: sbAuthHeaders({ Prefer: 'return=minimal' }) }).then(checarResposta);
+      },
+      replaceAll: function(rows) {
+        return fetch(base + '?id=not.is.null', { method: 'DELETE', headers: sbAuthHeaders() }).then(checarResposta)
+          .then(function() { return rows.length ? sbTable(nome).insertMany(rows) : Promise.resolve(); });
+      }
+    };
+  }
+
+  // gh_diario não tem coluna id — a chave primária é a própria data
+  function sbDiarioSalvar(row) {
+    return fetch(SUPABASE_URL + '/rest/v1/gh_diario', {
+      method: 'POST',
+      headers: sbAuthHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }),
+      body: JSON.stringify(row)
+    }).then(checarResposta);
+  }
+
+  // Salva de forma otimista: a UI já mudou antes de chamar isso; se a rede falhar, desfaz a mudança local via aoFalhar()
+  function persistir(promessa, aoFalhar) {
+    setStatus('💾 Salvando...');
+    promessa.then(function() { setStatus('💾 Salvo'); })
+      .catch(function(e) {
+        console.error('Erro ao salvar:', e);
+        if (aoFalhar) aoFalhar();
+        setStatus('⚠️ Erro ao salvar — verifique a conexão');
+      });
+  }
+
+  // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
   window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [] };
   window.__SRV_ERRO__ = false;
-  (function carregarDadosServidorSync() {
+
+  function carregarDadosServidor() {
     var session = sbGetSession();
-    if (!session || !session.access_token) { window.location.href = 'login.html'; return; }
+    if (!session || !session.access_token) { window.location.href = 'login.html'; return Promise.reject(); }
+
+    var pronto = Promise.resolve();
     if (session.expires_at && session.expires_at < (Date.now() / 1000) + 30) {
-      session = sbRefreshSync(session);
-      if (!session) { sbLogout(); return; }
+      var novaSessao = sbRefreshSync(session);
+      if (!novaSessao) { sbLogout(); return Promise.reject(); }
     }
-    try {
-      var xhr = new XMLHttpRequest();
-      xhr.open('GET', SUPABASE_URL + SB_TABLE + '?select=chave,valor', false);
-      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-      xhr.setRequestHeader('Authorization', 'Bearer ' + session.access_token);
-      xhr.send(null);
-      if (xhr.status === 401) { sbLogout(); return; }
-      if (xhr.status >= 200 && xhr.status < 300) {
-        var linhas = JSON.parse(xhr.responseText);
-        linhas.forEach(function(l) {
-          if (window.__SRV__.hasOwnProperty(l.chave)) {
-            window.__SRV__[l.chave] = Array.isArray(l.valor) ? l.valor : [];
-          }
-        });
-      } else {
-        window.__SRV_ERRO__ = true;
-      }
-    } catch (e) {
+
+    var buscas = [
+      ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
+      ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado'],
+      ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,planejamentoId:planejamento_id'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,criadaEm:criada_em'],
+      ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
+      ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome'],
+      ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em']
+    ];
+
+    return pronto.then(function() {
+      return Promise.all(buscas.map(function(par) {
+        return fetch(SUPABASE_URL + '/rest/v1/' + par[1], { headers: sbAuthHeaders() })
+          .then(checarResposta)
+          .then(function(r) { return r.json(); })
+          .then(function(linhas) { window.__SRV__[par[0]] = Array.isArray(linhas) ? linhas : []; });
+      }));
+    }).catch(function(e) {
       console.error('Erro ao carregar dados do Supabase:', e);
       window.__SRV_ERRO__ = true;
-    }
-  })();
-  if (window.__SRV_ERRO__) {
-    alert('⚠️ Não foi possível carregar os dados do servidor (Supabase). Verifique sua conexão e recarregue a página.\n\nOs dados NÃO serão salvos até a conexão ser restabelecida.');
+    });
   }
 
   function lsGet(key) { return JSON.parse(JSON.stringify(window.__SRV__[key] || [])); }
-  let clientes    = lsGet('clientes');
-  let tarefas     = lsGet('tarefas');
- let planejamento= lsGet('planejamento');
-  let despesas    = lsGet('despesas');
-  let diario      = lsGet('diario');
+  let clientes    = [];
+  let tarefas     = [];
+  let planejamento= [];
+  let despesas    = [];
+  let diario      = [];
 
   let filtroPlanoAtual = 'Todas';
   let tarefaSelecionadaId = null;
@@ -1798,9 +1868,25 @@
     { data: '31/12/2026', cliente: 'Maxicorte', entrada: '08:30', saida: '16:30' }
   ];
 
+  // Converte um item de planejamento (camelCase, usado na UI) para o formato de coluna do Supabase (snake_case)
+  function planejamentoParaLinha(p) {
+    return {
+      id: p.id, cliente_id: p.clienteId || null, cliente_nome: p.clienteNome, cliente_projeto: p.clienteProjeto,
+      inicio: p.inicio, termino: p.termino || null, entrada: p.entrada || null, saida: p.saida || null,
+      intervalo: p.intervalo || 0, modalidade: p.modalidade || null, atividade: p.atividade || '—',
+      horas: p.horas || 0, taxa: p.taxa || 0, valor: p.valor || 0, responsavel: p.responsavel || '',
+      status: p.status || 'Não iniciado', obs: p.obs || null, confirmado: !!p.confirmado
+    };
+  }
+
   function carregarDadosPadrao() {
-    if (clientes.length === 0) clientes = clientesPadrao;
+    let clientesNovos = [];
+    if (clientes.length === 0) {
+      clientesNovos = clientesPadrao.map(c => ({ id: crypto.randomUUID(), nome: c.nome, projeto: c.projeto, taxa: c.taxa, obs: c.obs }));
+      clientes = clientesNovos;
+    }
     const intervaloGeral = 60;
+    const novos = [];
     cronogramaPadrao.forEach(item => {
       const cliente = clientes.find(c => c.nome.toLowerCase() === item.cliente.toLowerCase());
       if (!cliente) return;
@@ -1811,17 +1897,22 @@
       const diff = (sh * 60 + sm) - (eh * 60 + em);
       const horas = Math.max(0, Math.round((diff - intervaloGeral) / 60 * 10) / 10);
       if (horas > 0) {
-        planejamento.push({
-          id: Date.now() + Math.random(),
+        const novo = {
+          id: crypto.randomUUID(),
           clienteId: cliente.id, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
           inicio: dataISO, termino: dataISO, entrada: item.entrada, saida: item.saida,
           intervalo: intervaloGeral, atividade: 'Trabalho', horas,
           taxa: cliente.taxa, valor: horas * cliente.taxa,
           responsavel: '', status: 'Não iniciado', obs: '', confirmado: false
-        });
+        };
+        planejamento.push(novo);
+        novos.push(novo);
       }
     });
-    salvarDados();
+    persistir(Promise.all([
+      clientesNovos.length ? sbTable('gh_clientes').insertMany(clientesNovos) : Promise.resolve(),
+      sbTable('gh_planejamento').insertMany(novos.map(planejamentoParaLinha))
+    ]));
     renderizarPlanejamento();
     atualizarDashboardPlan();
   }
@@ -1841,16 +1932,26 @@ let clienteEditandoId = null;
       // Registros já lançados (planejamento/horas) guardam sua própria taxa/valor
       // travados no momento em que foram criados, então o histórico não é afetado.
       const c = clientes.find(c => c.id === clienteEditandoId);
-      if (c) Object.assign(c, { nome, projeto, taxa, obs });
-      salvarDados();
+      if (c) {
+        const anterior = Object.assign({}, c);
+        Object.assign(c, { nome, projeto, taxa, obs });
+        persistir(
+          sbTable('gh_clientes').update(c.id, { nome, projeto, taxa, obs }),
+          function() { Object.assign(c, anterior); renderizarClientes(); atualizarSelectsClientes(); }
+        );
+      }
       cancelarEdicaoCliente();
       renderizarClientes(); atualizarSelectsClientes();
       alert('Cliente atualizado! A nova taxa vale a partir de agora — o histórico não foi alterado.');
       return;
     }
 
-    clientes.push({ id: Date.now(), nome, projeto, taxa, obs });
-    salvarDados();
+    const novo = { id: crypto.randomUUID(), nome, projeto, taxa, obs };
+    clientes.push(novo);
+    persistir(
+      sbTable('gh_clientes').insert(novo),
+      function() { clientes = clientes.filter(c => c.id !== novo.id); renderizarClientes(); atualizarSelectsClientes(); }
+    );
     ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs'].forEach(id => document.getElementById(id).value = '');
     renderizarClientes(); atualizarSelectsClientes();
   }
@@ -1888,15 +1989,20 @@ let clienteEditandoId = null;
         <div style="font-weight:500;margin-bottom:8px">R$ ${fmtVal(c.taxa)}/h</div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
          <div class="btn-acao-row">
-          <button class="btn btn-icon" onclick="editarCliente(${c.id})" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-          <button class="btn btn-icon btn-danger" onclick="deletarCliente(${c.id})" title="Remover"><i class="ti ti-trash"></i></button>
+          <button class="btn btn-icon" onclick="editarCliente('${c.id}')" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-icon btn-danger" onclick="deletarCliente('${c.id}')" title="Remover"><i class="ti ti-trash"></i></button>
         </div>
       </div>`).join('');
 }
   function deletarCliente(id) {
     if (!confirm('Remover este cliente?')) return;
+    const removido = clientes.find(c => c.id === id);
     clientes = clientes.filter(c => c.id !== id);
-    salvarDados(); renderizarClientes(); atualizarSelectsClientes();
+    renderizarClientes(); atualizarSelectsClientes();
+    persistir(
+      sbTable('gh_clientes').remove(id),
+      function() { if (removido) clientes.push(removido); renderizarClientes(); atualizarSelectsClientes(); }
+    );
   }
 
   function atualizarSelectsClientes() {
@@ -1928,6 +2034,7 @@ let clienteEditandoId = null;
     const atividadeGeral = document.getElementById('import-atividade').value || 'Trabalho';
     if (!dados.trim()) { alert('Cole os dados para importar'); return; }
     let importados = 0, erros = 0;
+    const novos = [];
     dados.trim().split('\n').filter(l => l.trim()).forEach(linha => {
       try {
         const p = linha.split('|').map(x => x.trim());
@@ -1944,18 +2051,21 @@ let clienteEditandoId = null;
         const diff = (sh * 60 + sm) - (eh * 60 + em);
         const horas = Math.max(0, Math.round((diff - intervaloGeral) / 60 * 10) / 10);
         if (horas <= 0) { erros++; return; }
-        planejamento.push({
-          id: Date.now() + Math.random(),
+        const novo = {
+          id: crypto.randomUUID(),
           clienteId: cliente.id, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
           inicio: dataISO, termino: dataISO, entrada, saida, intervalo: intervaloGeral,
           atividade: atividadeLinha, horas, taxa: cliente.taxa, valor: horas * cliente.taxa,
           responsavel: '', status: 'Não iniciado', obs: '', confirmado: false
-        });
+        };
+        planejamento.push(novo);
+        novos.push(novo);
         importados++;
       } catch(e) { erros++; }
     });
     if (importados > 0) {
-      salvarDados(); renderizarPlanejamento(); atualizarDashboardPlan();
+      persistir(sbTable('gh_planejamento').insertMany(novos.map(planejamentoParaLinha)));
+      renderizarPlanejamento(); atualizarDashboardPlan();
       document.getElementById('import-dados').value = '';
       alert(`✓ ${importados} tarefa(s) importada(s)!${erros > 0 ? `\n⚠ ${erros} com erro` : ''}`);
     } else alert('Nenhuma tarefa importada. Verifique o formato.');
@@ -2008,14 +2118,25 @@ let clienteEditandoId = null;
 
     if (planEditandoId) {
       const p = planejamento.find(p => p.id === planEditandoId);
-      if (p) Object.assign(p, { clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto, inicio, termino, entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor });
+      if (p) {
+        const anterior = Object.assign({}, p);
+        Object.assign(p, { clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto, inicio, termino, entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor });
+        persistir(
+          sbTable('gh_planejamento').update(p.id, planejamentoParaLinha(p)),
+          function() { Object.assign(p, anterior); renderizarPlanejamento(); }
+        );
+      }
     } else {
-      planejamento.push({
-        id: Date.now(), clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
+      const novo = {
+        id: crypto.randomUUID(), clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
         inicio, termino, entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor, confirmado: false
-      });
+      };
+      planejamento.push(novo);
+      persistir(
+        sbTable('gh_planejamento').insert(planejamentoParaLinha(novo)),
+        function() { planejamento = planejamento.filter(p => p.id !== novo.id); renderizarPlanejamento(); }
+      );
     }
-    salvarDados();
     cancelarEdicaoPlan();
     renderizarPlanejamento();
   }
@@ -2027,7 +2148,13 @@ let clienteEditandoId = null;
 
   function confirmarPlanejamento(id) {
     const p = planejamento.find(p => p.id === id);
-    if (p) { p.confirmado = !p.confirmado; salvarDados(); renderizarPlanejamento(); atualizarDashboardPlan(); }
+    if (!p) return;
+    p.confirmado = !p.confirmado;
+    renderizarPlanejamento(); atualizarDashboardPlan();
+    persistir(
+      sbTable('gh_planejamento').update(id, { confirmado: p.confirmado }),
+      function() { p.confirmado = !p.confirmado; renderizarPlanejamento(); atualizarDashboardPlan(); }
+    );
   }
 
   let _planConfirmandoId = null;
@@ -2063,8 +2190,8 @@ let clienteEditandoId = null;
             <span class="modal-tarefa-hora">${q.entrada && q.saida ? q.entrada+' – '+q.saida : '—'}</span>
           </div>
           <div class="modal-tarefa-actions">
-            <button class="btn btn-sm btn-success" onclick="marcarTarefaModal(${q.id},'concluida')"><i class="ti ti-check"></i> Concluída</button>
-            <button class="btn btn-sm" style="background:#f59e0b;color:#fff" onclick="marcarTarefaModal(${q.id},'adiar')"><i class="ti ti-clock"></i> Adiar</button>
+            <button class="btn btn-sm btn-success" onclick="marcarTarefaModal('${q.id}','concluida')"><i class="ti ti-check"></i> Concluída</button>
+            <button class="btn btn-sm" style="background:#f59e0b;color:#fff" onclick="marcarTarefaModal('${q.id}','adiar')"><i class="ti ti-clock"></i> Adiar</button>
           </div>
         </div>`).join('');
     }
@@ -2075,26 +2202,33 @@ let clienteEditandoId = null;
   function marcarTarefaModal(id, acao) {
     const el = document.getElementById('mtarefa-' + id);
     if (!el) return;
+    const p = planejamento.find(p => p.id === id);
     if (acao === 'concluida') {
-      const p = planejamento.find(p => p.id === id);
-      if (p) { p.confirmado = true; }
+      if (p) {
+        const anterior = p.confirmado;
+        p.confirmado = true;
+        persistir(sbTable('gh_planejamento').update(id, { confirmado: true }), function() { p.confirmado = anterior; renderizarPlanejamento(); });
+      }
       el.classList.add('concluida');
       el.querySelector('.modal-tarefa-actions').innerHTML = '<span style="color:#10b981;font-size:12px;font-weight:600">✓ Marcada como concluída</span>';
     } else {
       // Adiar: move início +1 dia
-      const p = planejamento.find(p => p.id === id);
       if (p) {
         const d = new Date(p.inicio + 'T12:00:00');
         d.setDate(d.getDate() + 1);
         const nova = d.toISOString().slice(0,10);
         const velhoInicio = p.inicio;
+        const velhoTermino = p.termino;
         p.inicio = nova;
         if (p.termino === velhoInicio || !p.termino) p.termino = nova;
+        persistir(
+          sbTable('gh_planejamento').update(id, { inicio: p.inicio, termino: p.termino }),
+          function() { p.inicio = velhoInicio; p.termino = velhoTermino; renderizarPlanejamento(); }
+        );
       }
       el.classList.add('adiada');
       el.querySelector('.modal-tarefa-actions').innerHTML = '<span style="color:#f59e0b;font-size:12px;font-weight:600">↪ Adiada para amanhã</span>';
     }
-    salvarDados();
   }
 
   function fecharModalConfirmar() {
@@ -2107,9 +2241,13 @@ let clienteEditandoId = null;
     const p = planejamento.find(p => p.id === _planConfirmandoId);
     if (!p) { fecharModalConfirmar(); return; }
     const pauta = document.getElementById('modal-conf-pauta').value.trim();
+    const atividadeAnterior = p.atividade, confirmadoAnterior = p.confirmado;
     if (pauta) p.atividade = pauta;
     p.confirmado = true;
-    salvarDados();
+    persistir(
+      sbTable('gh_planejamento').update(p.id, { atividade: p.atividade, confirmado: true }),
+      function() { p.atividade = atividadeAnterior; p.confirmado = confirmadoAnterior; renderizarPlanejamento(); }
+    );
     const idCopy = _planConfirmandoId; // capturado antes de fecharModalConfirmar zerar a variável
     fecharModalConfirmar();
     irPara('horas');
@@ -2165,8 +2303,13 @@ let clienteEditandoId = null;
 
   function deletarPlanejamento(id) {
     if (!confirm('Remover esta tarefa?')) return;
+    const removida = planejamento.find(p => p.id === id);
     planejamento = planejamento.filter(p => p.id !== id);
-    salvarDados(); renderizarPlanejamento(); atualizarDashboardPlan();
+    renderizarPlanejamento(); atualizarDashboardPlan();
+    persistir(
+      sbTable('gh_planejamento').remove(id),
+      function() { if (removida) planejamento.push(removida); renderizarPlanejamento(); atualizarDashboardPlan(); }
+    );
   }
 
   function atualizarToolbarPlan() {
@@ -2194,21 +2337,24 @@ let clienteEditandoId = null;
   }
 
   function confirmarSelecionados() {
-    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const naoConf = ids.filter(id => { const p = planejamento.find(p => p.id === id); return p && !p.confirmado; });
     if (!naoConf.length) { alert('Todos os itens selecionados já estão confirmados.'); return; }
     if (!confirm(`Confirmar ${naoConf.length} tarefa(s) selecionada(s)?`)) return;
     naoConf.forEach(id => { const p = planejamento.find(p => p.id === id); if (p) p.confirmado = true; });
-    salvarDados();
     desmarcarTodosPlan();
     renderizarPlanejamento();
     atualizarDashboardPlan();
+    persistir(sbTable('gh_planejamento').updateMany(naoConf, { confirmado: true }), function() {
+      naoConf.forEach(id => { const p = planejamento.find(p => p.id === id); if (p) p.confirmado = false; });
+      renderizarPlanejamento(); atualizarDashboardPlan();
+    });
     setStatus(`✓ ${naoConf.length} tarefa(s) confirmada(s)`);
   }
 
   function cobrarSelecionados() {
-    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const itens = ids.map(id => planejamento.find(p => p.id === id)).filter(Boolean);
     if (!itens.length) return;
@@ -2459,7 +2605,7 @@ let clienteEditandoId = null;
     let reg = diario.find(d => d.data === data);
     if (reg) { reg.texto = texto; reg.atualizadoEm = agora; }
     else { diario.push({ data, texto, atualizadoEm: agora }); }
-    salvarDados();
+    persistir(sbDiarioSalvar({ data, texto, atualizado_em: agora }));
     atualizarStatusDiario(agora);
   }
 
@@ -2531,7 +2677,7 @@ let clienteEditandoId = null;
     cont.innerHTML = atrasadas.map(p => {
       const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
       return `
-      <div class="home-agenda-item item-atrasada" onclick="confirmarERegistrar(${p.id})">
+      <div class="home-agenda-item item-atrasada" onclick="confirmarERegistrar('${p.id}')">
         <div class="home-agenda-hora">${fmtData(p.inicio)}${p.entrada ? `<small>${p.entrada}</small>` : ''}</div>
         <div class="home-agenda-info">
           <div class="home-agenda-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
@@ -2611,11 +2757,11 @@ let clienteEditandoId = null;
         <td><span class="status-badge">${p.confirmado ? '✓ Confirmado' : '◯ Não confirmado'}</span></td>
         <td>
           <div class="btn-acao-row">
-            <button class="btn btn-icon" onclick="editarPlanejamento(${p.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon" onclick="editarPlanejamento('${p.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             ${!p.confirmado
-              ? `<button class="btn btn-icon btn-success" onclick="confirmarERegistrar(${p.id})" title="Confirmar"><i class="ti ti-check"></i></button>`
-              : `<button class="btn btn-icon" onclick="confirmarPlanejamento(${p.id})" title="Desconfirmar" style="background:#f59e0b;color:#fff"><i class="ti ti-rotate-clockwise"></i></button>`}
-            <button class="btn btn-icon btn-danger" onclick="deletarPlanejamento(${p.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+              ? `<button class="btn btn-icon btn-success" onclick="confirmarERegistrar('${p.id}')" title="Confirmar"><i class="ti ti-check"></i></button>`
+              : `<button class="btn btn-icon" onclick="confirmarPlanejamento('${p.id}')" title="Desconfirmar" style="background:#f59e0b;color:#fff"><i class="ti ti-rotate-clockwise"></i></button>`}
+            <button class="btn btn-icon btn-danger" onclick="deletarPlanejamento('${p.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       </tr>`;
@@ -2666,7 +2812,7 @@ let clienteEditandoId = null;
     }
     document.getElementById('aviso-tarefas').textContent = `${conf.length} tarefa(s) pendente(s) de registro.`;
     cont.innerHTML = conf.map(t => `
-      <div class="card-item" onclick="selecionarTarefaRapida(${t.id})">
+      <div class="card-item" onclick="selecionarTarefaRapida('${t.id}')">
         <div style="font-weight:600;margin-bottom:8px">${t.atividade}</div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">${t.clienteNome}</div>
         <div style="display:flex;justify-content:space-between;font-size:12px">
@@ -2750,12 +2896,21 @@ let clienteEditandoId = null;
     const horas = parseFloat(document.getElementById('horas-total').value);
     const taxa = parseFloat(document.getElementById('horas-taxa').value);
     if (!data || !entrada || !saida || !atividade || !horas) { alert('Preencha os campos obrigatórios'); return; }
-    tarefas.push({
-      id: Date.now(), clienteId, clienteNome: cliente.nome,
+    const nova = {
+      id: crypto.randomUUID(), clienteId, clienteNome: cliente.nome,
       data, entrada, saida, intervalo, modalidade, atividade, descricao, horas, taxa,
       valor: horas * taxa, cobrado: false, planejamentoId: tarefaSelecionadaId
-    });
-    salvarDados(); limparTarefa(); renderizarTarefas(); alert('Horas registradas!');
+    };
+    tarefas.push(nova);
+    persistir(
+      sbTable('gh_tarefas').insert({
+        id: nova.id, cliente_id: clienteId || null, cliente_nome: nova.clienteNome,
+        data, entrada, saida, intervalo, modalidade, atividade, descricao, horas, taxa,
+        valor: nova.valor, cobrado: false, planejamento_id: tarefaSelecionadaId || null
+      }),
+      function() { tarefas = tarefas.filter(t => t.id !== nova.id); renderizarTarefas(); }
+    );
+    limparTarefa(); renderizarTarefas(); alert('Horas registradas!');
   }
 
   let horasEditandoId = null;
@@ -2783,11 +2938,11 @@ let clienteEditandoId = null;
           <td><span class="badge ${t.cobrado ? 'badge-success' : 'badge-warning'}">${t.cobrado ? 'Cobrado' : 'Pendente'}</span></td>
           <td>
             <div class="btn-acao-row">
-              <button class="btn btn-icon" onclick="editarHoras(${t.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-              <button class="btn btn-icon ${t.cobrado ? 'btn-secondary' : 'btn-success'}" onclick="toggleCobrado(${t.id})" title="${t.cobrado ? 'Desmarcar' : 'Marcar cobrado'}">
+              <button class="btn btn-icon" onclick="editarHoras('${t.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+              <button class="btn btn-icon ${t.cobrado ? 'btn-secondary' : 'btn-success'}" onclick="toggleCobrado('${t.id}')" title="${t.cobrado ? 'Desmarcar' : 'Marcar cobrado'}">
                 <i class="ti ti-${t.cobrado ? 'rotate-2' : 'currency-dollar'}"></i>
               </button>
-              <button class="btn btn-icon btn-danger" onclick="deletarHoras(${t.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+              <button class="btn btn-icon btn-danger" onclick="deletarHoras('${t.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
             </div>
           </td>
         </tr>`).join('');
@@ -2840,6 +2995,7 @@ let clienteEditandoId = null;
       const clienteId = document.getElementById('horas-cliente').value;
       const cliente   = clientes.find(c => c.id == clienteId);
       if (!cliente) { alert('Selecione um cliente'); return; }
+      const anterior = Object.assign({}, t);
       t.clienteId    = clienteId;
       t.clienteNome  = cliente.nome;
       t.data         = document.getElementById('horas-data').value;
@@ -2852,7 +3008,14 @@ let clienteEditandoId = null;
       t.horas        = parseFloat(document.getElementById('horas-total').value) || 0;
       t.taxa         = parseFloat(document.getElementById('horas-taxa').value)  || 0;
       t.valor        = t.horas * t.taxa;
-      salvarDados();
+      persistir(
+        sbTable('gh_tarefas').update(t.id, {
+          cliente_id: clienteId || null, cliente_nome: t.clienteNome, data: t.data, entrada: t.entrada,
+          saida: t.saida, intervalo: t.intervalo, modalidade: t.modalidade, atividade: t.atividade,
+          descricao: t.descricao, horas: t.horas, taxa: t.taxa, valor: t.valor
+        }),
+        function() { Object.assign(t, anterior); renderizarTarefas(); }
+      );
       cancelarEdicaoHoras();
     } else {
       adicionarHoras();
@@ -2861,13 +3024,24 @@ let clienteEditandoId = null;
 
   function deletarHoras(id) {
     if (!confirm('Excluir este registro de horas?')) return;
+    const removida = tarefas.find(t => t.id === id);
     tarefas = tarefas.filter(t => t.id !== id);
-    salvarDados(); renderizarTarefas();
+    renderizarTarefas();
+    persistir(
+      sbTable('gh_tarefas').remove(id),
+      function() { if (removida) tarefas.push(removida); renderizarTarefas(); }
+    );
   }
 
   function toggleCobrado(id) {
     const t = tarefas.find(t => t.id === id);
-    if (t) { t.cobrado = !t.cobrado; salvarDados(); renderizarTarefas(); }
+    if (!t) return;
+    t.cobrado = !t.cobrado;
+    renderizarTarefas();
+    persistir(
+      sbTable('gh_tarefas').update(id, { cobrado: t.cobrado }),
+      function() { t.cobrado = !t.cobrado; renderizarTarefas(); }
+    );
   }
 
  // ===== AGENDA OUTLOOK =====
@@ -3506,13 +3680,13 @@ let clienteEditandoId = null;
           </div>
           ${ev.obs ? `<div style="grid-column:1/-1"><div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">OBS</div><div style="font-size:12px">${ev.obs}</div></div>` : ''}
           <div style="grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap">
-            <button class="btn btn-sm btn-success btn-inline" onclick="confirmarERegistrar(${ev.id})">
+            <button class="btn btn-sm btn-success btn-inline" onclick="confirmarERegistrar('${ev.id}')">
               <i class="ti ti-check"></i> Confirmar e Registrar Horas
             </button>
-            <button class="btn btn-sm btn-secondary btn-inline" onclick="abrirEditarEventoAgenda(${ev.id})">
+            <button class="btn btn-sm btn-secondary btn-inline" onclick="abrirEditarEventoAgenda('${ev.id}')">
               <i class="ti ti-pencil"></i> Editar
             </button>
-            <button class="btn btn-sm btn-inline" onclick="deletarEventoAgenda(${ev.id})" style="background:#fee2e2;color:#991b1b">
+            <button class="btn btn-sm btn-inline" onclick="deletarEventoAgenda('${ev.id}')" style="background:#fee2e2;color:#991b1b">
               <i class="ti ti-trash"></i> Excluir
             </button>
           </div>
@@ -3561,7 +3735,7 @@ let clienteEditandoId = null;
   }
 
   function salvarEdicaoEventoAgenda() {
-    const id        = parseInt(document.getElementById('ag-edit-id').value);
+    const id        = document.getElementById('ag-edit-id').value;
     const clienteId = document.getElementById('ag-edit-cliente').value;
     const cliente   = clientes.find(c => c.id == clienteId);
     if (!cliente) { alert('Selecione um cliente.'); return; }
@@ -3578,9 +3752,15 @@ let clienteEditandoId = null;
     const valor     = horas * taxa;
 
     const p = planejamento.find(p => p.id === id);
-    if (p) Object.assign(p, { clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto, inicio, termino, entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor });
+    if (p) {
+      const anterior = Object.assign({}, p);
+      Object.assign(p, { clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto, inicio, termino, entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor });
+      persistir(
+        sbTable('gh_planejamento').update(p.id, planejamentoParaLinha(p)),
+        function() { Object.assign(p, anterior); renderizarPlanejamento(); renderizarAgenda(); }
+      );
+    }
 
-    salvarDados();
     renderizarPlanejamento();
     renderizarAgenda();
     fecharEditarEventoAgenda();
@@ -3592,10 +3772,13 @@ let clienteEditandoId = null;
     const p = planejamento.find(p => p.id === id);
     const iso = p ? p.inicio : null;
     planejamento = planejamento.filter(p => p.id !== id);
-    salvarDados();
     renderizarPlanejamento();
     renderizarAgenda();
     if (iso) mostrarDetalhe(iso);
+    persistir(
+      sbTable('gh_planejamento').remove(id),
+      function() { if (p) planejamento.push(p); renderizarPlanejamento(); renderizarAgenda(); }
+    );
   }
 
   /* ---- Imprimir Agenda ---- */
@@ -3831,7 +4014,7 @@ ${corpoHTML}
           <span class="badge ${t.cobrado ? 'badge-success' : 'badge-warning'}">${t.cobrado ? 'Cobrado' : 'Pendente'}</span>
         </td>
         <td>
-          <button class="btn btn-icon ${t.cobrado ? 'btn-secondary' : 'btn-success'}" onclick="toggleCobrado(${t.id});filtrarCobranca()" title="${t.cobrado ? 'Desfazer' : 'Marcar cobrado'}">
+          <button class="btn btn-icon ${t.cobrado ? 'btn-secondary' : 'btn-success'}" onclick="toggleCobrado('${t.id}');filtrarCobranca()" title="${t.cobrado ? 'Desfazer' : 'Marcar cobrado'}">
             <i class="ti ti-${t.cobrado ? 'rotate-2' : 'currency-dollar'}"></i>
           </button>
         </td>
@@ -3853,7 +4036,7 @@ ${corpoHTML}
   }
   
 function gerarRelatorioCobranca() {
-    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     if (!confirm(`Gerar relatório e marcar ${ids.length} registro(s) como Cobrado?`)) return;
 
@@ -3861,7 +4044,10 @@ function gerarRelatorioCobranca() {
 
     // Marcar como cobrado
     ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = true; });
-    salvarDados();
+    persistir(sbTable('gh_tarefas').updateMany(ids, { cobrado: true }), function() {
+      ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = false; });
+      renderizarTarefas();
+    });
 
     // Agrupar por cliente
     const porcl = {};
@@ -3876,6 +4062,9 @@ function gerarRelatorioCobranca() {
 
     const descontoTotal = getDesconto();
     const nClientes = Object.keys(porcl).length;
+    const comModalidade = incluirModalidadeCobranca();
+    const thModalidade = comModalidade ? '<th class="tc">Modalidade</th>' : '';
+    const colspanTotal = comModalidade ? 4 : 3;
     let faturas = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
@@ -3889,7 +4078,7 @@ function gerarRelatorioCobranca() {
           <td>${fmtData(t.data)}</td>
           <td>${t.atividade || '—'}</td>
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
-          <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
+          ${comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
           <td class="tr">R$ ${fmtVal((parseFloat(t.taxa)||0))}</td>
           <td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
@@ -3919,11 +4108,11 @@ function gerarRelatorioCobranca() {
         </div>
         <div class="sec-titulo"><i>📋</i> Horas Realizadas</div>
         <table class="srv-table">
-          <thead><tr><th>Data</th><th>Descrição da Atividade</th><th class="tc">Horário</th><th class="tc">Modalidade</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
+          <thead><tr><th>Data</th><th>Descrição da Atividade</th><th class="tc">Horário</th>${thModalidade}<th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
           <tbody>${linhas}</tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="4"><strong>TOTAL GERAL</strong></td>
+              <td colspan="${colspanTotal}"><strong>TOTAL GERAL</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
               <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
@@ -4009,6 +4198,11 @@ function gerarRelatorioCobranca() {
     return Math.max(0, parseFloat(document.getElementById('cob-desconto')?.value || 0) || 0);
   }
 
+  function incluirModalidadeCobranca() {
+    const el = document.getElementById('cob-incluir-modalidade');
+    return !el || el.checked;
+  }
+
   function atualizarResumoDesconto() {
     const desc = getDesconto();
     const prev = document.getElementById('cob-desconto-preview');
@@ -4023,23 +4217,31 @@ function gerarRelatorioCobranca() {
   }
 
   function marcarCobradoSelecionados() {
-    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = true; });
-    salvarDados(); desmarcarTodosCobranca(); filtrarCobranca();
+    desmarcarTodosCobranca(); filtrarCobranca();
+    persistir(sbTable('gh_tarefas').updateMany(ids, { cobrado: true }), function() {
+      ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = false; });
+      filtrarCobranca();
+    });
     setStatus(`✓ ${ids.length} registro(s) marcado(s) como Cobrado`);
   }
 
   function marcarPendenteSelecionados() {
-    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = false; });
-    salvarDados(); desmarcarTodosCobranca(); filtrarCobranca();
+    desmarcarTodosCobranca(); filtrarCobranca();
+    persistir(sbTable('gh_tarefas').updateMany(ids, { cobrado: false }), function() {
+      ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = true; });
+      filtrarCobranca();
+    });
     setStatus(`↩ ${ids.length} registro(s) marcado(s) como Pendente`);
   }
 
   function imprimirSelecionadosCobranca() {
-    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => parseInt(c.value));
+    const ids = [...document.querySelectorAll('.cob-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const selecionados = ids.map(id => tarefas.find(t => t.id === id)).filter(Boolean);
     if (!selecionados.length) return;
@@ -4056,6 +4258,9 @@ function gerarRelatorioCobranca() {
 
     const descontoTotal = getDesconto();
     const nClientes = Object.keys(porcl).length;
+    const comModalidade = incluirModalidadeCobranca();
+    const thModalidade = comModalidade ? '<th class="tc">Modalidade</th>' : '';
+    const colspanTotal = comModalidade ? 4 : 3;
     let faturas = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
@@ -4069,7 +4274,7 @@ function gerarRelatorioCobranca() {
           <td>${fmtData(t.data)}</td>
           <td>${t.atividade || '—'}</td>
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
-          <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
+          ${comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
           <td class="tr">R$ ${fmtVal(parseFloat(t.taxa)||0)}</td>
           <td class="tr valor-cel">R$ ${fmtVal(parseFloat(t.valor)||0)}</td>
@@ -4099,9 +4304,9 @@ function gerarRelatorioCobranca() {
         </div>
         <div class="sec-titulo"><i>📋</i> Serviços Prestados</div>
         <table class="srv-table">
-          <thead><tr><th>Data</th><th>Descrição</th><th class="tc">Horário</th><th class="tc">Modalidade</th><th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
+          <thead><tr><th>Data</th><th>Descrição</th><th class="tc">Horário</th>${thModalidade}<th class="tr">Horas</th><th class="tr">Valor/h</th><th class="tr">Valor R$</th></tr></thead>
           <tbody>${linhas}</tbody>
-          <tfoot><tr class="total-row"><td colspan="4"><strong>TOTAL GERAL</strong></td><td class="tr"><strong>${totalH.toFixed(1)}h</strong></td><td></td><td class="tr total-valor">R$ ${fmtVal(totalV)}</td></tr></tfoot>
+          <tfoot><tr class="total-row"><td colspan="${colspanTotal}"><strong>TOTAL GERAL</strong></td><td class="tr"><strong>${totalH.toFixed(1)}h</strong></td><td></td><td class="tr total-valor">R$ ${fmtVal(totalV)}</td></tr></tfoot>
         </table>
         <div class="resumo">
           <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
@@ -4173,6 +4378,9 @@ function imprimirCobranca() {
     // Uma fatura por cliente
     const descontoTotalGerar = getDesconto();
     const nClientesGerar = Object.keys(porcl).length;
+    const comModalidade = incluirModalidadeCobranca();
+    const thModalidade = comModalidade ? '<th class="tc">Modalidade</th>' : '';
+    const colspanTotal = comModalidade ? 4 : 3;
     let faturas = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       const totalH   = ts.reduce((s, t) => s + (parseFloat(t.horas)||0), 0);
@@ -4192,7 +4400,7 @@ function imprimirCobranca() {
             <td>${fmtData(t.data)}</td>
             <td>${t.atividade || '—'}</td>
             <td class="tc">${t.entrada || ''} ${t.entrada && t.saida ? '–' : ''} ${t.saida || ''}</td>
-            <td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>
+            ${comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
             <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
             <td class="tr">R$ ${fmtVal(parseFloat(t.taxa)||0)}</td>
             <td class="tr valor-cel">R$ ${fmtVal(parseFloat(t.valor)||0)}</td>
@@ -4244,7 +4452,7 @@ function imprimirCobranca() {
               <th>Data</th>
               <th>Descrição da Atividade</th>
               <th class="tc">Horário</th>
-              <th class="tc">Modalidade</th>
+              ${thModalidade}
               <th class="tr">Horas</th>
               <th class="tr">Valor/h</th>
               <th class="tr">Valor R$</th>
@@ -4253,7 +4461,7 @@ function imprimirCobranca() {
           <tbody>${linhas}</tbody>
           <tfoot>
             <tr class="total-row">
-              <td colspan="4"><strong>TOTAL GERAL</strong></td>
+              <td colspan="${colspanTotal}"><strong>TOTAL GERAL</strong></td>
               <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
               <td></td>
               <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
@@ -4982,8 +5190,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const desc = document.getElementById('hist-descricao').value.trim();
     if (!ano || ano < 2000) { alert('Informe um ano válido (ex: 2023)'); return; }
     if (!hrs && !val) { alert('Informe pelo menos horas ou valor'); return; }
-    historico.push({ id: Date.now(), ano, mes, cliente: cli||'Geral', horas: hrs, valor: val, descricao: desc });
-    salvarDados();
+    const novo = { id: crypto.randomUUID(), ano, mes, cliente: cli||'Geral', horas: hrs, valor: val, descricao: desc };
+    historico.push(novo);
+    persistir(
+      sbTable('gh_historico').insert(novo),
+      function() { historico = historico.filter(h => h.id !== novo.id); renderizarDashboard(); }
+    );
     ['hist-ano','hist-horas','hist-valor','hist-descricao'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('hist-mes').value='0';
     document.getElementById('hist-cliente').value='';
@@ -4992,8 +5204,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   function deletarHistorico(id) {
     if (!confirm('Remover este registro?')) return;
+    const removido = historico.find(h => h.id === id);
     historico = historico.filter(h=>h.id!==id);
-    salvarDados(); renderizarDashboard();
+    renderizarDashboard();
+    persistir(
+      sbTable('gh_historico').remove(id),
+      function() { if (removido) historico.push(removido); renderizarDashboard(); }
+    );
   }
 
   function renderizarTabHistorico() {
@@ -5007,7 +5224,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           <td>${h.horas.toFixed(1)}h</td>
           <td>R$ ${fmtVal(h.valor)}</td>
           <td style="color:var(--text-secondary);font-size:12px">${h.descricao||'—'}</td>
-          <td><button class="btn btn-sm btn-danger" onclick="deletarHistorico(${h.id})"><i class="ti ti-trash"></i></button></td>
+          <td><button class="btn btn-sm btn-danger" onclick="deletarHistorico('${h.id}')"><i class="ti ti-trash"></i></button></td>
         </tr>`).join('')
       : '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum registro histórico. Use o formulário acima para adicionar.</td></tr>';
   }
@@ -5046,11 +5263,30 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
-      if (a) Object.assign(a, dados);
+      if (a) {
+        const anterior = Object.assign({}, a);
+        Object.assign(a, dados);
+        persistir(
+          sbTable('gh_anotacoes').update(a.id, {
+            titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
+            data: dados.data, hora: dados.hora, categoria: dados.categoria, prioridade: dados.prioridade,
+            descricao: dados.descricao, status: dados.status, concluida: dados.concluida
+          }),
+          function() { Object.assign(a, anterior); renderizarAnotacoes(); }
+        );
+      }
     } else {
-      anotacoes.unshift({ id: Date.now(), ...dados, criadaEm: hoje });
+      const nova = { id: crypto.randomUUID(), ...dados, criadaEm: hoje };
+      anotacoes.unshift(nova);
+      persistir(
+        sbTable('gh_anotacoes').insert({
+          id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
+          data: nova.data, hora: nova.hora, categoria: nova.categoria, prioridade: nova.prioridade,
+          descricao: nova.descricao, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm
+        }),
+        function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
+      );
     }
-    salvarDados();
     cancelarEdicaoAnot();
     renderizarAnotacoes();
   }
@@ -5096,16 +5332,25 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function moverAnotacao(id, novoStatus) {
     const a = anotacoes.find(a => a.id === id);
     if (!a) return;
+    const statusAnterior = a.status, concluidaAnterior = a.concluida;
     a.status = novoStatus;
     a.concluida = novoStatus === 'concluida';
-    salvarDados();
     renderizarAnotacoes();
+    persistir(
+      sbTable('gh_anotacoes').update(id, { status: novoStatus, concluida: a.concluida }),
+      function() { a.status = statusAnterior; a.concluida = concluidaAnterior; renderizarAnotacoes(); }
+    );
   }
 
   function deletarAnotacao(id) {
     if (!confirm('Remover esta anotação?')) return;
+    const removida = anotacoes.find(a => a.id === id);
     anotacoes = anotacoes.filter(a => a.id !== id);
-    salvarDados(); renderizarAnotacoes();
+    renderizarAnotacoes();
+    persistir(
+      sbTable('gh_anotacoes').remove(id),
+      function() { if (removida) anotacoes.push(removida); renderizarAnotacoes(); }
+    );
   }
 
   function filtrarAnotacoes(filtro, btn) {
@@ -5167,7 +5412,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         const proximoIcone  = { pendente:'arrow-right', andamento:'check', concluida:'rotate-2' }[status];
         const proximoTitulo = { pendente:'Mover para Em Andamento', andamento:'Mover para Concluído', concluida:'Reabrir (voltar para A Fazer)' }[status];
 
-        return `<div class="${classCard}" draggable="true" ondragstart="kanbanDragStart(event,${a.id})" ondragend="kanbanDragEnd(event)">
+        return `<div class="${classCard}" draggable="true" ondragstart="kanbanDragStart(event,'${a.id}')" ondragend="kanbanDragEnd(event)">
           <div class="kanban-card-titulo">${a.titulo}</div>
           <div class="kanban-card-meta">
             ${vencida ? '<span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}
@@ -5177,9 +5422,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           ${a.data ? `<div class="kanban-card-data"><i class="ti ti-calendar" style="font-size:11px"></i> ${dataLabel}${a.hora ? ' · '+a.hora : ''}${a.clienteNome ? ' · <span style="font-weight:600;color:'+corCliente(a.clienteNome)+'">'+a.clienteNome+'</span>' : ''}</div>` : ''}
           ${a.descricao ? `<div class="kanban-card-desc">${a.descricao}</div>` : ''}
           <div class="kanban-card-acoes">
-            <button class="btn btn-icon" onclick="editarAnotacao(${a.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-            <button class="btn btn-icon btn-success" onclick="moverAnotacao(${a.id},'${proximoStatus}')" title="${proximoTitulo}"><i class="ti ti-${proximoIcone}"></i></button>
-            <button class="btn btn-icon btn-danger" onclick="deletarAnotacao(${a.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+            <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon btn-success" onclick="moverAnotacao('${a.id}','${proximoStatus}')" title="${proximoTitulo}"><i class="ti ti-${proximoIcone}"></i></button>
+            <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </div>`;
       }).join('');
@@ -5203,14 +5448,25 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     if (despesaEditandoId) {
       const d = despesas.find(d => d.id === despesaEditandoId);
-      if (d) Object.assign(d, { categoria, data, valor, descricao, clienteId: clienteId || null, clienteNome: clienteObj ? clienteObj.nome : '' });
+      if (d) {
+        const anterior = Object.assign({}, d);
+        Object.assign(d, { categoria, data, valor, descricao, clienteId: clienteId || null, clienteNome: clienteObj ? clienteObj.nome : '' });
+        persistir(
+          sbTable('gh_despesas').update(d.id, { categoria, data, valor, descricao, cliente_id: clienteId || null, cliente_nome: clienteObj ? clienteObj.nome : '' }),
+          function() { Object.assign(d, anterior); renderizarDespesas(); }
+        );
+      }
     } else {
-      despesas.push({
-        id: Date.now(), categoria, data, valor, descricao,
+      const nova = {
+        id: crypto.randomUUID(), categoria, data, valor, descricao,
         clienteId: clienteId || null, clienteNome: clienteObj ? clienteObj.nome : ''
-      });
+      };
+      despesas.push(nova);
+      persistir(
+        sbTable('gh_despesas').insert({ id: nova.id, categoria, data, valor, descricao, cliente_id: clienteId || null, cliente_nome: clienteObj ? clienteObj.nome : '' }),
+        function() { despesas = despesas.filter(d => d.id !== nova.id); renderizarDespesas(); }
+      );
     }
-    salvarDados();
     cancelarEdicaoDespesa();
     renderizarDespesas();
   }
@@ -5246,9 +5502,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   function deletarDespesa(id) {
     if (!confirm('Remover esta despesa?')) return;
+    const removida = despesas.find(d => d.id === id);
     despesas = despesas.filter(d => d.id !== id);
-    salvarDados();
     renderizarDespesas();
+    persistir(
+      sbTable('gh_despesas').remove(id),
+      function() { if (removida) despesas.push(removida); renderizarDespesas(); }
+    );
   }
 
   function limparFiltroDespesas() {
@@ -5300,8 +5560,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td>R$ ${fmtVal((parseFloat(d.valor)||0))}</td>
         <td>
           <div class="btn-acao-row">
-            <button class="btn btn-icon" onclick="editarDespesa(${d.id})" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-            <button class="btn btn-icon btn-danger" onclick="deletarDespesa(${d.id})" title="Excluir"><i class="ti ti-trash"></i></button>
+            <button class="btn btn-icon" onclick="editarDespesa('${d.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon btn-danger" onclick="deletarDespesa('${d.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       </tr>`).join('');
@@ -5310,53 +5570,16 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // ===== LIMPAR TODOS OS DADOS =====
   function limparTodosDados() {
     if (!confirm('⚠️ Isso vai apagar TODOS os dados (planejamento, horas, clientes, anotações e histórico) do banco de dados no Supabase.\n\nDeseja continuar?')) return;
-    const vazio = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [] };
-    sbSalvarPayload(vazio)
-      .then(() => location.reload())
+    Promise.all([
+      sbTable('gh_clientes').replaceAll([]),
+      sbTable('gh_planejamento').replaceAll([]),
+      sbTable('gh_tarefas').replaceAll([]),
+      sbTable('gh_anotacoes').replaceAll([]),
+      sbTable('gh_historico').replaceAll([]),
+      sbTable('gh_despesas').replaceAll([]),
+      fetch(SUPABASE_URL + '/rest/v1/gh_diario?data=not.is.null', { method: 'DELETE', headers: sbAuthHeaders() }).then(checarResposta)
+    ]).then(() => location.reload())
       .catch(() => alert('Erro ao limpar dados no servidor.'));
-  }
-
-  // ===== PERSISTÊNCIA (banco de dados via Supabase REST) =====
-  function sbAuthHeaders(extra) {
-    var session = sbGetSession();
-    var h = {
-      'apikey': SUPABASE_ANON_KEY,
-      'Authorization': 'Bearer ' + (session ? session.access_token : ''),
-      'Content-Type': 'application/json'
-    };
-    return Object.assign(h, extra || {});
-  }
-
-  function sbSalvarPayload(payload) {
-    const linhas = Object.keys(payload).map(chave => ({
-      chave: chave,
-      valor: payload[chave],
-      atualizado_em: new Date().toISOString()
-    }));
-    return fetch(SUPABASE_URL + SB_TABLE, {
-      method: 'POST',
-      headers: sbAuthHeaders({ 'Prefer': 'resolution=merge-duplicates,return=minimal' }),
-      body: JSON.stringify(linhas)
-    }).then(r => {
-      if (r.status === 401) { sbLogout(); throw new Error('sessão expirada'); }
-      if (!r.ok) throw new Error('erro ao salvar');
-      return true;
-    });
-  }
-
-  let __salvarEmAndamento = false;
-  let __salvarPendente = false;
-  function salvarDados() {
-    if (__salvarEmAndamento) { __salvarPendente = true; return; }
-    __salvarEmAndamento = true;
-    setStatus('💾 Salvando...');
-    sbSalvarPayload({ clientes, planejamento, tarefas, anotacoes, historico, despesas, diario })
-      .then(() => { setStatus('💾 Salvo'); })
-      .catch(() => { setStatus('⚠️ Erro ao salvar — verifique a conexão'); })
-      .finally(() => {
-        __salvarEmAndamento = false;
-        if (__salvarPendente) { __salvarPendente = false; salvarDados(); }
-      });
   }
 
   function setStatus(msg) {
@@ -5523,7 +5746,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Clientes']);
           if (rows.length) {
             clientes = rows.map(r => ({
-              id:      r['ID']        || Date.now() + Math.random(),
+              id:      r['ID']        || crypto.randomUUID(),
               nome:    r['Nome']      || '',
               projeto: r['Projeto']   || '',
               taxa:    parseFloat(r['Taxa R$/h']) || 0,
@@ -5537,7 +5760,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Planejamento']);
           if (rows.length) {
             planejamento = rows.map(r => ({
-              id:            r['ID']           || Date.now() + Math.random(),
+              id:            r['ID']           || crypto.randomUUID(),
               clienteNome:   r['Cliente']      || '',
               clienteProjeto:r['Projeto']      || '',
               clienteId:     clientes.find(c => c.nome === r['Cliente'])?.id || '',
@@ -5563,7 +5786,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Horas Registradas']);
           if (rows.length) {
             tarefas = rows.map(r => ({
-              id:          r['ID']        || Date.now() + Math.random(),
+              id:          r['ID']        || crypto.randomUUID(),
               data:        parseDateBR(r['Data']),
               clienteNome: r['Cliente']   || '',
               clienteId:   clientes.find(c => c.nome === r['Cliente'])?.id || '',
@@ -5584,7 +5807,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Histórico']);
           if (rows.length) {
             historico = rows.map(r => ({
-              id:        r['ID']        || Date.now() + Math.random(),
+              id:        r['ID']        || crypto.randomUUID(),
               ano:       parseInt(r['Ano'])   || new Date().getFullYear(),
               mes:       parseInt(r['Nº Mês'])|| 0,
               cliente:   r['Cliente']   || 'Geral',
@@ -5600,7 +5823,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Anotações']);
           if (rows.length) {
             anotacoes = rows.map(r => ({
-              id:         r['ID']         || Date.now() + Math.random(),
+              id:         r['ID']         || crypto.randomUUID(),
               titulo:     r['Título']     || '',
               data:       parseDateBR(r['Data']),
               hora:       r['Hora']       || '',
@@ -5608,12 +5831,31 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
               prioridade: r['Prioridade'] || 'Normal',
               descricao:  r['Descrição']  || '',
               concluida:  r['Concluída'] === 'Sim',
+              status:     r['Concluída'] === 'Sim' ? 'concluida' : 'pendente',
               criadaEm:   parseDateBR(r['Criada em']) || new Date().toISOString().split('T')[0]
             }));
           }
         }
 
-        salvarDados();
+        persistir(Promise.all([
+          sbTable('gh_clientes').replaceAll(clientes),
+          sbTable('gh_planejamento').replaceAll(planejamento.map(planejamentoParaLinha)),
+          sbTable('gh_tarefas').replaceAll(tarefas.map(t => ({
+            id: t.id, cliente_id: t.clienteId || null, cliente_nome: t.clienteNome, data: t.data,
+            entrada: t.entrada || null, saida: t.saida || null, intervalo: t.intervalo || 0,
+            modalidade: t.modalidade || null, atividade: t.atividade || '', descricao: t.descricao || null,
+            horas: t.horas || 0, taxa: t.taxa || 0, valor: t.valor || 0, cobrado: !!t.cobrado,
+            planejamento_id: t.planejamentoId || null
+          }))),
+          sbTable('gh_historico').replaceAll(historico),
+          sbTable('gh_anotacoes').replaceAll(anotacoes.map(a => ({
+            id: a.id, titulo: a.titulo, cliente_id: a.clienteId || null, cliente_nome: a.clienteNome || '',
+            data: a.data || null, hora: a.hora || null, categoria: a.categoria || 'Geral',
+            prioridade: a.prioridade || 'Normal', descricao: a.descricao || null,
+            status: a.status || (a.concluida ? 'concluida' : 'pendente'), concluida: !!a.concluida,
+            criada_em: a.criadaEm || null
+          })))
+        ]));
         renderizarClientes();
         atualizarSelectsClientes();
         renderizarPlanejamento();
@@ -5682,13 +5924,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       if (!eventos.length) { alert('Nenhum evento encontrado no arquivo .ics.'); return; }
 
       let criados = 0;
+      const novos = [];
       eventos.forEach(ev => {
         if (!ev.inicio) return;
         const taxa  = cliente.taxa || 0;
         const horas = calcularHorasEntradaSaida(ev.entrada, ev.saida, intervalo);
         const valor = horas * taxa;
-        planejamento.push({
-          id: Date.now() + criados++,
+        const novo = {
+          id: crypto.randomUUID(),
           clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
           inicio: ev.inicio, termino: ev.termino || ev.inicio,
           entrada: ev.entrada, saida: ev.saida,
@@ -5696,10 +5939,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           atividade: ev.titulo || 'Evento Outlook',
           horas, taxa, valor,
           confirmado: false
-        });
+        };
+        planejamento.push(novo);
+        novos.push(novo);
+        criados++;
       });
 
-      salvarDados();
+      persistir(sbTable('gh_planejamento').insertMany(novos.map(planejamentoParaLinha)));
       renderizarPlanejamento();
       renderizarAgenda();
 
@@ -5857,156 +6103,32 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const cur = new Date(dtIni + 'T00:00:00');
     const fim = new Date(dtFim + 'T00:00:00');
     let criados = 0;
+    const novos = [];
     while (cur <= fim) {
       if (diasSel.includes(cur.getDay())) {
         const iso = cur.toISOString().split('T')[0];
-        planejamento.push({
-          id: Date.now() + criados,
+        const novo = {
+          id: crypto.randomUUID(),
           clienteId, clienteNome: cliente.nome, clienteProjeto: cliente.projeto,
           inicio: iso, termino: iso,
           entrada, saida, intervalo, modalidade, atividade, horas, taxa, valor,
           confirmado: false
-        });
+        };
+        planejamento.push(novo);
+        novos.push(novo);
         criados++;
       }
       cur.setDate(cur.getDate() + 1);
     }
 
-    salvarDados();
+    persistir(sbTable('gh_planejamento').insertMany(novos.map(planejamentoParaLinha)));
     renderizarPlanejamento();
     renderizarAgenda();
     fecharModalAgendaMassa();
     alert(`✅ ${criados} agendamento${criados>1?'s':''} criado${criados>1?'s':''} com sucesso!`);
   }
 
-  // ===== HISTÓRICO 2025 =====
-  function carregarHistorico2025() {
-    if (localStorage.getItem('hist2025_v2_carregado') || historico.some(h => h.ano === 2025)) return;
-    // Remove registros 2025 antigos antes de inserir os novos
-    historico = historico.filter(h => h.ano !== 2025);
-    const dados = [
-      { mes:1,  cliente:'Maxicorte', horas:21.25,   valor:2231.25   },
-      { mes:1,  cliente:'Digital',   horas:14,       valor:0         },
-      { mes:2,  cliente:'Maxicorte', horas:37.50,    valor:3937.50   },
-      { mes:2,  cliente:'Qualytool', horas:13.5,     valor:756       },
-      { mes:3,  cliente:'Maxicorte', horas:51.25,    valor:5381.25   },
-      { mes:3,  cliente:'Qualytool', horas:65.75,    valor:3682      },
-      { mes:4,  cliente:'Maxicorte', horas:49.75,    valor:5223.75   },
-      { mes:4,  cliente:'Qualytool', horas:64,       valor:3584      },
-      { mes:5,  cliente:'Maxicorte', horas:54.25,    valor:5696.25   },
-      { mes:5,  cliente:'Qualytool', horas:56.98,    valor:3191.07   },
-      { mes:5,  cliente:'Tedesco',   horas:11,       valor:1650      },
-      { mes:6,  cliente:'Maxicorte', horas:52.25,    valor:5486.25   },
-      { mes:6,  cliente:'Qualytool', horas:21.5417,  valor:1206.33   },
-      { mes:6,  cliente:'Tedesco',   horas:21.5,     valor:3225      },
-      { mes:7,  cliente:'Maxicorte', horas:72.75,    valor:7638.75   },
-      { mes:7,  cliente:'Qualytool', horas:41.5,     valor:2324      },
-      { mes:7,  cliente:'Tedesco',   horas:38,       valor:5700      },
-      { mes:8,  cliente:'Maxicorte', horas:61,       valor:6405      },
-      { mes:8,  cliente:'Qualytool', horas:42.5,     valor:2380      },
-      { mes:8,  cliente:'Tedesco',   horas:14.25,    valor:2137.50   },
-      { mes:9,  cliente:'Maxicorte', horas:80.25,    valor:8426.25   },
-      { mes:9,  cliente:'Qualytool', horas:14,       valor:784       },
-      { mes:9,  cliente:'Tedesco',   horas:19,       valor:2850      },
-      { mes:10, cliente:'Maxicorte', horas:92.75,    valor:9738.75   },
-      { mes:10, cliente:'Qualytool', horas:5,        valor:280       },
-      { mes:10, cliente:'Tedesco',   horas:46,       valor:6900      },
-      { mes:11, cliente:'Maxicorte', horas:30.5,     valor:3202.50   },
-      { mes:11, cliente:'Qualytool', horas:4,        valor:224       },
-      { mes:11, cliente:'Tedesco',   horas:26.75,    valor:4012.50   },
-      { mes:12, cliente:'Maxicorte', horas:25,       valor:2625      },
-      { mes:12, cliente:'Qualytool', horas:5,        valor:280       },
-      { mes:12, cliente:'Tedesco',   horas:44.75,    valor:7207.50   },
-    ];
-    dados.forEach((d, i) => {
-      historico.push({ id: 20250000 + i, ano: 2025, mes: d.mes, cliente: d.cliente, horas: d.horas, valor: d.valor, descricao: '' });
-    });
-    salvarDados();
-    localStorage.setItem('hist2025_v2_carregado', '1');
-  }
-
-  // ===== HISTÓRICO 2026 =====
-  function carregarHistorico2026() {
-    if (localStorage.getItem('hist2026_v1_carregado') || historico.some(h => h.ano === 2026)) return;
-    historico = historico.filter(h => h.ano !== 2026);
-    const dados = [
-      { mes:1,  cliente:'Maxicorte', horas:54.25,  valor:5696.25  },
-      { mes:1,  cliente:'Qualytool', horas:4,       valor:224      },
-      { mes:1,  cliente:'Tedesco',   horas:58,      valor:9615     },
-      { mes:2,  cliente:'Maxicorte', horas:42.08,   valor:4418.75  },
-      { mes:2,  cliente:'Qualytool', horas:17.25,   valor:1158.99  },
-      { mes:2,  cliente:'Tedesco',   horas:74.5,    valor:11692.50 },
-      { mes:3,  cliente:'Maxicorte', horas:59.50,   valor:6247.50  },
-      { mes:3,  cliente:'Qualytool', horas:12,      valor:672      },
-      { mes:3,  cliente:'Tedesco',   horas:67.5,    valor:11467.50 },
-      { mes:4,  cliente:'Maxicorte', horas:19.25,   valor:2021.25  },
-      { mes:4,  cliente:'Qualytool', horas:16.25,   valor:910      },
-      { mes:4,  cliente:'Tedesco',   horas:46.25,   valor:7537.50  },
-      { mes:5,  cliente:'Maxicorte', horas:32.25,   valor:3698.75  },
-      { mes:5,  cliente:'Qualytool', horas:4.50,    valor:252      },
-      { mes:5,  cliente:'Tedesco',   horas:93,      valor:15795    },
-    ];
-    dados.forEach((d, i) => {
-      historico.push({ id: 20260000 + i, ano: 2026, mes: d.mes, cliente: d.cliente, horas: d.horas, valor: d.valor, descricao: '' });
-    });
-    salvarDados();
-    localStorage.setItem('hist2026_v1_carregado', '1');
-  }
-
-  // ===== HISTÓRICO 2024 =====
-  function carregarHistorico2024() {
-    if (localStorage.getItem('hist2024_carregado') || historico.some(h => h.ano === 2024)) return;
-    const dados = [
-      { mes:1,  cliente:'Maxicorte', horas:45.92, valor:4821.25 },
-      { mes:1,  cliente:'Qualytool', horas:17.00, valor:1051.50 },
-      { mes:2,  cliente:'Maxicorte', horas:41.08, valor:4313.75 },
-      { mes:2,  cliente:'Qualytool', horas:24.50, valor:1372.00 },
-      { mes:3,  cliente:'Maxicorte', horas:42.25, valor:4436.25 },
-      { mes:3,  cliente:'Qualytool', horas:48.00, valor:2688.00 },
-      { mes:4,  cliente:'Maxicorte', horas:79.50, valor:8347.50 },
-      { mes:4,  cliente:'Qualytool', horas:36.67, valor:2053.33 },
-      { mes:5,  cliente:'Maxicorte', horas:60.17, valor:6317.50 },
-      { mes:5,  cliente:'Qualytool', horas:16.50, valor:924.00  },
-      { mes:6,  cliente:'Maxicorte', horas:65.00, valor:6825.00 },
-      { mes:6,  cliente:'Qualytool', horas:48.50, valor:3460.96 },
-      { mes:7,  cliente:'Maxicorte', horas:68.75, valor:7218.75 },
-      { mes:7,  cliente:'Qualytool', horas:50.50, valor:2828.00 },
-      { mes:8,  cliente:'Maxicorte', horas:55.00, valor:5775.00 },
-      { mes:8,  cliente:'Qualytool', horas:43.00, valor:2408.00 },
-      { mes:9,  cliente:'Maxicorte', horas:91.50, valor:9607.50 },
-      { mes:9,  cliente:'Qualytool', horas:23.50, valor:1316.00 },
-      { mes:10, cliente:'Maxicorte', horas:70.00, valor:7350.00 },
-      { mes:10, cliente:'Qualytool', horas:15.50, valor:868.00  },
-      { mes:11, cliente:'Maxicorte', horas:34.00, valor:3570.00 },
-      { mes:11, cliente:'Qualytool', horas:19.50, valor:2892.00 },
-      { mes:12, cliente:'Maxicorte', horas:32.50, valor:3412.50 },
-      { mes:12, cliente:'Qualytool', horas:15.00, valor:840.00  },
-    ];
-    dados.forEach((d, i) => {
-      historico.push({ id: 20240000 + i, ano: 2024, mes: d.mes, cliente: d.cliente, horas: d.horas, valor: d.valor, descricao: '' });
-    });
-    salvarDados();
-    localStorage.setItem('hist2024_carregado', '1');
-  }
-
   // ===== INICIALIZAÇÃO =====
-  function marcarFaturado2023a2026mai() {
-    if (localStorage.getItem('faturado2023a2026mai_v1')) return;
-    const limite = new Date('2026-05-31');
-    let alterou = false;
-    tarefas.forEach(t => {
-      if (!t.cobrado) {
-        const dt = new Date(t.data);
-        if (!isNaN(dt) && dt <= limite) {
-          t.cobrado = true;
-          alterou = true;
-        }
-      }
-    });
-    if (alterou) salvarDados();
-    localStorage.setItem('faturado2023a2026mai_v1', '1');
-  }
-
   function inicializar() {
     const hoje = new Date().toISOString().split('T')[0];
     document.getElementById('plan-inicio').value = hoje;
@@ -6019,10 +6141,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('cobranca-fim').value = hoje;
 
     if (clientes.length === 0 && planejamento.length === 0) carregarDadosPadrao();
-    carregarHistorico2026();
-    carregarHistorico2025();
-    carregarHistorico2024();
-    marcarFaturado2023a2026mai();
 
     renderizarClientes(); atualizarSelectsClientes();
     renderizarPlanejamento(); atualizarDashboardPlan();
@@ -6032,7 +6150,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     mudarVistaAgenda('semana');
   }
 
-  try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
+  carregarDadosServidor().then(function() {
+    if (window.__SRV_ERRO__) {
+      alert('⚠️ Não foi possível carregar os dados do servidor (Supabase). Verifique sua conexão e recarregue a página.\n\nOs dados NÃO serão salvos até a conexão ser restabelecida.');
+    }
+    clientes     = lsGet('clientes');
+    tarefas      = lsGet('tarefas');
+    planejamento = lsGet('planejamento');
+    despesas     = lsGet('despesas');
+    diario       = lsGet('diario');
+    historico    = lsGet('historico');
+    anotacoes    = lsGet('anotacoes');
+    try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
+  });
 </script>
 
 <!-- Modal Agendamento em Massa -->
