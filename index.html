@@ -2643,7 +2643,7 @@ let clienteEditandoId = null;
     lista.innerHTML = doDia.map(p => {
       const registrado = idsReg.has(p.id);
       const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
-      const clickAction = registrado ? "irPara('horas')" : `confirmarERegistrar(${p.id})`;
+      const clickAction = registrado ? "irPara('horas')" : `confirmarERegistrar('${p.id}')`;
       const destaque = registrado ? 'item-concluida' : 'item-hoje';
       return `
       <div class="home-agenda-item ${registrado ? 'registrado' : ''} ${destaque}" onclick="${clickAction}">
