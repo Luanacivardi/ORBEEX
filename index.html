@@ -1445,15 +1445,21 @@
         </div>
         <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()"></div>
         <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()"></div>
-        <div class="form-group"><label>Status</label>
-          <select id="filtro-anot-status" onchange="renderizarAnotacoes()">
-            <option value="">Todos</option>
-            <option value="pendente">A Fazer</option>
-            <option value="andamento">Em Andamento</option>
-            <option value="concluida">Concluído</option>
-          </select>
-        </div>
         <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar Filtros</button></div>
+      </div>
+      <div class="form-group" style="margin-top:.5rem">
+        <label>Status <span style="font-size:11px;color:var(--text-secondary)">(marque um ou mais)</span></label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="filtro-anot-status">
+          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+            <input type="checkbox" value="pendente" checked onchange="renderizarAnotacoes()"> A Fazer
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+            <input type="checkbox" value="andamento" checked onchange="renderizarAnotacoes()"> Em Andamento
+          </label>
+          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+            <input type="checkbox" value="concluida" checked onchange="renderizarAnotacoes()"> Concluído
+          </label>
+        </div>
       </div>
     </div>
 
@@ -5275,7 +5281,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('filtro-anot-cliente').value = '';
     document.getElementById('filtro-anot-inicio').value = '';
     document.getElementById('filtro-anot-fim').value = '';
-    document.getElementById('filtro-anot-status').value = '';
+    document.querySelectorAll('#filtro-anot-status input[type="checkbox"]').forEach(c => c.checked = true);
     renderizarAnotacoes();
   }
 
@@ -5285,13 +5291,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const fCliente = document.getElementById('filtro-anot-cliente')?.value || '';
     const fInicio  = document.getElementById('filtro-anot-inicio')?.value || '';
     const fFim     = document.getElementById('filtro-anot-fim')?.value || '';
-    const fStatus  = document.getElementById('filtro-anot-status')?.value || '';
+    const statusChks   = [...document.querySelectorAll('#filtro-anot-status input[type="checkbox"]')];
+    const statusMarcados = statusChks.filter(c => c.checked).map(c => c.value);
+    const fStatus = (statusMarcados.length && statusMarcados.length < statusChks.length) ? statusMarcados : null;
 
     let lista = [...anotacoes];
     if (fCliente) lista = lista.filter(a => a.clienteId == fCliente);
     if (fInicio)  lista = lista.filter(a => a.data && a.data >= fInicio);
     if (fFim)     lista = lista.filter(a => a.data && a.data <= fFim);
-    if (fStatus)  lista = lista.filter(a => statusAnot(a) === fStatus);
+    if (fStatus)  lista = lista.filter(a => fStatus.includes(statusAnot(a)));
 
     lista.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
