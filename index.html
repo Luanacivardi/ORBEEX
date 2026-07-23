@@ -743,30 +743,6 @@
     }
 
     /* ===== ANOTAÇÕES ===== */
-    .anot-filtro-btn {
-      padding: 5px 12px; border: 1px solid var(--border);
-      background: transparent; border-radius: 20px;
-      cursor: pointer; font-size: 12px; color: var(--text-secondary);
-      transition: all 0.15s; font-family: var(--font-sans);
-    }
-    .anot-filtro-btn.active { background: var(--navy); color: var(--gold); border-color: var(--navy); font-weight: 600; }
-    .anot-filtro-btn:hover:not(.active) { background: var(--surface-1); color: var(--navy); }
-
-    .anot-card {
-      background: var(--surface-2); border: 1px solid var(--border);
-      border-radius: var(--radius); padding: 1rem;
-      border-left: 4px solid var(--gold);
-      box-shadow: 0 1px 4px rgba(37,37,56,0.06);
-      transition: all 0.15s;
-    }
-    .anot-card:hover { box-shadow: 0 3px 12px rgba(37,37,56,0.1); }
-    .anot-card.concluida { opacity: 0.55; border-left-color: #10b981; }
-    .anot-card.vencida { border-left-color: #ef4444; }
-    .anot-card.urgente { border-left-color: #ef4444; }
-
-    .anot-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 6px; }
-    .anot-titulo { font-weight: 600; font-size: 14px; color: var(--navy); flex: 1; }
-    .anot-titulo.concluida { text-decoration: line-through; color: var(--text-secondary); }
     .anot-badges { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; }
     .anot-badge {
       display: inline-block; padding: 2px 8px; border-radius: 10px;
@@ -778,48 +754,6 @@
     .anot-badge-normal    { background: var(--surface-1); color: var(--text-secondary); }
     .anot-badge-concluida { background: #d1fae5; color: #065f46; }
     .anot-badge-vencida   { background: #fee2e2; color: #991b1b; }
-
-    .anot-data { font-size: 12px; color: var(--text-secondary); margin-bottom: 6px; display: flex; align-items: center; gap: 5px; }
-    .anot-descricao { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; white-space: pre-line; }
-    .anot-actions { display: flex; gap: 6px; }
-
-    /* ===== QUADRO KANBAN (Anotações) ===== */
-    .kanban-board { display: flex; gap: 12px; align-items: flex-start; overflow-x: auto; padding-bottom: 4px; }
-    .kanban-coluna {
-      flex: 1; min-width: 220px; background: var(--surface-1); border-radius: 10px;
-      display: flex; flex-direction: column; max-height: 70vh;
-    }
-    .kanban-coluna.kanban-dragover { outline: 2px dashed var(--gold); outline-offset: -4px; }
-    .kanban-coluna-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 12px; font-size: 12px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.4px; border-radius: 10px 10px 0 0; color: #fff;
-    }
-    .kanban-cor-pendente   { background: #6b7280; }
-    .kanban-cor-andamento  { background: #E8B84B; color: var(--navy); }
-    .kanban-cor-concluida  { background: #10b981; }
-    .kanban-count {
-      background: rgba(255,255,255,0.3); border-radius: 10px; padding: 1px 8px; font-size: 11px;
-    }
-    .kanban-coluna-corpo {
-      flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 8px;
-      min-height: 80px;
-    }
-    .kanban-coluna-vazio { text-align: center; color: var(--text-secondary); font-size: 11px; padding: 1.5rem 0.5rem; opacity: .6; }
-    .kanban-card {
-      background: var(--surface-2); border: 1px solid var(--border); border-left: 4px solid var(--gold);
-      border-radius: 8px; padding: 10px 12px; cursor: grab; box-shadow: 0 1px 3px rgba(37,37,56,0.06);
-      transition: box-shadow .15s;
-    }
-    .kanban-card:hover { box-shadow: 0 3px 10px rgba(37,37,56,0.12); }
-    .kanban-card.dragging { opacity: 0.4; }
-    .kanban-card.vencida { border-left-color: #ef4444; }
-    .kanban-card.urgente { border-left-color: #ef4444; }
-    .kanban-card-titulo { font-weight: 600; font-size: 13px; color: var(--navy); margin-bottom: 4px; }
-    .kanban-card-meta { display: flex; gap: 5px; flex-wrap: wrap; align-items: center; margin-bottom: 4px; }
-    .kanban-card-data { font-size: 11px; color: var(--text-secondary); margin-bottom: 4px; }
-    .kanban-card-desc { font-size: 11px; color: var(--text-secondary); margin-bottom: 8px; white-space: pre-line; }
-    .kanban-card-acoes { display: flex; gap: 4px; justify-content: flex-end; }
 
     /* ===== SUB-ABAS (dentro de Atividades) ===== */
     .subtabs {
@@ -1450,10 +1384,9 @@
 
   <!-- ABA ANOTAÇÕES -->
   <div id="anotacoes" class="tab-content">
-    <div class="dash-row">
-      <!-- Formulário nova anotação -->
-      <div class="card" style="flex:1;min-width:280px">
-        <div class="card-header"><i class="ti ti-plus"></i> Nova Anotação</div>
+    <div class="card">
+      <div class="card-header"><i class="ti ti-plus"></i> Nova Anotação</div>
+      <div class="form-row">
         <div class="form-group">
           <label>Título</label>
           <input type="text" id="anot-titulo" placeholder="Ex: Ligar para cliente, Enviar proposta...">
@@ -1462,36 +1395,28 @@
           <label>Cliente <span style="font-size:11px;color:var(--text-secondary)">(opcional — aparece na agenda)</span></label>
           <select id="anot-cliente"><option value="">— Sem cliente —</option></select>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Data / Prazo</label>
-            <input type="date" id="anot-data">
-          </div>
-          <div class="form-group">
-            <label>Hora (opcional)</label>
-            <input type="time" id="anot-hora">
-          </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Data / Prazo</label><input type="date" id="anot-data"></div>
+        <div class="form-group"><label>Hora (opcional)</label><input type="time" id="anot-hora"></div>
+        <div class="form-group">
+          <label>Categoria</label>
+          <select id="anot-categoria">
+            <option value="Geral">Geral</option>
+            <option value="Cliente">Cliente</option>
+            <option value="Reunião">Reunião</option>
+            <option value="Financeiro">Financeiro</option>
+            <option value="Urgente">Urgente</option>
+            <option value="Ideia">Ideia</option>
+          </select>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Categoria</label>
-            <select id="anot-categoria">
-              <option value="Geral">Geral</option>
-              <option value="Cliente">Cliente</option>
-              <option value="Reunião">Reunião</option>
-              <option value="Financeiro">Financeiro</option>
-              <option value="Urgente">Urgente</option>
-              <option value="Ideia">Ideia</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label>Prioridade</label>
-            <select id="anot-prioridade">
-              <option value="Normal">Normal</option>
-              <option value="Alta">Alta</option>
-              <option value="Crítica">Crítica</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label>Prioridade</label>
+          <select id="anot-prioridade">
+            <option value="Normal">Normal</option>
+            <option value="Alta">Alta</option>
+            <option value="Crítica">Crítica</option>
+          </select>
         </div>
         <div class="form-group">
           <label>Status inicial</label>
@@ -1501,53 +1426,46 @@
             <option value="concluida">Concluído</option>
           </select>
         </div>
-        <div class="form-group">
-          <label>Descrição</label>
-          <textarea id="anot-descricao" placeholder="Detalhes, contexto, links..." style="min-height:100px"></textarea>
-        </div>
-        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-          <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()"><i class="ti ti-plus"></i> Adicionar</button>
-          <button class="btn btn-sm" id="anot-btn-cancelar" onclick="cancelarEdicaoAnot()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-        </div>
       </div>
+      <div class="form-group">
+        <label>Descrição</label>
+        <textarea id="anot-descricao" placeholder="Detalhes, contexto, links..." rows="2" style="min-height:44px"></textarea>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()"><i class="ti ti-plus"></i> Adicionar</button>
+        <button class="btn btn-sm" id="anot-btn-cancelar" onclick="cancelarEdicaoAnot()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+      </div>
+    </div>
 
-      <!-- Painel direito: filtros rápidos + quadro Kanban -->
-      <div style="flex:2;min-width:340px;display:flex;flex-direction:column;gap:1rem">
-
-        <!-- Filtros rápidos -->
-        <div class="card" style="padding:1rem">
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="anot-filtro-btn active" onclick="filtrarAnotacoes('todas',this)">Todas</button>
-            <button class="anot-filtro-btn" onclick="filtrarAnotacoes('urgente',this)">🔴 Urgente</button>
-            <button class="anot-filtro-btn" onclick="filtrarAnotacoes('hoje',this)">📅 Hoje</button>
-            <button class="anot-filtro-btn" onclick="filtrarAnotacoes('vencidas',this)">⚠️ Vencidas</button>
-          </div>
+    <div class="card">
+      <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
+      <div class="form-row">
+        <div class="form-group"><label>Cliente</label>
+          <select id="filtro-anot-cliente" onchange="renderizarAnotacoes()"><option value="">Todos os clientes</option></select>
         </div>
-
-        <!-- Quadro Kanban -->
-        <div class="kanban-board" id="kanban-board">
-          <div class="kanban-coluna" data-status="pendente" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'pendente')">
-            <div class="kanban-coluna-header kanban-cor-pendente">
-              <span>A Fazer</span>
-              <span class="kanban-count" id="kanban-count-pendente">0</span>
-            </div>
-            <div class="kanban-coluna-corpo" id="kanban-lista-pendente"></div>
-          </div>
-          <div class="kanban-coluna" data-status="andamento" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'andamento')">
-            <div class="kanban-coluna-header kanban-cor-andamento">
-              <span>Em Andamento</span>
-              <span class="kanban-count" id="kanban-count-andamento">0</span>
-            </div>
-            <div class="kanban-coluna-corpo" id="kanban-lista-andamento"></div>
-          </div>
-          <div class="kanban-coluna" data-status="concluida" ondragover="kanbanDragOver(event)" ondrop="kanbanDrop(event,'concluida')">
-            <div class="kanban-coluna-header kanban-cor-concluida">
-              <span>Concluído</span>
-              <span class="kanban-count" id="kanban-count-concluida">0</span>
-            </div>
-            <div class="kanban-coluna-corpo" id="kanban-lista-concluida"></div>
-          </div>
+        <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()"></div>
+        <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()"></div>
+        <div class="form-group"><label>Status</label>
+          <select id="filtro-anot-status" onchange="renderizarAnotacoes()">
+            <option value="">Todos</option>
+            <option value="pendente">A Fazer</option>
+            <option value="andamento">Em Andamento</option>
+            <option value="concluida">Concluído</option>
+          </select>
         </div>
+        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar Filtros</button></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><i class="ti ti-list"></i> Anotações</div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr>
+            <th>Título</th><th>Cliente</th><th>Data</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>Descrição</th><th>Ação</th>
+          </tr></thead>
+          <tbody id="tbody-anotacoes"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -2015,6 +1933,8 @@ let clienteEditandoId = null;
     if (sa) sa.innerHTML = `<option value="">— Sem cliente —</option>${opts}`;
     const sf = document.getElementById('filtro-atv-cliente');
     if (sf) sf.innerHTML = `<option value="">Todos os clientes</option>${opts}`;
+    const sfa = document.getElementById('filtro-anot-cliente');
+    if (sfa) sfa.innerHTML = `<option value="">Todos os clientes</option>${opts}`;
   }
 
   function aplicarFiltroAtv() {
@@ -5229,11 +5149,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       : '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum registro histórico. Use o formulário acima para adicionar.</td></tr>';
   }
 
-  // ===== ANOTAÇÕES (Kanban: A Fazer / Em Andamento / Concluído) =====
+  // ===== ANOTAÇÕES (tabela: A Fazer / Em Andamento / Concluído) =====
   let anotacoes = lsGet('anotacoes');
-  let filtroAnotacoes = 'todas';
   const KANBAN_STATUS = ['pendente','andamento','concluida'];
-  const KANBAN_LABEL  = { pendente: 'A Fazer', andamento: 'Em Andamento', concluida: 'Concluído' };
 
   // Compatibilidade com dados antigos (só tinham "concluida": true/false)
   function statusAnot(a) {
@@ -5353,82 +5271,65 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     );
   }
 
-  function filtrarAnotacoes(filtro, btn) {
-    filtroAnotacoes = filtro;
-    document.querySelectorAll('.anot-filtro-btn').forEach(b => b.classList.remove('active'));
-    if (btn) btn.classList.add('active');
+  function limparFiltroAnotacoes() {
+    document.getElementById('filtro-anot-cliente').value = '';
+    document.getElementById('filtro-anot-inicio').value = '';
+    document.getElementById('filtro-anot-fim').value = '';
+    document.getElementById('filtro-anot-status').value = '';
     renderizarAnotacoes();
-  }
-
-  // ---- Drag and drop entre colunas ----
-  let __kanbanArrastando = null;
-  function kanbanDragStart(ev, id) {
-    __kanbanArrastando = id;
-    ev.dataTransfer.effectAllowed = 'move';
-    ev.target.classList.add('dragging');
-  }
-  function kanbanDragEnd(ev) {
-    ev.target.classList.remove('dragging');
-    document.querySelectorAll('.kanban-coluna').forEach(c => c.classList.remove('kanban-dragover'));
-  }
-  function kanbanDragOver(ev) {
-    ev.preventDefault();
-    ev.currentTarget.classList.add('kanban-dragover');
-  }
-  function kanbanDrop(ev, novoStatus) {
-    ev.preventDefault();
-    ev.currentTarget.classList.remove('kanban-dragover');
-    if (__kanbanArrastando != null) { moverAnotacao(__kanbanArrastando, novoStatus); __kanbanArrastando = null; }
   }
 
   function renderizarAnotacoes() {
     const hoje = new Date().toISOString().split('T')[0];
-    let lista = [...anotacoes];
 
-    if (filtroAnotacoes === 'urgente')  lista = lista.filter(a => a.prioridade === 'Crítica' || a.categoria === 'Urgente');
-    if (filtroAnotacoes === 'hoje')     lista = lista.filter(a => a.data === hoje);
-    if (filtroAnotacoes === 'vencidas') lista = lista.filter(a => statusAnot(a) !== 'concluida' && a.data < hoje);
+    const fCliente = document.getElementById('filtro-anot-cliente')?.value || '';
+    const fInicio  = document.getElementById('filtro-anot-inicio')?.value || '';
+    const fFim     = document.getElementById('filtro-anot-fim')?.value || '';
+    const fStatus  = document.getElementById('filtro-anot-status')?.value || '';
+
+    let lista = [...anotacoes];
+    if (fCliente) lista = lista.filter(a => a.clienteId == fCliente);
+    if (fInicio)  lista = lista.filter(a => a.data && a.data >= fInicio);
+    if (fFim)     lista = lista.filter(a => a.data && a.data <= fFim);
+    if (fStatus)  lista = lista.filter(a => statusAnot(a) === fStatus);
 
     lista.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
-    KANBAN_STATUS.forEach(status => {
-      const doColuna = lista.filter(a => statusAnot(a) === status);
-      const contEl = document.getElementById('kanban-lista-' + status);
-      const countEl = document.getElementById('kanban-count-' + status);
-      if (countEl) countEl.textContent = doColuna.length;
-      if (!contEl) return;
+    const tbody = document.getElementById('tbody-anotacoes');
+    if (!tbody) return;
 
-      if (!doColuna.length) {
-        contEl.innerHTML = '<div class="kanban-coluna-vazio">Nenhuma anotação aqui.</div>';
-        return;
-      }
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
+      return;
+    }
 
-      contEl.innerHTML = doColuna.map(a => {
-        const vencida   = status !== 'concluida' && a.data && a.data < hoje;
-        const dataLabel = a.data ? new Date(a.data + 'T00:00:00').toLocaleDateString('pt-BR', {day:'2-digit',month:'short'}) : '';
-        const classCard = 'kanban-card' + (vencida ? ' vencida' : a.prioridade==='Crítica' ? ' urgente' : '');
-        const badgePrio = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
-        const proximoStatus = { pendente:'andamento', andamento:'concluida', concluida:'pendente' }[status];
-        const proximoIcone  = { pendente:'arrow-right', andamento:'check', concluida:'rotate-2' }[status];
-        const proximoTitulo = { pendente:'Mover para Em Andamento', andamento:'Mover para Concluído', concluida:'Reabrir (voltar para A Fazer)' }[status];
+    tbody.innerHTML = lista.map(a => {
+      const status    = statusAnot(a);
+      const vencida    = status !== 'concluida' && a.data && a.data < hoje;
+      const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
 
-        return `<div class="${classCard}" draggable="true" ondragstart="kanbanDragStart(event,'${a.id}')" ondragend="kanbanDragEnd(event)">
-          <div class="kanban-card-titulo">${a.titulo}</div>
-          <div class="kanban-card-meta">
-            ${vencida ? '<span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}
-            <span class="anot-badge anot-badge-categoria">${a.categoria}</span>
-            <span class="anot-badge ${badgePrio}">${a.prioridade}</span>
-          </div>
-          ${a.data ? `<div class="kanban-card-data"><i class="ti ti-calendar" style="font-size:11px"></i> ${dataLabel}${a.hora ? ' · '+a.hora : ''}${a.clienteNome ? ' · <span style="font-weight:600;color:'+corCliente(a.clienteNome)+'">'+a.clienteNome+'</span>' : ''}</div>` : ''}
-          ${a.descricao ? `<div class="kanban-card-desc">${a.descricao}</div>` : ''}
-          <div class="kanban-card-acoes">
+      return `<tr>
+        <td>${a.titulo}</td>
+        <td>${a.clienteNome ? `<span style="font-weight:600;color:${corCliente(a.clienteNome)}">${a.clienteNome}</span>` : '—'}</td>
+        <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
+        <td><span class="anot-badge anot-badge-categoria">${a.categoria}</span></td>
+        <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
+        <td>
+          <select onchange="moverAnotacao('${a.id}', this.value)" style="width:auto;padding:5px 8px;font-size:12px">
+            <option value="pendente" ${status==='pendente'?'selected':''}>A Fazer</option>
+            <option value="andamento" ${status==='andamento'?'selected':''}>Em Andamento</option>
+            <option value="concluida" ${status==='concluida'?'selected':''}>Concluído</option>
+          </select>
+        </td>
+        <td style="max-width:220px;font-size:12px;color:var(--text-secondary)">${a.descricao || '—'}</td>
+        <td>
+          <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-            <button class="btn btn-icon btn-success" onclick="moverAnotacao('${a.id}','${proximoStatus}')" title="${proximoTitulo}"><i class="ti ti-${proximoIcone}"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
-        </div>`;
-      }).join('');
-    });
+        </td>
+      </tr>`;
+    }).join('');
   }
 // ===== DESPESAS =====
   let despesaEditandoId = null;
