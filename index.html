@@ -748,7 +748,6 @@
       display: inline-block; padding: 2px 8px; border-radius: 10px;
       font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px;
     }
-    .anot-badge-categoria { background: var(--gold-bg); color: #7a5c00; }
     .anot-badge-urgente   { background: #fee2e2; color: #991b1b; }
     .anot-badge-alta      { background: #fef3c7; color: #92400e; }
     .anot-badge-normal    { background: var(--surface-1); color: var(--text-secondary); }
@@ -1468,7 +1467,7 @@
       <div style="overflow-x:auto">
         <table class="table">
           <thead><tr>
-            <th>Título</th><th>Cliente</th><th>Data</th><th>Categoria</th><th>Prioridade</th><th>Status</th><th>Descrição</th><th>Ação</th>
+            <th></th><th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th>Ação</th>
           </tr></thead>
           <tbody id="tbody-anotacoes"></tbody>
         </table>
@@ -5307,9 +5306,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!tbody) return;
 
     if (!lista.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
       return;
     }
+
+    const CORES_STATUS  = { pendente: '#fff', andamento: '#E8B84B', concluida: '#10b981' };
+    const BORDAS_STATUS = { pendente: 'var(--border)', andamento: '#E8B84B', concluida: '#10b981' };
+    const PROXIMO_STATUS = { pendente: 'andamento', andamento: 'concluida', concluida: 'pendente' };
+    const TITULO_STATUS  = { pendente: 'Marcar como Em Andamento', andamento: 'Marcar como Concluído', concluida: 'Reabrir (voltar para A Fazer)' };
 
     tbody.innerHTML = lista.map(a => {
       const status    = statusAnot(a);
@@ -5317,19 +5321,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
 
       return `<tr>
+        <td style="text-align:center">
+          <button onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
+            style="width:22px;height:22px;padding:0;border-radius:5px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
+            ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:14px;font-weight:700"></i>' : ''}
+          </button>
+        </td>
         <td>${a.titulo}</td>
         <td>${a.clienteNome ? `<span style="font-weight:600;color:${corCliente(a.clienteNome)}">${a.clienteNome}</span>` : '—'}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
-        <td><span class="anot-badge anot-badge-categoria">${a.categoria}</span></td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
-        <td>
-          <select onchange="moverAnotacao('${a.id}', this.value)" style="width:auto;padding:5px 8px;font-size:12px">
-            <option value="pendente" ${status==='pendente'?'selected':''}>A Fazer</option>
-            <option value="andamento" ${status==='andamento'?'selected':''}>Em Andamento</option>
-            <option value="concluida" ${status==='concluida'?'selected':''}>Concluído</option>
-          </select>
-        </td>
-        <td style="max-width:220px;font-size:12px;color:var(--text-secondary)">${a.descricao || '—'}</td>
+        <td style="max-width:420px;font-size:13px;color:var(--text-primary)">${a.descricao || '—'}</td>
         <td>
           <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
