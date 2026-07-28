@@ -2566,7 +2566,7 @@ let clienteEditandoId = null;
   .resumo-val{font-weight:700;font-size:14px}
   .resumo-item.destaque .resumo-val{color:#E8B84B}
   .rodape-fatura{margin:20px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
-  @media print{body{background:#fff}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}@page{margin:10mm 8mm}}
+  @media print{body{background:#fff;orphans:3;widows:3}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}.resumo,.resumo-item,.rodape-fatura,.srv-table tr,.srv-table tfoot,thead{page-break-inside:avoid}@page{margin:10mm 8mm}}
 </style></head><body>${faturas}</body></html>`);
     janela.document.close();
     setTimeout(() => janela.print(), 400);
@@ -3990,8 +3990,9 @@ let clienteEditandoId = null;
   .anot-urg td { color:#991b1b;background:#fff5f5 }
 
   @media print{
-    body{margin:0}
+    body{margin:0;orphans:3;widows:3}
     .dia-bloco{page-break-inside:avoid}
+    .pf,.ativ-table tr,thead{page-break-inside:avoid}
     @page{margin:15mm 12mm}
   }
 </style></head><body>
@@ -4237,7 +4238,7 @@ function gerarRelatorioCobranca() {
   .resumo-item .resumo-val{font-weight:700;font-size:14px}
   .resumo-item.destaque{background:#252538;width:320px;padding:14px 24px}
   .rodape-fatura{margin:20px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
-  @media print{body{background:#fff}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}@page{size:A4;margin:8mm}}
+  @media print{body{background:#fff;orphans:3;widows:3}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}.resumo,.resumo-item,.rodape-fatura,.srv-table tr,.srv-table tfoot,thead{page-break-inside:avoid}@page{size:A4;margin:8mm}}
 </style></head><body>${faturas}</body></html>`);
     janela.document.close();
     setTimeout(() => { janela.document.title = ''; janela.print(); }, 400);
@@ -4418,7 +4419,7 @@ function gerarRelatorioCobranca() {
   .resumo-item{display:flex;justify-content:space-between;align-items:center;width:280px;padding:10px 16px;background:#f8f8fc;border-radius:6px}
   .resumo-item.destaque{background:#252538;width:320px}.resumo-label{font-size:11px;color:#6b6b8a}.resumo-val{font-weight:700;font-size:14px}.pago{color:#10b981}
   .rodape-fatura{margin:20px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
-  @media print{body{background:#fff}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}@page{margin:10mm 8mm}}
+  @media print{body{background:#fff;orphans:3;widows:3}.fatura{box-shadow:none;margin:0;border-radius:0}.quebra{page-break-before:always}.resumo,.resumo-item,.rodape-fatura,.srv-table tr,.srv-table tfoot,thead{page-break-inside:avoid}@page{margin:10mm 8mm}}
 </style></head><body>${faturas}</body></html>`);
     janela.document.close();
     setTimeout(() => janela.print(), 400);
@@ -4684,9 +4685,10 @@ function imprimirCobranca() {
 
   /* ── Impressão ── */
   @media print{
-    body{background:#fff}
+    body{background:#fff;orphans:3;widows:3}
     .fatura{box-shadow:none;margin:0;max-width:100%;border-radius:0}
     .quebra{page-break-before:always}
+    .resumo,.resumo-item,.rodape,table tr,thead{page-break-inside:avoid}
     @page{margin:10mm 12mm;size:A4}
   }
 </style></head><body>
@@ -5630,19 +5632,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
 // ===== ORÇAMENTOS (STRATEGYA) =====
   const MODULOS_ORC = [
-    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 159.90,
+    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 179.00,
       itens: ['Contexto Organizacional (Análise SWOT, Partes Interessadas, Informações da Empresa, Macrofluxo, SIPOC, Organograma)', 'Mapa e Objetivos', 'Indicadores', 'Riscos e Oportunidades', 'Dashboard', 'Atas de Reunião'] },
-    { id: 'acoes', nome: 'Gestão de Ações',                  preco: 129,
+    { id: 'acoes', nome: 'Gestão de Ações',                  preco: 159.00,
       itens: ['Plano de ação no formato 5W2H', 'Acompanhamento de responsáveis e prazos'] },
-    { id: 'contr', nome: 'Controladoria',                    preco: 129,
+    { id: 'contr', nome: 'Controladoria',                    preco: 129.90,
       itens: ['Cadastro e acompanhamento de indicadores (KPIs)', 'Monitoramento de metas'] },
-    { id: 'doc',   nome: 'Documentos',                       preco: 149,
+    { id: 'doc',   nome: 'Documentos',                       preco: 159.90,
       itens: ['Gestão de Documentos (procedimentos, instruções de trabalho, manuais, políticas)', 'Lista Mestra', 'Fluxo de aprovação (aguardando aprovação, publicados, obsoletos)', 'Registros', 'Monitoramento'] },
-    { id: 'apur',  nome: 'Gestão de Apurações',              preco: 129,
+    { id: 'apur',  nome: 'Gestão de Apurações',              preco: 129.90,
       itens: ['Apuração de não conformidades (NC)', 'Ocorrências de RH', 'Tratativas e ações corretivas'] },
-    { id: 'audit', nome: 'Gestão de Auditorias',             preco: 149,
+    { id: 'audit', nome: 'Gestão de Auditorias',             preco: 159.90,
       itens: ['Planejamento e solicitação de auditorias', 'Processos Auditáveis, Turnos e Auditores', 'Relatórios de auditoria', 'Dashboard de auditorias'] },
-    { id: 'train', nome: 'Treinamentos (em desenvolvimento)', preco: 149,
+    { id: 'train', nome: 'Treinamentos (em desenvolvimento)', preco: 129.90,
       itens: ['Controle de treinamentos', 'Registro de participantes', 'Avaliação de eficácia'] },
   ];
   const ORC_DEFAULT_SELECIONADOS = ['plan', 'acoes', 'contr'];
@@ -6109,7 +6111,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   .doc-footer{padding:18px 32px;font-size:11px;color:#9a9ab0;border-top:1px solid #e2e2ee;text-align:center}
   .print-bar{max-width:680px;margin:0 auto 14px;text-align:right}
   .print-bar button{background:#E8B84B;color:#1a1a2e;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer}
-  @media print{.print-bar{display:none}body{background:#fff;padding:0}.doc{box-shadow:none;border-radius:0}}
+  @media print{.print-bar{display:none}body{background:#fff;padding:0;orphans:3;widows:3}.doc{box-shadow:none;border-radius:0}.totais,.politica-suporte,.doc-footer,table tr{page-break-inside:avoid}.intro,.doc-header{page-break-after:avoid}}
 </style></head>
 <body>
   <div class="print-bar"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
