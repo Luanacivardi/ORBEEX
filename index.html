@@ -979,13 +979,25 @@
         </div>
       </details>
 
+      <details style="margin-bottom:.5rem">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Desenvolvimento personalizado (opcional — funcionalidade fora do escopo padrão)</summary>
+        <div class="form-row" style="margin-top:.75rem">
+          <div class="form-group"><label>Valor/hora (R$)</label><input type="number" id="orc-dev-valorHora" value="180" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Horas estimadas</label><input type="number" id="orc-dev-horas" value="0" min="0" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Descrição do desenvolvimento</label><input type="text" id="orc-dev-descricao" placeholder="Ex: Integração com sistema X"></div>
+        </div>
+      </details>
+
       <div style="display:flex;gap:8px;align-items:center">
         <button class="btn btn-primary" id="orc-btn-salvar" onclick="salvarOrcamento()"><i class="ti ti-device-floppy"></i> Salvar Orçamento</button>
         <button class="btn btn-sm" id="orc-btn-cancelar" onclick="cancelarEdicaoOrcamento()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
     </div>
 
-    <div class="dashboard-grid" id="orc-resumo"></div>
+    <div class="card" id="orc-resumo-card">
+      <div class="card-header"><i class="ti ti-report-money"></i> Resumo do Orçamento</div>
+      <div id="orc-resumo"></div>
+    </div>
 
     <div class="card">
       <div class="card-header"><i class="ti ti-list"></i> Orçamentos Salvos</div>
@@ -1706,7 +1718,7 @@
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
-      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual']
+      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual']
     ];
 
     return pronto.then(function() {
@@ -5535,16 +5547,20 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
 // ===== ORÇAMENTOS (STRATEGYA) =====
   const MODULOS_ORC = [
-    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 149 },
-    { id: 'acoes', nome: 'Gestão de Ações (5W2H)',           preco: 129 },
-    { id: 'contr', nome: 'Controladoria (Indicadores)',      preco: 129 },
-    { id: 'doc',   nome: 'Documentos',                       preco: 149 },
-    { id: 'audit', nome: 'Gestão de Auditorias',              preco: 149 },
-    { id: 'apur',  nome: 'Gestão de Apurações',               preco: 129 },
-    { id: 'risco', nome: 'Riscos e Oportunidades',            preco: 99  },
-    { id: 'dash',  nome: 'Dashboard',                         preco: 79  },
-    { id: 'atas',  nome: 'Atas de Reunião',                   preco: 79  },
-    { id: 'train', nome: 'Treinamentos (em desenvolvimento)', preco: 149 },
+    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 149,
+      itens: ['Contexto Organizacional (Análise SWOT, Partes Interessadas, Informações da Empresa, Macrofluxo, SIPOC, Organograma)', 'Mapa e Objetivos', 'Indicadores', 'Riscos e Oportunidades', 'Dashboard', 'Atas de Reunião'] },
+    { id: 'acoes', nome: 'Gestão de Ações',                  preco: 129,
+      itens: ['Plano de ação no formato 5W2H', 'Acompanhamento de responsáveis e prazos'] },
+    { id: 'contr', nome: 'Controladoria',                    preco: 129,
+      itens: ['Cadastro e acompanhamento de indicadores (KPIs)', 'Monitoramento de metas'] },
+    { id: 'doc',   nome: 'Documentos',                       preco: 149,
+      itens: ['Gestão de Documentos (procedimentos, instruções de trabalho, manuais, políticas)', 'Lista Mestra', 'Fluxo de aprovação (aguardando aprovação, publicados, obsoletos)', 'Registros', 'Monitoramento'] },
+    { id: 'apur',  nome: 'Gestão de Apurações',              preco: 129,
+      itens: ['Apuração de não conformidades (NC)', 'Ocorrências de RH', 'Tratativas e ações corretivas'] },
+    { id: 'audit', nome: 'Gestão de Auditorias',             preco: 149,
+      itens: ['Planejamento e solicitação de auditorias', 'Processos Auditáveis, Turnos e Auditores', 'Relatórios de auditoria', 'Dashboard de auditorias'] },
+    { id: 'train', nome: 'Treinamentos (em desenvolvimento)', preco: 149,
+      itens: ['Controle de treinamentos', 'Registro de participantes', 'Avaliação de eficácia'] },
   ];
   const ORC_DEFAULT_SELECIONADOS = ['plan', 'acoes', 'contr'];
   let orcamentoEditandoId = null;
@@ -5553,14 +5569,18 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const wrap = document.getElementById('orc-modulos-list');
     if (!wrap) return;
     wrap.innerHTML = MODULOS_ORC.map(m => `
-      <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;cursor:pointer">
-        <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
-        <span style="flex:1">${m.nome}</span>
-        <span style="color:var(--text-secondary);white-space:nowrap">R$ ${m.preco}/mês</span>
+      <label style="display:flex;flex-direction:column;gap:4px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;cursor:pointer">
+        <span style="display:flex;align-items:center;gap:8px">
+          <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
+          <span style="flex:1;font-weight:600">${m.nome}</span>
+          <span style="color:var(--text-secondary);white-space:nowrap">R$ ${m.preco}/mês</span>
+        </span>
+        <span style="font-size:11px;color:var(--text-secondary);padding-left:24px;line-height:1.4">Inclui: ${(m.itens || []).join(' · ')}</span>
       </label>
     `).join('');
     wrap.dataset.built = '1';
   }
+
 
   function calcularOrcamento() {
     const numUsuarios = parseFloat(document.getElementById('orc-usuarios')?.value) || 0;
@@ -5569,12 +5589,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const descontoAnual = (parseFloat(document.getElementById('orc-a-descontoAnual')?.value) || 0) / 100;
     const implModulo = parseFloat(document.getElementById('orc-a-implModulo')?.value) || 0;
     const implUsuario = parseFloat(document.getElementById('orc-a-implUsuario')?.value) || 0;
+    const devValorHora = parseFloat(document.getElementById('orc-dev-valorHora')?.value) || 0;
+    const devHoras = parseFloat(document.getElementById('orc-dev-horas')?.value) || 0;
+    const devDescricao = document.getElementById('orc-dev-descricao')?.value.trim() || '';
 
     const checks = Array.from(document.querySelectorAll('.orc-mod-check'));
     const selecionados = checks.filter(c => c.checked).map(c => {
       const id = c.getAttribute('data-id');
       const mod = MODULOS_ORC.find(m => m.id === id);
-      return { id, nome: mod ? mod.nome : id, preco: parseFloat(c.getAttribute('data-preco')) || 0 };
+      return { id, nome: mod ? mod.nome : id, preco: parseFloat(c.getAttribute('data-preco')) || 0, itens: mod ? (mod.itens || []) : [] };
     });
 
     const mensalidadeModulos = selecionados.reduce((s, m) => s + m.preco, 0);
@@ -5583,22 +5606,33 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const mensalidadeMensal = mensalidadeModulos + mensalidadeUsuarios;
     const mensalidadeAnual = mensalidadeMensal * (1 - descontoAnual);
     const implantacao = (selecionados.length * implModulo) + (usuariosAdicionais * implUsuario);
-    const totalAno1Mensal = (mensalidadeMensal * 12) + implantacao;
-    const totalAno1Anual = (mensalidadeAnual * 12) + implantacao;
+    const devPersonalizado = devHoras * devValorHora;
+    const totalUnico = implantacao + devPersonalizado;
+    const totalAno1Mensal = (mensalidadeMensal * 12) + totalUnico;
+    const totalAno1Anual = (mensalidadeAnual * 12) + totalUnico;
 
     const resumo = document.getElementById('orc-resumo');
     if (resumo) {
-      resumo.innerHTML = `
-        <div class="dashboard-card"><div class="dashboard-card-label">Mensalidade (plano mensal)</div><div class="dashboard-card-value">R$ ${fmtVal(mensalidadeMensal)}</div></div>
-        <div class="dashboard-card"><div class="dashboard-card-label">Mensalidade (plano anual, -${(descontoAnual * 100).toFixed(0)}%)</div><div class="dashboard-card-value">R$ ${fmtVal(mensalidadeAnual)}</div></div>
-        <div class="dashboard-card"><div class="dashboard-card-label">Implantação (única)</div><div class="dashboard-card-value">R$ ${fmtVal(implantacao)}</div></div>
-        <div class="dashboard-card"><div class="dashboard-card-label">Total Ano 1 (mensal)</div><div class="dashboard-card-value">R$ ${fmtVal(totalAno1Mensal)}</div></div>
-        <div class="dashboard-card"><div class="dashboard-card-label">Total Ano 1 (anual)</div><div class="dashboard-card-value">R$ ${fmtVal(totalAno1Anual)}</div></div>
-      `;
+      const linha = (label, valor, destaque) => `
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding:${destaque ? '10px 14px' : '7px 2px'};font-size:${destaque ? '14px' : '13px'};${destaque ? 'background:#fdf6e3;border-radius:8px;margin-top:6px' : 'border-bottom:1px solid var(--border)'}">
+          <span style="color:${destaque ? 'var(--navy)' : 'var(--text-secondary)'};font-weight:${destaque ? '700' : '400'}">${label}</span>
+          <span style="color:var(--navy);font-weight:${destaque ? '800' : '600'};font-variant-numeric:tabular-nums">${valor}</span>
+        </div>`;
+      resumo.innerHTML = [
+        linha('Mensalidade — módulos', `R$ ${fmtVal(mensalidadeModulos)}`),
+        usuariosAdicionais > 0 ? linha(`Usuários adicionais (${usuariosAdicionais})`, `R$ ${fmtVal(mensalidadeUsuarios)}`) : '',
+        linha('Mensalidade — plano mensal', `R$ ${fmtVal(mensalidadeMensal)}/mês`, true),
+        linha(`Mensalidade — plano anual (-${(descontoAnual * 100).toFixed(0)}%)`, `R$ ${fmtVal(mensalidadeAnual)}/mês`, true),
+        linha('Implantação (única)', `R$ ${fmtVal(implantacao)}`),
+        devPersonalizado > 0 ? linha('Desenvolvimento personalizado', `R$ ${fmtVal(devPersonalizado)}`) : '',
+        linha('Total Ano 1 — plano mensal', `R$ ${fmtVal(totalAno1Mensal)}`, true),
+        linha('Total Ano 1 — plano anual', `R$ ${fmtVal(totalAno1Anual)}`, true),
+      ].join('');
     }
 
     return {
       numUsuarios, usuariosInclusos, precoUsuAdic, descontoAnual, implModulo, implUsuario,
+      devValorHora, devHoras, devDescricao, devPersonalizado,
       selecionados, mensalidadeModulos, usuariosAdicionais, mensalidadeUsuarios,
       mensalidadeMensal, mensalidadeAnual, implantacao, totalAno1Mensal, totalAno1Anual
     };
@@ -5622,6 +5656,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       cliente_nome: nome, data: hoje, num_usuarios: calc.numUsuarios, modulos: calc.selecionados,
       usuarios_inclusos: calc.usuariosInclusos, preco_usuario_adicional: calc.precoUsuAdic,
       desconto_anual: calc.descontoAnual, impl_por_modulo: calc.implModulo, impl_por_usuario: calc.implUsuario,
+      dev_valor_hora: calc.devValorHora, dev_horas: calc.devHoras, dev_descricao: calc.devDescricao, dev_personalizado: calc.devPersonalizado,
       mensalidade_mensal: calc.mensalidadeMensal, mensalidade_anual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, total_ano1_mensal: calc.totalAno1Mensal, total_ano1_anual: calc.totalAno1Anual
     };
@@ -5629,6 +5664,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       clienteNome: nome, data: hoje, numUsuarios: calc.numUsuarios, modulos: calc.selecionados,
       usuariosInclusos: calc.usuariosInclusos, precoUsuarioAdicional: calc.precoUsuAdic,
       descontoAnual: calc.descontoAnual, implPorModulo: calc.implModulo, implPorUsuario: calc.implUsuario,
+      devValorHora: calc.devValorHora, devHoras: calc.devHoras, devDescricao: calc.devDescricao, devPersonalizado: calc.devPersonalizado,
       mensalidadeMensal: calc.mensalidadeMensal, mensalidadeAnual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, totalAno1Mensal: calc.totalAno1Mensal, totalAno1Anual: calc.totalAno1Anual
     };
@@ -5666,6 +5702,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-a-descontoAnual').value = (o.descontoAnual * 100);
     document.getElementById('orc-a-implModulo').value = o.implPorModulo;
     document.getElementById('orc-a-implUsuario').value = o.implPorUsuario;
+    document.getElementById('orc-dev-valorHora').value = o.devValorHora != null ? o.devValorHora : 180;
+    document.getElementById('orc-dev-horas').value = o.devHoras != null ? o.devHoras : 0;
+    document.getElementById('orc-dev-descricao').value = o.devDescricao || '';
     const idsSelecionados = (o.modulos || []).map(m => m.id);
     document.querySelectorAll('.orc-mod-check').forEach(c => {
       c.checked = idsSelecionados.includes(c.getAttribute('data-id'));
@@ -5687,6 +5726,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-a-descontoAnual').value = 15;
     document.getElementById('orc-a-implModulo').value = 300;
     document.getElementById('orc-a-implUsuario').value = 50;
+    document.getElementById('orc-dev-valorHora').value = 180;
+    document.getElementById('orc-dev-horas').value = 0;
+    document.getElementById('orc-dev-descricao').value = '';
     document.querySelectorAll('.orc-mod-check').forEach(c => {
       c.checked = ORC_DEFAULT_SELECIONADOS.includes(c.getAttribute('data-id'));
     });
@@ -5726,18 +5768,18 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <tr>
         <td><strong>${o.clienteNome}</strong></td>
         <td>${fmtData(o.data)}</td>
-        <td><span class="badge badge-success">${(o.modulos || []).length} módulo(s)</span></td>
+        <td><span class="badge" style="background:var(--surface-1);color:var(--text-secondary);font-weight:600">${(o.modulos || []).length} módulo(s)</span></td>
         <td>${o.numUsuarios}</td>
         <td>R$ ${fmtVal(o.mensalidadeMensal)}/mês</td>
-        <td>R$ ${fmtVal(o.implantacao)}</td>
+        <td>R$ ${fmtVal(o.implantacao)}${o.devPersonalizado > 0 ? `<br><span style="font-size:10.5px;color:var(--text-secondary)">+ R$ ${fmtVal(o.devPersonalizado)} dev.</span>` : ''}</td>
         <td><strong>R$ ${fmtVal(o.totalAno1Mensal)}</strong></td>
         <td>
           <div class="btn-acao-row">
-            <button class="btn btn-icon" onclick="abrirRelatorioOrcamento('${o.id}')" title="Ver relatório" style="background:var(--navy);color:#fff"><i class="ti ti-file-text"></i></button>
-            <button class="btn btn-icon" onclick="enviarRelatorioEmail('${o.id}')" title="Enviar por e-mail" style="background:#2563eb;color:#fff"><i class="ti ti-mail"></i></button>
-            <button class="btn btn-icon" onclick="enviarRelatorioWhatsApp('${o.id}')" title="Enviar por WhatsApp" style="background:#25d366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
-            <button class="btn btn-icon" onclick="editarOrcamento('${o.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-            <button class="btn btn-icon btn-danger" onclick="deletarOrcamento('${o.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
+            <button class="btn btn-icon" onclick="abrirRelatorioOrcamento('${o.id}')" title="Ver relatório" style="background:#fff;border:1px solid var(--border);color:var(--navy)"><i class="ti ti-file-text"></i></button>
+            <button class="btn btn-icon" onclick="enviarRelatorioEmail('${o.id}')" title="Enviar por e-mail" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-mail"></i></button>
+            <button class="btn btn-icon" onclick="enviarRelatorioWhatsApp('${o.id}')" title="Enviar por WhatsApp" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-brand-whatsapp"></i></button>
+            <button class="btn btn-icon" onclick="editarOrcamento('${o.id}')" title="Editar" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon" onclick="deletarOrcamento('${o.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       </tr>`).join('');
@@ -5745,33 +5787,56 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   // ---- Relatório do orçamento (visualizar / enviar) ----
   function gerarTextoRelatorioOrc(o) {
-    const linhasModulos = (o.modulos || []).map(m => `  • ${m.nome} — R$ ${fmtVal(m.preco)}/mês`).join('\n');
-    return [
+    const linhasModulos = (o.modulos || []).map(m => {
+      const itens = (m.itens || []).map(it => `      - ${it}`).join('\n');
+      return `  • ${m.nome} — R$ ${fmtVal(m.preco)}/mês${itens ? '\n' + itens : ''}`;
+    }).join('\n');
+    const linhas = [
       'ORÇAMENTO STRATEGYA — ORBEEX',
+      '',
+      'O STRATEGYA é o sistema de gestão integrada da ORBEEX, feito a partir da vivência prática de quem implementa e audita sistemas de qualidade. Reúne planejamento estratégico, ações, controladoria, documentos, apurações e auditorias num fluxo único, rastreável e pronto para auditoria (ISO 9001 / 14001 / 45001).',
       '',
       `Cliente: ${o.clienteNome}`,
       `Data: ${fmtData(o.data)}`,
       `Usuários: ${o.numUsuarios} (${o.usuariosInclusos} inclusos + ${Math.max(0, o.numUsuarios - o.usuariosInclusos)} adicionais)`,
       '',
-      'Módulos contratados:',
+      'Módulos contratados (tudo listado abaixo já está incluso no valor do módulo):',
       linhasModulos,
       '',
       `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
       `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
       `Implantação (única, não recorrente): R$ ${fmtVal(o.implantacao)}`,
+    ];
+    if (o.devPersonalizado > 0) {
+      linhas.push(`Desenvolvimento personalizado${o.devDescricao ? ' (' + o.devDescricao + ')' : ''} — ${o.devHoras}h × R$ ${fmtVal(o.devValorHora)}/h: R$ ${fmtVal(o.devPersonalizado)}`);
+    }
+    linhas.push(
       '',
       `Total Ano 1 (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
       `Total Ano 1 (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
       '',
+      `Valor médio de referência para novos desenvolvimentos personalizados: R$ ${fmtVal(o.devValorHora || 180)}/hora`,
+      '',
       '---',
-      'ORBEEX · Assessoria em Sistemas de Gestão',
-    ].join('\n');
+      'ORBEEX · Assessoria em Sistemas de Gestão'
+    );
+    return linhas.join('\n');
   }
 
+
+
   function gerarRelatorioHTML(o) {
-    const linhasModulos = (o.modulos || []).map(m => `
-      <tr><td>${m.nome}</td><td style="text-align:right">R$ ${fmtVal(m.preco)}/mês</td></tr>
-    `).join('');
+    const linhasModulos = (o.modulos || []).map(m => {
+      const itens = (m.itens || []).map(it => `<li>${it}</li>`).join('');
+      return `
+      <tr>
+        <td>
+          <div style="font-weight:600">${m.nome}</div>
+          ${itens ? `<ul style="margin:6px 0 0;padding-left:18px;font-size:12px;color:#6b6b8a;line-height:1.6">${itens}</ul>` : ''}
+        </td>
+        <td style="text-align:right;white-space:nowrap;vertical-align:top;padding-top:9px">R$ ${fmtVal(m.preco)}/mês</td>
+      </tr>`;
+    }).join('');
     const usuariosAdicionais = Math.max(0, o.numUsuarios - o.usuariosInclusos);
     return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
@@ -5784,6 +5849,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   .doc-header .brand span{color:#E8B84B}
   .doc-header .sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
   .doc-body{padding:28px 32px}
+  .intro{padding:22px 32px;background:#fbfaf6;border-bottom:1px solid #f0e6c8}
+  .intro p{font-size:13px;color:#4a4a68;line-height:1.65;margin:0 0 14px}
+  .intro-highlights{display:flex;gap:20px;flex-wrap:wrap}
+  .intro-highlights div{display:flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#1a1a2e}
+  .intro-highlights i{color:#E8B84B;font-style:normal}
   .meta{display:flex;justify-content:space-between;margin-bottom:20px;font-size:13px;color:#6b6b8a}
   .meta strong{color:#1a1a2e;font-size:15px;display:block;margin-bottom:2px}
   table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:20px}
@@ -5804,11 +5874,20 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <div class="brand">ORB<span>EEX</span></div>
       <div class="sub">Orçamento STRATEGYA · Sistema de Gestão Integrada</div>
     </div>
+    <div class="intro">
+      <p>O <strong>STRATEGYA</strong> é o sistema de gestão integrada da ORBEEX, criado a partir da vivência prática de quem implementa e audita sistemas de qualidade no dia a dia. Reúne em um só lugar planejamento estratégico, gestão de ações, controladoria, documentos, apurações e auditorias — substituindo planilhas soltas e arquivos dispersos por um fluxo único, rastreável e pronto para auditoria.</p>
+      <div class="intro-highlights">
+        <div><i>✓</i> Conformidade ISO 9001 / 14001 / 45001</div>
+        <div><i>✓</i> Rastreabilidade ponta a ponta</div>
+        <div><i>✓</i> Implantação com suporte consultivo ORBEEX</div>
+      </div>
+    </div>
     <div class="doc-body">
       <div class="meta">
         <div><strong>${o.clienteNome}</strong>${o.numUsuarios} usuário(s) · ${usuariosAdicionais} adicional(is) sobre os ${o.usuariosInclusos} inclusos</div>
         <div style="text-align:right">${fmtData(o.data)}</div>
       </div>
+      <p style="font-size:11.5px;color:#6b6b8a;margin:0 0 12px">Tudo o que está listado abaixo de cada módulo já está incluso no valor da mensalidade — sem custo adicional.</p>
       <table>
         <thead><tr><th>Módulo contratado</th><th style="text-align:right">Mensalidade</th></tr></thead>
         <tbody>${linhasModulos}</tbody>
@@ -5817,9 +5896,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="linha"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
         <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
+        ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''} (${o.devHoras}h × R$ ${fmtVal(o.devValorHora)}/h)</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
         <div class="linha dest"><span>Total Ano 1 — plano mensal</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
         <div class="linha dest"><span>Total Ano 1 — plano anual</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
       </div>
+      <p style="font-size:11px;color:#9a9ab0;margin:14px 0 0">Valor médio de referência para novos desenvolvimentos personalizados: R$ ${fmtVal(o.devValorHora || 180)}/hora.</p>
     </div>
     <div class="doc-footer">ORBEEX · Assessoria em Sistemas de Gestão — orçamento sujeito a validação e ajustes.</div>
   </div>
