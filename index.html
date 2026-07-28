@@ -5547,7 +5547,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
 // ===== ORÇAMENTOS (STRATEGYA) =====
   const MODULOS_ORC = [
-    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 149,
+    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 159.90,
       itens: ['Contexto Organizacional (Análise SWOT, Partes Interessadas, Informações da Empresa, Macrofluxo, SIPOC, Organograma)', 'Mapa e Objetivos', 'Indicadores', 'Riscos e Oportunidades', 'Dashboard', 'Atas de Reunião'] },
     { id: 'acoes', nome: 'Gestão de Ações',                  preco: 129,
       itens: ['Plano de ação no formato 5W2H', 'Acompanhamento de responsáveis e prazos'] },
@@ -5573,7 +5573,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <span style="display:flex;align-items:center;gap:8px">
           <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
           <span style="flex:1;font-weight:600">${m.nome}</span>
-          <span style="color:var(--text-secondary);white-space:nowrap">R$ ${m.preco}/mês</span>
+          <span style="color:var(--text-secondary);white-space:nowrap">R$ ${fmtVal(m.preco)}/mês</span>
         </span>
         <span style="font-size:11px;color:var(--text-secondary);padding-left:24px;line-height:1.4">Inclui: ${(m.itens || []).join(' · ')}</span>
       </label>
@@ -5803,19 +5803,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       'Módulos contratados (tudo listado abaixo já está incluso no valor do módulo):',
       linhasModulos,
       '',
-      `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
-      `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
       `Implantação (única, não recorrente): R$ ${fmtVal(o.implantacao)}`,
     ];
     if (o.devPersonalizado > 0) {
-      linhas.push(`Desenvolvimento personalizado${o.devDescricao ? ' (' + o.devDescricao + ')' : ''} — ${o.devHoras}h × R$ ${fmtVal(o.devValorHora)}/h: R$ ${fmtVal(o.devPersonalizado)}`);
+      linhas.push(`Desenvolvimento personalizado${o.devDescricao ? ' (' + o.devDescricao + ')' : ''}: R$ ${fmtVal(o.devPersonalizado)}`);
     }
     linhas.push(
       '',
-      `Total Ano 1 (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
-      `Total Ano 1 (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
-      '',
-      `Valor médio de referência para novos desenvolvimentos personalizados: R$ ${fmtVal(o.devValorHora || 180)}/hora`,
+      `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
+      `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
       '',
       '---',
       'ORBEEX · Assessoria em Sistemas de Gestão'
@@ -5893,14 +5889,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <tbody>${linhasModulos}</tbody>
       </table>
       <div class="totais">
-        <div class="linha"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
-        <div class="linha"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
         <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
-        ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''} (${o.devHoras}h × R$ ${fmtVal(o.devValorHora)}/h)</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
-        <div class="linha dest"><span>Total Ano 1 — plano mensal</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
-        <div class="linha dest"><span>Total Ano 1 — plano anual</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
+        ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''}</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
+        <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
+        <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
       </div>
-      <p style="font-size:11px;color:#9a9ab0;margin:14px 0 0">Valor médio de referência para novos desenvolvimentos personalizados: R$ ${fmtVal(o.devValorHora || 180)}/hora.</p>
     </div>
     <div class="doc-footer">ORBEEX · Assessoria em Sistemas de Gestão — orçamento sujeito a validação e ajustes.</div>
   </div>
