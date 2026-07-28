@@ -1056,6 +1056,11 @@
           </div>
         </details>
 
+        <div class="form-group">
+          <label>Política de suporte / observações <span style="font-size:11px;color:var(--text-secondary)">(aparece no orçamento e no relatório)</span></label>
+          <textarea id="orc-politica-suporte" rows="2" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical">Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.</textarea>
+        </div>
+
         <div style="display:flex;gap:8px;align-items:center">
           <button class="btn btn-primary" id="orc-btn-salvar" onclick="salvarOrcamento()"><i class="ti ti-device-floppy"></i> Salvar Orçamento</button>
           <button class="btn btn-sm" id="orc-btn-cancelar" onclick="cancelarEdicaoOrcamento()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
@@ -1791,7 +1796,7 @@
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
-      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
+      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes']
     ];
 
@@ -5670,6 +5675,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const devValorHora = parseFloat(document.getElementById('orc-dev-valorHora')?.value) || 0;
     const devHoras = parseFloat(document.getElementById('orc-dev-horas')?.value) || 0;
     const devDescricao = document.getElementById('orc-dev-descricao')?.value.trim() || '';
+    const politicaSuporte = document.getElementById('orc-politica-suporte')?.value.trim() || '';
 
     const checks = Array.from(document.querySelectorAll('.orc-mod-check'));
     const selecionados = checks.filter(c => c.checked).map(c => {
@@ -5710,7 +5716,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     return {
       numUsuarios, usuariosInclusos, precoUsuAdic, descontoAnual, implModulo, implUsuario,
-      devValorHora, devHoras, devDescricao, devPersonalizado,
+      devValorHora, devHoras, devDescricao, devPersonalizado, politicaSuporte,
       selecionados, mensalidadeModulos, usuariosAdicionais, mensalidadeUsuarios,
       mensalidadeMensal, mensalidadeAnual, implantacao, totalAno1Mensal, totalAno1Anual
     };
@@ -5735,6 +5741,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       usuarios_inclusos: calc.usuariosInclusos, preco_usuario_adicional: calc.precoUsuAdic,
       desconto_anual: calc.descontoAnual, impl_por_modulo: calc.implModulo, impl_por_usuario: calc.implUsuario,
       dev_valor_hora: calc.devValorHora, dev_horas: calc.devHoras, dev_descricao: calc.devDescricao, dev_personalizado: calc.devPersonalizado,
+      politica_suporte: calc.politicaSuporte,
       mensalidade_mensal: calc.mensalidadeMensal, mensalidade_anual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, total_ano1_mensal: calc.totalAno1Mensal, total_ano1_anual: calc.totalAno1Anual
     };
@@ -5743,6 +5750,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       usuariosInclusos: calc.usuariosInclusos, precoUsuarioAdicional: calc.precoUsuAdic,
       descontoAnual: calc.descontoAnual, implPorModulo: calc.implModulo, implPorUsuario: calc.implUsuario,
       devValorHora: calc.devValorHora, devHoras: calc.devHoras, devDescricao: calc.devDescricao, devPersonalizado: calc.devPersonalizado,
+      politicaSuporte: calc.politicaSuporte,
       mensalidadeMensal: calc.mensalidadeMensal, mensalidadeAnual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, totalAno1Mensal: calc.totalAno1Mensal, totalAno1Anual: calc.totalAno1Anual
     };
@@ -5783,6 +5791,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-dev-valorHora').value = o.devValorHora != null ? o.devValorHora : 180;
     document.getElementById('orc-dev-horas').value = o.devHoras != null ? o.devHoras : 0;
     document.getElementById('orc-dev-descricao').value = o.devDescricao || '';
+    document.getElementById('orc-politica-suporte').value = o.politicaSuporte || 'Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.';
     const idsSelecionados = (o.modulos || []).map(m => m.id);
     document.querySelectorAll('.orc-mod-check').forEach(c => {
       c.checked = idsSelecionados.includes(c.getAttribute('data-id'));
@@ -5808,6 +5817,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-dev-valorHora').value = 180;
     document.getElementById('orc-dev-horas').value = 0;
     document.getElementById('orc-dev-descricao').value = '';
+    document.getElementById('orc-politica-suporte').value = 'Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.';
     document.querySelectorAll('.orc-mod-check').forEach(c => {
       c.checked = ORC_DEFAULT_SELECIONADOS.includes(c.getAttribute('data-id'));
     });
@@ -6044,6 +6054,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '',
       `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
       `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
+    );
+    if (o.politicaSuporte) {
+      linhas.push('', o.politicaSuporte);
+    }
+    linhas.push(
       '',
       '---',
       'ORBEEX · Assessoria em Sistemas de Gestão'
@@ -6089,6 +6104,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   .totais{background:#f4f4f8;border-radius:10px;padding:16px 20px;margin-top:20px}
   .totais .linha{display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px;color:#4a4a68}
   .totais .linha.dest{font-size:17px;font-weight:800;color:#1a1a2e;border-top:1px solid #e2e2ee;margin-top:8px;padding-top:12px}
+  .politica-suporte{margin-top:14px;padding:12px 14px;background:#fbfaf6;border:1px solid #f0e6c8;border-radius:8px;font-size:11.5px;color:#6b6b8a;line-height:1.5}
+  .politica-suporte i{font-style:normal;margin-right:4px}
   .doc-footer{padding:18px 32px;font-size:11px;color:#9a9ab0;border-top:1px solid #e2e2ee;text-align:center}
   .print-bar{max-width:680px;margin:0 auto 14px;text-align:right}
   .print-bar button{background:#E8B84B;color:#1a1a2e;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer}
@@ -6125,6 +6142,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
       </div>
+      ${o.politicaSuporte ? `<div class="politica-suporte"><i>&#9432;</i> ${o.politicaSuporte}</div>` : ''}
     </div>
     <div class="doc-footer">ORBEEX · Assessoria em Sistemas de Gestão — orçamento sujeito a validação e ajustes.</div>
   </div>
