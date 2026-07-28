@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Gestor de Horas">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons@latest/tabler-icons.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -830,7 +830,6 @@
    <button class="tab-btn" data-tab="anotacoes" onclick="trocarAba(this,'anotacoes')"><i class="ti ti-notebook"></i> Anotações</button>
     <button class="tab-btn" data-tab="despesas" onclick="trocarAba(this,'despesas')"><i class="ti ti-report-money"></i> Despesas</button>
     <button class="tab-btn" data-tab="clientes" onclick="trocarAba(this,'clientes')"><i class="ti ti-users"></i> Clientes</button>
-    <button class="tab-btn" data-tab="orcamentos" onclick="trocarAba(this,'orcamentos')"><i class="ti ti-calculator"></i> Orçamentos</button>
     <button class="tab-btn" data-tab="strategya" onclick="trocarAba(this,'strategya')"><i class="ti ti-chart-bar"></i> Strategya</button>
   </div>
 
@@ -954,67 +953,6 @@
   </div>
 
   <!-- ABA ORÇAMENTOS (STRATEGYA) -->
-  <div id="orcamentos" class="tab-content">
-    <div class="card">
-      <div class="card-header"><i class="ti ti-calculator"></i> Novo Orçamento — STRATEGYA</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Nome do cliente <span style="color:red">*</span></label>
-          <input type="text" id="orc-cliente-nome" list="orc-clientes-datalist" placeholder="Digite ou busque um cliente já cadastrado" autocomplete="off">
-          <datalist id="orc-clientes-datalist"></datalist>
-        </div>
-        <div class="form-group"><label>Número de usuários</label><input type="number" id="orc-usuarios" min="1" value="10" oninput="calcularOrcamento()"></div>
-      </div>
-
-      <div style="margin:.75rem 0 1rem">
-        <label>Módulos contratados</label>
-        <div id="orc-modulos-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px"></div>
-      </div>
-
-      <details style="margin-bottom:.5rem">
-        <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Premissas de precificação (ajustar se necessário)</summary>
-        <div class="form-row" style="margin-top:.75rem">
-          <div class="form-group"><label>Usuários inclusos</label><input type="number" id="orc-a-usuariosInclusos" value="5" oninput="calcularOrcamento()"></div>
-          <div class="form-group"><label>Preço usuário adicional (R$/mês)</label><input type="number" id="orc-a-precoUsuAdic" value="25" oninput="calcularOrcamento()"></div>
-          <div class="form-group"><label>Desconto plano anual (%)</label><input type="number" id="orc-a-descontoAnual" value="15" oninput="calcularOrcamento()"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Implantação por módulo (R$)</label><input type="number" id="orc-a-implModulo" value="300" oninput="calcularOrcamento()"></div>
-          <div class="form-group"><label>Implantação por usuário adicional (R$)</label><input type="number" id="orc-a-implUsuario" value="50" oninput="calcularOrcamento()"></div>
-        </div>
-      </details>
-
-      <details style="margin-bottom:.5rem">
-        <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Desenvolvimento personalizado (opcional — funcionalidade fora do escopo padrão)</summary>
-        <div class="form-row" style="margin-top:.75rem">
-          <div class="form-group"><label>Valor/hora (R$)</label><input type="number" id="orc-dev-valorHora" value="180" oninput="calcularOrcamento()"></div>
-          <div class="form-group"><label>Horas estimadas</label><input type="number" id="orc-dev-horas" value="0" min="0" oninput="calcularOrcamento()"></div>
-          <div class="form-group"><label>Descrição do desenvolvimento</label><input type="text" id="orc-dev-descricao" placeholder="Ex: Integração com sistema X"></div>
-        </div>
-      </details>
-
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" id="orc-btn-salvar" onclick="salvarOrcamento()"><i class="ti ti-device-floppy"></i> Salvar Orçamento</button>
-        <button class="btn btn-sm" id="orc-btn-cancelar" onclick="cancelarEdicaoOrcamento()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-      </div>
-    </div>
-
-    <div class="card" id="orc-resumo-card">
-      <div class="card-header"><i class="ti ti-report-money"></i> Resumo do Orçamento</div>
-      <div id="orc-resumo"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-header"><i class="ti ti-list"></i> Orçamentos Salvos</div>
-      <div style="overflow-x:auto">
-        <table class="table">
-          <thead><tr><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
-          <tbody id="tbody-orcamentos"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
   <!-- ABA STRATEGYA (monitoramento do produto) -->
   <div id="strategya" class="tab-content">
 
@@ -1027,59 +965,121 @@
       <div style="color:rgba(255,255,255,.55);font-size:12.5px;margin-top:4px">Assinaturas ativas, horas de desenvolvimento e orçamentos — só o que é relacionado ao software.</div>
     </div>
 
-    <div class="dashboard-grid" id="strat-resumo"></div>
+    <div class="filters" style="margin-bottom:1.25rem">
+      <button class="filter-btn active" id="strat-subtab-btn-geral" onclick="trocarSubAbaStrategya('geral')"><i class="ti ti-layout-dashboard" style="margin-right:4px"></i>Visão Geral</button>
+      <button class="filter-btn" id="strat-subtab-btn-orcamentos" onclick="trocarSubAbaStrategya('orcamentos')"><i class="ti ti-calculator" style="margin-right:4px"></i>Orçamentos</button>
+    </div>
 
-    <!-- Assinaturas -->
-    <div class="card">
-      <div class="card-header"><i class="ti ti-refresh"></i> Assinaturas</div>
-      <div class="form-row">
-        <div class="form-group"><label>Cliente</label><input type="text" id="strat-assin-cliente" list="orc-clientes-datalist" placeholder="Nome do cliente" autocomplete="off"></div>
-        <div class="form-group"><label>Valor mensal (R$)</label><input type="number" id="strat-assin-valor" min="0" step="0.01" placeholder="Ex: 542,00"></div>
-        <div class="form-group"><label>Status</label>
-          <select id="strat-assin-status">
-            <option value="ativa">Ativa</option>
-            <option value="pausada">Pausada</option>
-            <option value="cancelada">Cancelada</option>
-          </select>
+    <!-- SUB-ABA: VISÃO GERAL -->
+    <div id="strat-subtab-geral" class="strat-subtab">
+      <div class="dashboard-grid" id="strat-resumo"></div>
+
+      <!-- Assinaturas -->
+      <div class="card">
+        <div class="card-header"><i class="ti ti-refresh"></i> Assinaturas</div>
+        <div class="form-row">
+          <div class="form-group"><label>Cliente</label><input type="text" id="strat-assin-cliente" list="orc-clientes-datalist" placeholder="Nome do cliente" autocomplete="off"></div>
+          <div class="form-group"><label>Valor mensal (R$)</label><input type="number" id="strat-assin-valor" min="0" step="0.01" placeholder="Ex: 542,00"></div>
+          <div class="form-group"><label>Status</label>
+            <select id="strat-assin-status">
+              <option value="ativa">Ativa</option>
+              <option value="pausada">Pausada</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Início</label><input type="date" id="strat-assin-inicio"></div>
         </div>
-        <div class="form-group"><label>Início</label><input type="date" id="strat-assin-inicio"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="strat-assin-btn-salvar" onclick="salvarAssinaturaStrategya()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Assinatura</button>
+          <button class="btn btn-sm" id="strat-assin-btn-cancelar" onclick="cancelarEdicaoAssinaturaStrategya()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Cliente</th><th>Status</th><th>Início</th><th>Mensalidade</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-strat-assinaturas"></tbody>
+          </table>
+        </div>
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" id="strat-assin-btn-salvar" onclick="salvarAssinaturaStrategya()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Assinatura</button>
-        <button class="btn btn-sm" id="strat-assin-btn-cancelar" onclick="cancelarEdicaoAssinaturaStrategya()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-      </div>
-      <div style="overflow-x:auto;margin-top:1rem">
-        <table class="table">
-          <thead><tr><th>Cliente</th><th>Status</th><th>Início</th><th>Mensalidade</th><th>Ação</th></tr></thead>
-          <tbody id="tbody-strat-assinaturas"></tbody>
-        </table>
+
+      <!-- Horas de desenvolvimento -->
+      <div class="card">
+        <div class="card-header"><i class="ti ti-clock-code"></i> Horas de Desenvolvimento</div>
+        <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:1rem">
+          Lance suas horas de desenvolvimento normalmente na aba <strong>Atividades</strong>, usando um cliente chamado <strong>STRATEGYA</strong>. Elas aparecem resumidas aqui automaticamente.
+        </p>
+        <div style="overflow-x:auto">
+          <table class="table">
+            <thead><tr><th>Mês</th><th>Horas</th><th>Valor</th></tr></thead>
+            <tbody id="tbody-strat-horas"></tbody>
+          </table>
+        </div>
       </div>
     </div>
 
-    <!-- Horas de desenvolvimento -->
-    <div class="card">
-      <div class="card-header"><i class="ti ti-clock-code"></i> Horas de Desenvolvimento</div>
-      <p style="font-size:12.5px;color:var(--text-secondary);margin-bottom:1rem">
-        Lance suas horas de desenvolvimento normalmente na aba <strong>Atividades</strong>, usando um cliente chamado <strong>STRATEGYA</strong>. Elas aparecem resumidas aqui automaticamente.
-      </p>
-      <div style="overflow-x:auto">
-        <table class="table">
-          <thead><tr><th>Mês</th><th>Horas</th><th>Valor</th></tr></thead>
-          <tbody id="tbody-strat-horas"></tbody>
-        </table>
-      </div>
-    </div>
+    <!-- SUB-ABA: ORÇAMENTOS -->
+    <div id="strat-subtab-orcamentos" class="strat-subtab" style="display:none">
+      <div class="card">
+        <div class="card-header"><i class="ti ti-calculator"></i> Novo Orçamento — STRATEGYA</div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nome do cliente <span style="color:red">*</span></label>
+            <input type="text" id="orc-cliente-nome" list="orc-clientes-datalist" placeholder="Digite ou busque um cliente já cadastrado" autocomplete="off">
+            <datalist id="orc-clientes-datalist"></datalist>
+          </div>
+          <div class="form-group"><label>Número de usuários</label><input type="number" id="orc-usuarios" min="1" value="10" oninput="calcularOrcamento()"></div>
+        </div>
 
-    <!-- Orçamentos (resumo) -->
-    <div class="card">
-      <div class="card-header"><i class="ti ti-calculator"></i> Orçamentos</div>
-      <div style="overflow-x:auto">
-        <table class="table">
-          <thead><tr><th>Cliente</th><th>Data</th><th>Mensalidade proposta</th><th>Status</th></tr></thead>
-          <tbody id="tbody-strat-orcamentos"></tbody>
-        </table>
+        <div style="margin:.75rem 0 1rem">
+          <label>Módulos contratados</label>
+          <div id="orc-modulos-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px"></div>
+        </div>
+
+        <details style="margin-bottom:.5rem">
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Premissas de precificação (ajustar se necessário)</summary>
+          <div class="form-row" style="margin-top:.75rem">
+            <div class="form-group"><label>Usuários inclusos</label><input type="number" id="orc-a-usuariosInclusos" value="5" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Preço usuário adicional (R$/mês)</label><input type="number" id="orc-a-precoUsuAdic" value="25" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Desconto plano anual (%)</label><input type="number" id="orc-a-descontoAnual" value="15" oninput="calcularOrcamento()"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Implantação por módulo (R$)</label><input type="number" id="orc-a-implModulo" value="300" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Implantação por usuário adicional (R$)</label><input type="number" id="orc-a-implUsuario" value="50" oninput="calcularOrcamento()"></div>
+          </div>
+        </details>
+
+        <details style="margin-bottom:.5rem">
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Desenvolvimento personalizado (opcional — funcionalidade fora do escopo padrão)</summary>
+          <div class="form-row" style="margin-top:.75rem">
+            <div class="form-group"><label>Valor/hora (R$)</label><input type="number" id="orc-dev-valorHora" value="180" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Horas estimadas</label><input type="number" id="orc-dev-horas" value="0" min="0" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Descrição do desenvolvimento</label><input type="text" id="orc-dev-descricao" placeholder="Ex: Integração com sistema X"></div>
+          </div>
+        </details>
+
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="orc-btn-salvar" onclick="salvarOrcamento()"><i class="ti ti-device-floppy"></i> Salvar Orçamento</button>
+          <button class="btn btn-sm" id="orc-btn-cancelar" onclick="cancelarEdicaoOrcamento()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        </div>
       </div>
-      <p style="font-size:11.5px;color:var(--text-secondary);margin-top:.75rem">Para editar ou enviar um orçamento, use a aba <strong>Orçamentos</strong>.</p>
+
+      <div class="card" id="orc-resumo-card">
+        <div class="card-header"><i class="ti ti-report-money"></i> Resumo do Orçamento</div>
+        <div id="orc-resumo"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><i class="ti ti-list"></i> Orçamentos Salvos</div>
+        <div id="orc-total-mensal-box" style="display:flex;align-items:baseline;justify-content:space-between;background:var(--gold-bg);border:1px solid #f0e6c8;border-radius:8px;padding:12px 16px;margin-bottom:1rem">
+          <span style="font-size:12.5px;color:var(--text-warning);font-weight:600">Valor total mensal (soma de todos os orçamentos salvos)</span>
+          <span id="orc-total-mensal-valor" style="font-size:19px;font-weight:800;color:var(--navy)">R$ 0,00</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="table">
+            <thead><tr><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-orcamentos"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -1666,8 +1666,7 @@
         else if (tabName === 'anotacoes') { renderizarAnotacoes(); }
         else if (tabName === 'despesas') { renderizarDespesas(); }
         else if (tabName === 'clientes') { renderizarClientes(); }
-        else if (tabName === 'orcamentos') { renderizarOrcamentos(); }
-        else if (tabName === 'strategya') { renderizarStrategya(); }
+        else if (tabName === 'strategya') { renderizarOrcamentos(); renderizarStrategya(); }
       } catch(e2) { console.error('Erro ao renderizar aba ' + tabName + ':', e2); }
     } catch(e) { console.error('Erro ao trocar aba:', e); }
   }
@@ -5793,7 +5792,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const btnC = document.getElementById('orc-btn-cancelar');
     if (btnC) btnC.style.display = '';
     calcularOrcamento();
-    document.querySelector('#orcamentos .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    trocarSubAbaStrategya('orcamentos');
+    document.querySelector('#strat-subtab-orcamentos .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function cancelarEdicaoOrcamento() {
@@ -5835,6 +5835,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const wrap = document.getElementById('orc-modulos-list');
     if (wrap && !wrap.dataset.built) renderizarSeletorModulosOrc();
     calcularOrcamento();
+
+    const totalMensalBox = document.getElementById('orc-total-mensal-valor');
+    if (totalMensalBox) {
+      const totalMensal = orcamentos.reduce((s, o) => s + (parseFloat(o.mensalidadeMensal) || 0), 0);
+      totalMensalBox.textContent = `R$ ${fmtVal(totalMensal)}/mês`;
+    }
 
     const tbody = document.getElementById('tbody-orcamentos');
     if (!tbody) return;
@@ -5933,6 +5939,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     );
   }
 
+  function trocarSubAbaStrategya(nome) {
+    document.getElementById('strat-subtab-geral').style.display = nome === 'geral' ? '' : 'none';
+    document.getElementById('strat-subtab-orcamentos').style.display = nome === 'orcamentos' ? '' : 'none';
+    document.getElementById('strat-subtab-btn-geral').classList.toggle('active', nome === 'geral');
+    document.getElementById('strat-subtab-btn-orcamentos').classList.toggle('active', nome === 'orcamentos');
+  }
+
   function renderizarStrategya() {
     // ---- Assinaturas ----
     const tbodyAssin = document.getElementById('tbody-strat-assinaturas');
@@ -5988,26 +6001,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const horasMesAtual = porMes[mesAtualChave]?.horas || 0;
     const valorHorasMesAtual = porMes[mesAtualChave]?.valor || 0;
 
-    // ---- Orçamentos (resumo) ----
-    const tbodyOrc = document.getElementById('tbody-strat-orcamentos');
-    const listaOrc = [...orcamentos].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-    if (tbodyOrc) {
-      if (!listaOrc.length) {
-        tbodyOrc.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum orçamento salvo ainda</td></tr>`;
-      } else {
-        tbodyOrc.innerHTML = listaOrc.map(o => {
-          const jaAssina = strategyaAssinaturas.some(a => a.clienteNome.trim().toLowerCase() === o.clienteNome.trim().toLowerCase() && a.status === 'ativa');
-          return `<tr>
-            <td><strong>${o.clienteNome}</strong></td>
-            <td>${fmtData(o.data)}</td>
-            <td>R$ ${fmtVal(o.mensalidadeMensal)}/mês</td>
-            <td>${jaAssina ? '<span class="badge badge-success">virou assinante</span>' : '<span class="badge" style="background:var(--surface-1);color:var(--text-secondary)">em aberto</span>'}</td>
-          </tr>`;
-        }).join('');
-      }
-    }
-
     // ---- Cards de resumo ----
+    const totalMensalOrcamentos = orcamentos.reduce((s, o) => s + (parseFloat(o.mensalidadeMensal) || 0), 0);
     const resumo = document.getElementById('strat-resumo');
     if (resumo) {
       resumo.innerHTML = `
@@ -6016,6 +6011,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="dashboard-card"><div class="dashboard-card-label">Horas de dev. (mês atual)</div><div class="dashboard-card-value">${fmtVal(horasMesAtual)}h</div></div>
         <div class="dashboard-card"><div class="dashboard-card-label">Valor de dev. (mês atual)</div><div class="dashboard-card-value">R$ ${fmtVal(valorHorasMesAtual)}</div></div>
         <div class="dashboard-card"><div class="dashboard-card-label">Orçamentos em aberto</div><div class="dashboard-card-value">${orcamentos.length}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-label">Valor total mensal em orçamentos</div><div class="dashboard-card-value">R$ ${fmtVal(totalMensalOrcamentos)}</div></div>
       `;
     }
   }
