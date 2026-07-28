@@ -826,6 +826,7 @@
    <button class="tab-btn" data-tab="anotacoes" onclick="trocarAba(this,'anotacoes')"><i class="ti ti-notebook"></i> Anotações</button>
     <button class="tab-btn" data-tab="despesas" onclick="trocarAba(this,'despesas')"><i class="ti ti-report-money"></i> Despesas</button>
     <button class="tab-btn" data-tab="clientes" onclick="trocarAba(this,'clientes')"><i class="ti ti-users"></i> Clientes</button>
+    <button class="tab-btn" data-tab="orcamentos" onclick="trocarAba(this,'orcamentos')"><i class="ti ti-calculator"></i> Orçamentos</button>
   </div>
 
   <!-- ABA HOME -->
@@ -946,6 +947,57 @@
       <div id="lista-clientes" style="display:grid;gap:1rem;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))"></div>
     </div>
   </div>
+
+  <!-- ABA ORÇAMENTOS (STRATEGYA) -->
+  <div id="orcamentos" class="tab-content">
+    <div class="card">
+      <div class="card-header"><i class="ti ti-calculator"></i> Novo Orçamento — STRATEGYA</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome do cliente <span style="color:red">*</span></label>
+          <input type="text" id="orc-cliente-nome" list="orc-clientes-datalist" placeholder="Digite ou busque um cliente já cadastrado" autocomplete="off">
+          <datalist id="orc-clientes-datalist"></datalist>
+        </div>
+        <div class="form-group"><label>Número de usuários</label><input type="number" id="orc-usuarios" min="1" value="10" oninput="calcularOrcamento()"></div>
+      </div>
+
+      <div style="margin:.75rem 0 1rem">
+        <label>Módulos contratados</label>
+        <div id="orc-modulos-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px;margin-top:4px"></div>
+      </div>
+
+      <details style="margin-bottom:.5rem">
+        <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Premissas de precificação (ajustar se necessário)</summary>
+        <div class="form-row" style="margin-top:.75rem">
+          <div class="form-group"><label>Usuários inclusos</label><input type="number" id="orc-a-usuariosInclusos" value="5" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Preço usuário adicional (R$/mês)</label><input type="number" id="orc-a-precoUsuAdic" value="25" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Desconto plano anual (%)</label><input type="number" id="orc-a-descontoAnual" value="15" oninput="calcularOrcamento()"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Implantação por módulo (R$)</label><input type="number" id="orc-a-implModulo" value="300" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Implantação por usuário adicional (R$)</label><input type="number" id="orc-a-implUsuario" value="50" oninput="calcularOrcamento()"></div>
+        </div>
+      </details>
+
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="btn btn-primary" id="orc-btn-salvar" onclick="salvarOrcamento()"><i class="ti ti-device-floppy"></i> Salvar Orçamento</button>
+        <button class="btn btn-sm" id="orc-btn-cancelar" onclick="cancelarEdicaoOrcamento()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+      </div>
+    </div>
+
+    <div class="dashboard-grid" id="orc-resumo"></div>
+
+    <div class="card">
+      <div class="card-header"><i class="ti ti-list"></i> Orçamentos Salvos</div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
+          <tbody id="tbody-orcamentos"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <!-- ABA ATIVIDADES (Planejamento + Registrar Horas unificados) -->
   <div id="atividades" class="tab-content">
 
@@ -1529,6 +1581,7 @@
         else if (tabName === 'anotacoes') { renderizarAnotacoes(); }
         else if (tabName === 'despesas') { renderizarDespesas(); }
         else if (tabName === 'clientes') { renderizarClientes(); }
+        else if (tabName === 'orcamentos') { renderizarOrcamentos(); }
       } catch(e2) { console.error('Erro ao renderizar aba ' + tabName + ':', e2); }
     } catch(e) { console.error('Erro ao trocar aba:', e); }
   }
@@ -1632,7 +1685,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [], orcamentos: [] };
   window.__SRV_ERRO__ = false;
 
   function carregarDadosServidor() {
@@ -1652,7 +1705,8 @@
       ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,criadaEm:criada_em'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome'],
-      ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em']
+      ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
+      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual']
     ];
 
     return pronto.then(function() {
@@ -1674,6 +1728,7 @@
   let planejamento= [];
   let despesas    = [];
   let diario      = [];
+  let orcamentos  = [];
 
   let filtroPlanoAtual = 'Todas';
   let tarefaSelecionadaId = null;
@@ -5477,6 +5532,322 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         </td>
       </tr>`).join('');
   }
+
+// ===== ORÇAMENTOS (STRATEGYA) =====
+  const MODULOS_ORC = [
+    { id: 'plan',  nome: 'Planejamento Estratégico',        preco: 149 },
+    { id: 'acoes', nome: 'Gestão de Ações (5W2H)',           preco: 129 },
+    { id: 'contr', nome: 'Controladoria (Indicadores)',      preco: 129 },
+    { id: 'doc',   nome: 'Documentos',                       preco: 149 },
+    { id: 'audit', nome: 'Gestão de Auditorias',              preco: 149 },
+    { id: 'apur',  nome: 'Gestão de Apurações',               preco: 129 },
+    { id: 'risco', nome: 'Riscos e Oportunidades',            preco: 99  },
+    { id: 'dash',  nome: 'Dashboard',                         preco: 79  },
+    { id: 'atas',  nome: 'Atas de Reunião',                   preco: 79  },
+    { id: 'train', nome: 'Treinamentos (em desenvolvimento)', preco: 149 },
+  ];
+  const ORC_DEFAULT_SELECIONADOS = ['plan', 'acoes', 'contr'];
+  let orcamentoEditandoId = null;
+
+  function renderizarSeletorModulosOrc() {
+    const wrap = document.getElementById('orc-modulos-list');
+    if (!wrap) return;
+    wrap.innerHTML = MODULOS_ORC.map(m => `
+      <label style="display:flex;align-items:center;gap:8px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;cursor:pointer">
+        <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
+        <span style="flex:1">${m.nome}</span>
+        <span style="color:var(--text-secondary);white-space:nowrap">R$ ${m.preco}/mês</span>
+      </label>
+    `).join('');
+    wrap.dataset.built = '1';
+  }
+
+  function calcularOrcamento() {
+    const numUsuarios = parseFloat(document.getElementById('orc-usuarios')?.value) || 0;
+    const usuariosInclusos = parseFloat(document.getElementById('orc-a-usuariosInclusos')?.value) || 0;
+    const precoUsuAdic = parseFloat(document.getElementById('orc-a-precoUsuAdic')?.value) || 0;
+    const descontoAnual = (parseFloat(document.getElementById('orc-a-descontoAnual')?.value) || 0) / 100;
+    const implModulo = parseFloat(document.getElementById('orc-a-implModulo')?.value) || 0;
+    const implUsuario = parseFloat(document.getElementById('orc-a-implUsuario')?.value) || 0;
+
+    const checks = Array.from(document.querySelectorAll('.orc-mod-check'));
+    const selecionados = checks.filter(c => c.checked).map(c => {
+      const id = c.getAttribute('data-id');
+      const mod = MODULOS_ORC.find(m => m.id === id);
+      return { id, nome: mod ? mod.nome : id, preco: parseFloat(c.getAttribute('data-preco')) || 0 };
+    });
+
+    const mensalidadeModulos = selecionados.reduce((s, m) => s + m.preco, 0);
+    const usuariosAdicionais = Math.max(0, numUsuarios - usuariosInclusos);
+    const mensalidadeUsuarios = usuariosAdicionais * precoUsuAdic;
+    const mensalidadeMensal = mensalidadeModulos + mensalidadeUsuarios;
+    const mensalidadeAnual = mensalidadeMensal * (1 - descontoAnual);
+    const implantacao = (selecionados.length * implModulo) + (usuariosAdicionais * implUsuario);
+    const totalAno1Mensal = (mensalidadeMensal * 12) + implantacao;
+    const totalAno1Anual = (mensalidadeAnual * 12) + implantacao;
+
+    const resumo = document.getElementById('orc-resumo');
+    if (resumo) {
+      resumo.innerHTML = `
+        <div class="dashboard-card"><div class="dashboard-card-label">Mensalidade (plano mensal)</div><div class="dashboard-card-value">R$ ${fmtVal(mensalidadeMensal)}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-label">Mensalidade (plano anual, -${(descontoAnual * 100).toFixed(0)}%)</div><div class="dashboard-card-value">R$ ${fmtVal(mensalidadeAnual)}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-label">Implantação (única)</div><div class="dashboard-card-value">R$ ${fmtVal(implantacao)}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-label">Total Ano 1 (mensal)</div><div class="dashboard-card-value">R$ ${fmtVal(totalAno1Mensal)}</div></div>
+        <div class="dashboard-card"><div class="dashboard-card-label">Total Ano 1 (anual)</div><div class="dashboard-card-value">R$ ${fmtVal(totalAno1Anual)}</div></div>
+      `;
+    }
+
+    return {
+      numUsuarios, usuariosInclusos, precoUsuAdic, descontoAnual, implModulo, implUsuario,
+      selecionados, mensalidadeModulos, usuariosAdicionais, mensalidadeUsuarios,
+      mensalidadeMensal, mensalidadeAnual, implantacao, totalAno1Mensal, totalAno1Anual
+    };
+  }
+
+  function popularDatalistClientesOrc() {
+    const dl = document.getElementById('orc-clientes-datalist');
+    if (!dl) return;
+    const nomesUnicos = [...new Set(clientes.map(c => c.nome))];
+    dl.innerHTML = nomesUnicos.map(n => `<option value="${n}"></option>`).join('');
+  }
+
+  function salvarOrcamento() {
+    const nome = document.getElementById('orc-cliente-nome').value.trim();
+    if (!nome) { alert('Informe o nome do cliente'); document.getElementById('orc-cliente-nome').focus(); return; }
+    const calc = calcularOrcamento();
+    if (!calc.selecionados.length) { alert('Selecione ao menos um módulo'); return; }
+    const hoje = new Date().toISOString().split('T')[0];
+
+    const payload = {
+      cliente_nome: nome, data: hoje, num_usuarios: calc.numUsuarios, modulos: calc.selecionados,
+      usuarios_inclusos: calc.usuariosInclusos, preco_usuario_adicional: calc.precoUsuAdic,
+      desconto_anual: calc.descontoAnual, impl_por_modulo: calc.implModulo, impl_por_usuario: calc.implUsuario,
+      mensalidade_mensal: calc.mensalidadeMensal, mensalidade_anual: calc.mensalidadeAnual,
+      implantacao: calc.implantacao, total_ano1_mensal: calc.totalAno1Mensal, total_ano1_anual: calc.totalAno1Anual
+    };
+    const campoLocal = {
+      clienteNome: nome, data: hoje, numUsuarios: calc.numUsuarios, modulos: calc.selecionados,
+      usuariosInclusos: calc.usuariosInclusos, precoUsuarioAdicional: calc.precoUsuAdic,
+      descontoAnual: calc.descontoAnual, implPorModulo: calc.implModulo, implPorUsuario: calc.implUsuario,
+      mensalidadeMensal: calc.mensalidadeMensal, mensalidadeAnual: calc.mensalidadeAnual,
+      implantacao: calc.implantacao, totalAno1Mensal: calc.totalAno1Mensal, totalAno1Anual: calc.totalAno1Anual
+    };
+
+    if (orcamentoEditandoId) {
+      const o = orcamentos.find(o => o.id === orcamentoEditandoId);
+      if (o) {
+        const anterior = Object.assign({}, o);
+        Object.assign(o, campoLocal);
+        persistir(
+          sbTable('gh_orcamentos').update(o.id, payload),
+          function () { Object.assign(o, anterior); renderizarOrcamentos(); }
+        );
+      }
+    } else {
+      const novo = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      orcamentos.push(novo);
+      persistir(
+        sbTable('gh_orcamentos').insert(Object.assign({ id: novo.id }, payload)),
+        function () { orcamentos = orcamentos.filter(o => o.id !== novo.id); renderizarOrcamentos(); }
+      );
+    }
+    cancelarEdicaoOrcamento();
+    renderizarOrcamentos();
+  }
+
+  function editarOrcamento(id) {
+    const o = orcamentos.find(o => o.id === id);
+    if (!o) return;
+    orcamentoEditandoId = id;
+    document.getElementById('orc-cliente-nome').value = o.clienteNome;
+    document.getElementById('orc-usuarios').value = o.numUsuarios;
+    document.getElementById('orc-a-usuariosInclusos').value = o.usuariosInclusos;
+    document.getElementById('orc-a-precoUsuAdic').value = o.precoUsuarioAdicional;
+    document.getElementById('orc-a-descontoAnual').value = (o.descontoAnual * 100);
+    document.getElementById('orc-a-implModulo').value = o.implPorModulo;
+    document.getElementById('orc-a-implUsuario').value = o.implPorUsuario;
+    const idsSelecionados = (o.modulos || []).map(m => m.id);
+    document.querySelectorAll('.orc-mod-check').forEach(c => {
+      c.checked = idsSelecionados.includes(c.getAttribute('data-id'));
+    });
+    const btn = document.getElementById('orc-btn-salvar');
+    if (btn) { btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição'; btn.style.background = '#f59e0b'; }
+    const btnC = document.getElementById('orc-btn-cancelar');
+    if (btnC) btnC.style.display = '';
+    calcularOrcamento();
+    document.querySelector('#orcamentos .card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelarEdicaoOrcamento() {
+    orcamentoEditandoId = null;
+    document.getElementById('orc-cliente-nome').value = '';
+    document.getElementById('orc-usuarios').value = 10;
+    document.getElementById('orc-a-usuariosInclusos').value = 5;
+    document.getElementById('orc-a-precoUsuAdic').value = 25;
+    document.getElementById('orc-a-descontoAnual').value = 15;
+    document.getElementById('orc-a-implModulo').value = 300;
+    document.getElementById('orc-a-implUsuario').value = 50;
+    document.querySelectorAll('.orc-mod-check').forEach(c => {
+      c.checked = ORC_DEFAULT_SELECIONADOS.includes(c.getAttribute('data-id'));
+    });
+    const btn = document.getElementById('orc-btn-salvar');
+    if (btn) { btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Orçamento'; btn.style.background = ''; }
+    const btnC = document.getElementById('orc-btn-cancelar');
+    if (btnC) btnC.style.display = 'none';
+    calcularOrcamento();
+  }
+
+  function deletarOrcamento(id) {
+    if (!confirm('Remover este orçamento?')) return;
+    const removido = orcamentos.find(o => o.id === id);
+    orcamentos = orcamentos.filter(o => o.id !== id);
+    renderizarOrcamentos();
+    persistir(
+      sbTable('gh_orcamentos').remove(id),
+      function () { if (removido) orcamentos.push(removido); renderizarOrcamentos(); }
+    );
+  }
+
+  function renderizarOrcamentos() {
+    popularDatalistClientesOrc();
+
+    const wrap = document.getElementById('orc-modulos-list');
+    if (wrap && !wrap.dataset.built) renderizarSeletorModulosOrc();
+    calcularOrcamento();
+
+    const tbody = document.getElementById('tbody-orcamentos');
+    if (!tbody) return;
+    const lista = [...orcamentos].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:2rem">Nenhum orçamento salvo ainda</td></tr>`;
+      return;
+    }
+    tbody.innerHTML = lista.map(o => `
+      <tr>
+        <td><strong>${o.clienteNome}</strong></td>
+        <td>${fmtData(o.data)}</td>
+        <td><span class="badge badge-success">${(o.modulos || []).length} módulo(s)</span></td>
+        <td>${o.numUsuarios}</td>
+        <td>R$ ${fmtVal(o.mensalidadeMensal)}/mês</td>
+        <td>R$ ${fmtVal(o.implantacao)}</td>
+        <td><strong>R$ ${fmtVal(o.totalAno1Mensal)}</strong></td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="abrirRelatorioOrcamento('${o.id}')" title="Ver relatório" style="background:var(--navy);color:#fff"><i class="ti ti-file-text"></i></button>
+            <button class="btn btn-icon" onclick="enviarRelatorioEmail('${o.id}')" title="Enviar por e-mail" style="background:#2563eb;color:#fff"><i class="ti ti-mail"></i></button>
+            <button class="btn btn-icon" onclick="enviarRelatorioWhatsApp('${o.id}')" title="Enviar por WhatsApp" style="background:#25d366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
+            <button class="btn btn-icon" onclick="editarOrcamento('${o.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon btn-danger" onclick="deletarOrcamento('${o.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  // ---- Relatório do orçamento (visualizar / enviar) ----
+  function gerarTextoRelatorioOrc(o) {
+    const linhasModulos = (o.modulos || []).map(m => `  • ${m.nome} — R$ ${fmtVal(m.preco)}/mês`).join('\n');
+    return [
+      'ORÇAMENTO STRATEGYA — ORBEEX',
+      '',
+      `Cliente: ${o.clienteNome}`,
+      `Data: ${fmtData(o.data)}`,
+      `Usuários: ${o.numUsuarios} (${o.usuariosInclusos} inclusos + ${Math.max(0, o.numUsuarios - o.usuariosInclusos)} adicionais)`,
+      '',
+      'Módulos contratados:',
+      linhasModulos,
+      '',
+      `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
+      `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
+      `Implantação (única, não recorrente): R$ ${fmtVal(o.implantacao)}`,
+      '',
+      `Total Ano 1 (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
+      `Total Ano 1 (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
+      '',
+      '---',
+      'ORBEEX · Assessoria em Sistemas de Gestão',
+    ].join('\n');
+  }
+
+  function gerarRelatorioHTML(o) {
+    const linhasModulos = (o.modulos || []).map(m => `
+      <tr><td>${m.nome}</td><td style="text-align:right">R$ ${fmtVal(m.preco)}/mês</td></tr>
+    `).join('');
+    const usuariosAdicionais = Math.max(0, o.numUsuarios - o.usuariosInclusos);
+    return `<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8">
+<title>Orçamento STRATEGYA — ${o.clienteNome}</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;background:#f4f4f8;color:#1a1a2e;margin:0;padding:40px 20px}
+  .doc{max-width:680px;margin:0 auto;background:#fff;border-radius:12px;box-shadow:0 2px 16px rgba(0,0,0,.08);overflow:hidden}
+  .doc-header{background:#1a1a2e;color:#fff;padding:28px 32px}
+  .doc-header .brand{font-size:20px;font-weight:700;letter-spacing:.5px}
+  .doc-header .brand span{color:#E8B84B}
+  .doc-header .sub{font-size:12px;color:rgba(255,255,255,.6);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+  .doc-body{padding:28px 32px}
+  .meta{display:flex;justify-content:space-between;margin-bottom:20px;font-size:13px;color:#6b6b8a}
+  .meta strong{color:#1a1a2e;font-size:15px;display:block;margin-bottom:2px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;margin-bottom:20px}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:#6b6b8a;padding:8px 0;border-bottom:2px solid #E8B84B}
+  td{padding:9px 0;border-bottom:1px solid #e2e2ee}
+  .totais{background:#f4f4f8;border-radius:10px;padding:16px 20px;margin-top:20px}
+  .totais .linha{display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px;color:#4a4a68}
+  .totais .linha.dest{font-size:17px;font-weight:800;color:#1a1a2e;border-top:1px solid #e2e2ee;margin-top:8px;padding-top:12px}
+  .doc-footer{padding:18px 32px;font-size:11px;color:#9a9ab0;border-top:1px solid #e2e2ee;text-align:center}
+  .print-bar{max-width:680px;margin:0 auto 14px;text-align:right}
+  .print-bar button{background:#E8B84B;color:#1a1a2e;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer}
+  @media print{.print-bar{display:none}body{background:#fff;padding:0}.doc{box-shadow:none;border-radius:0}}
+</style></head>
+<body>
+  <div class="print-bar"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
+  <div class="doc">
+    <div class="doc-header">
+      <div class="brand">ORB<span>EEX</span></div>
+      <div class="sub">Orçamento STRATEGYA · Sistema de Gestão Integrada</div>
+    </div>
+    <div class="doc-body">
+      <div class="meta">
+        <div><strong>${o.clienteNome}</strong>${o.numUsuarios} usuário(s) · ${usuariosAdicionais} adicional(is) sobre os ${o.usuariosInclusos} inclusos</div>
+        <div style="text-align:right">${fmtData(o.data)}</div>
+      </div>
+      <table>
+        <thead><tr><th>Módulo contratado</th><th style="text-align:right">Mensalidade</th></tr></thead>
+        <tbody>${linhasModulos}</tbody>
+      </table>
+      <div class="totais">
+        <div class="linha"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
+        <div class="linha"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
+        <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
+        <div class="linha dest"><span>Total Ano 1 — plano mensal</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
+        <div class="linha dest"><span>Total Ano 1 — plano anual</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
+      </div>
+    </div>
+    <div class="doc-footer">ORBEEX · Assessoria em Sistemas de Gestão — orçamento sujeito a validação e ajustes.</div>
+  </div>
+</body></html>`;
+  }
+
+  function abrirRelatorioOrcamento(id) {
+    const o = orcamentos.find(o => o.id === id);
+    if (!o) return;
+    const blob = new Blob([gerarRelatorioHTML(o)], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
+
+  function enviarRelatorioEmail(id) {
+    const o = orcamentos.find(o => o.id === id);
+    if (!o) return;
+    const assunto = encodeURIComponent(`Orçamento STRATEGYA — ${o.clienteNome}`);
+    const corpo = encodeURIComponent(gerarTextoRelatorioOrc(o));
+    window.location.href = `mailto:?subject=${assunto}&body=${corpo}`;
+  }
+
+  function enviarRelatorioWhatsApp(id) {
+    const o = orcamentos.find(o => o.id === id);
+    if (!o) return;
+    const texto = encodeURIComponent(gerarTextoRelatorioOrc(o));
+    window.open(`https://wa.me/?text=${texto}`, '_blank');
+  }
   
   // ===== LIMPAR TODOS OS DADOS =====
   function limparTodosDados() {
@@ -6072,6 +6443,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     diario       = lsGet('diario');
     historico    = lsGet('historico');
     anotacoes    = lsGet('anotacoes');
+    orcamentos   = lsGet('orcamentos');
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
   });
 </script>
