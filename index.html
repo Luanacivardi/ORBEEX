@@ -163,6 +163,9 @@
    .home-card.orange:hover             { border-color: #ea580c; box-shadow: 0 12px 30px rgba(234,88,12,.2); }
 
     .home-agenda { max-width: 760px; margin: 0 auto; }
+    .home-split-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+    .home-split-row > * { flex: 1 1 0; min-width: 320px; }
+    .home-split-row .home-agenda { max-width: none; margin: 0; }
     .home-agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
     .home-agenda-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; }
     .home-agenda-header h3 i { color: var(--gold); }
@@ -842,28 +845,30 @@
     </div>
       <div class="home-stats" id="home-stats"></div>
 
-      <div class="card card-compact" id="card-diario" style="margin-bottom:1rem">
-        <div class="card-header" style="justify-content:space-between;margin-bottom:.5rem">
-          <span><i class="ti ti-notes"></i> Diario do Dia</span>
-          <span style="font-size:10px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
+      <div class="home-split-row">
+        <div class="home-agenda">
+          <div class="home-agenda-header">
+            <h3><i class="ti ti-calendar-event"></i> Programado para hoje</h3>
+            <button class="home-agenda-link" onclick="irPara('planejamento')">Ver planejamento completo <i class="ti ti-arrow-right"></i></button>
+          </div>
+          <div id="home-agenda-lista"></div>
         </div>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
-          <input type="date" id="diario-data" onchange="carregarDiarioDoDia()" style="width:auto;padding:5px 8px;font-size:12px">
-          <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()" style="padding:5px 10px;font-size:11px">Hoje</button>
-          <span style="font-size:11px;color:var(--text-secondary)">Vira rascunho da atividade quando você confirmar uma tarefa desse dia</span>
-        </div>
-        <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:60px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
-        <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
-          <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)" style="padding:5px 10px;font-size:11px"><i class="ti ti-device-floppy"></i> Salvar agora</button>
-        </div>
-      </div>
 
-      <div class="home-agenda">
-        <div class="home-agenda-header">
-          <h3><i class="ti ti-calendar-event"></i> Programado para hoje</h3>
-          <button class="home-agenda-link" onclick="irPara('planejamento')">Ver planejamento completo <i class="ti ti-arrow-right"></i></button>
+        <div class="card card-compact" id="card-diario" style="margin-bottom:0">
+          <div class="card-header" style="justify-content:space-between;margin-bottom:.5rem">
+            <span><i class="ti ti-notes"></i> Diario do Dia</span>
+            <span style="font-size:10px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
+            <input type="date" id="diario-data" onchange="carregarDiarioDoDia()" style="width:auto;padding:5px 8px;font-size:12px">
+            <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()" style="padding:5px 10px;font-size:11px">Hoje</button>
+            <span style="font-size:11px;color:var(--text-secondary)">Vira rascunho da atividade quando você confirmar uma tarefa desse dia</span>
+          </div>
+          <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:60px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
+            <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)" style="padding:5px 10px;font-size:11px"><i class="ti ti-device-floppy"></i> Salvar agora</button>
+          </div>
         </div>
-        <div id="home-agenda-lista"></div>
       </div>
     </div>
   </div>
@@ -1578,7 +1583,7 @@
       </div>
     </div>
 
-    <div class="card">
+    <div class="card card-compact">
       <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
       <div class="form-row">
         <div class="form-group"><label>Cliente</label>
@@ -1586,18 +1591,18 @@
         </div>
         <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()"></div>
         <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()"></div>
-        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar Filtros</button></div>
+        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar</button></div>
       </div>
-      <div class="form-group" style="margin-top:.5rem">
-        <label>Status <span style="font-size:11px;color:var(--text-secondary)">(marque um ou mais)</span></label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap" id="filtro-anot-status">
-          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+      <div class="form-group" style="margin-top:.25rem;margin-bottom:0">
+        <label>Status</label>
+        <div style="display:flex;gap:5px;flex-wrap:wrap" id="filtro-anot-status">
+          <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
             <input type="checkbox" value="pendente" checked onchange="renderizarAnotacoes()"> A Fazer
           </label>
-          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+          <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
             <input type="checkbox" value="andamento" checked onchange="renderizarAnotacoes()"> Em Andamento
           </label>
-          <label style="display:flex;align-items:center;gap:5px;padding:6px 12px;border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;user-select:none">
+          <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
             <input type="checkbox" value="concluida" checked onchange="renderizarAnotacoes()"> Concluído
           </label>
         </div>
@@ -3425,10 +3430,16 @@ let clienteEditandoId = null;
         diaCol.onclick = () => mostrarDetalhe(iso);
 
         const doDia = obterPlanFiltrado().filter(p => p.inicio === iso);
-        const doTurno = turno.ehTarde
-          ? doDia.filter(p => p.entrada && p.saida && p.entrada >= '12:00')
-          : doDia.filter(p => !(p.entrada && p.saida) || p.entrada <= '11:59');
-        doTurno.sort((a,b) => (a.entrada || '').localeCompare(b.entrada || ''));
+        let doTurno;
+        if (turno.ehTarde) {
+          doTurno = doDia.filter(p => p.entrada && p.saida && p.entrada >= '12:00')
+            .sort((a,b) => a.entrada.localeCompare(b.entrada));
+        } else {
+          const comHorario = doDia.filter(p => p.entrada && p.saida && p.entrada <= '11:59')
+            .sort((a,b) => a.entrada.localeCompare(b.entrada));
+          const semHorario = doDia.filter(p => !(p.entrada && p.saida));
+          doTurno = [...comHorario, ...semHorario];
+        }
 
         if (!doTurno.length) {
           const vazio = document.createElement('div');
@@ -3531,7 +3542,9 @@ let clienteEditandoId = null;
     num.className = 'month-cell-num'; num.textContent = d.getDate();
     cell.appendChild(num);
 
-    const eventos = obterPlanFiltrado().filter(p => p.inicio === iso);
+    const eventosDia = obterPlanFiltrado().filter(p => p.inicio === iso);
+    const eventos = eventosDia.filter(p => p.entrada && p.saida).sort((a,b) => a.entrada.localeCompare(b.entrada))
+      .concat(eventosDia.filter(p => !(p.entrada && p.saida)));
     const totalSlots = 3;
     eventos.slice(0, totalSlots).forEach(ev => {
       const span = document.createElement('span');
@@ -5435,7 +5448,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!a) return;
     const linhas = [];
     linhas.push(`*${a.titulo}*`);
-    if (a.clienteNome) linhas.push(`Cliente: ${a.clienteNome}`);
     if (a.data) linhas.push(`Data: ${fmtData(a.data)}${a.hora ? ' ' + a.hora : ''}`);
     if (a.prioridade) linhas.push(`Prioridade: ${a.prioridade}`);
     linhas.push(`Status: ${STATUS_LABEL_ANOT[statusAnot(a)]}`);
@@ -5499,7 +5511,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td>${a.clienteNome ? `<span style="font-weight:600;color:${corCliente(a.clienteNome)}">${a.clienteNome}</span>` : '—'}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
-        <td style="max-width:420px;font-size:13px;color:var(--text-primary)">${a.descricao || '—'}</td>
+        <td style="max-width:220px;font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.descricao || ''}">${a.descricao || '—'}</td>
         <td>
           <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
