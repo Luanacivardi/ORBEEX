@@ -5428,6 +5428,22 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     );
   }
 
+  const STATUS_LABEL_ANOT = { pendente: 'A Fazer', andamento: 'Em Andamento', concluida: 'Concluído' };
+
+  function enviarAnotacaoWhats(id) {
+    const a = anotacoes.find(a => a.id === id);
+    if (!a) return;
+    const linhas = [];
+    linhas.push(`*${a.titulo}*`);
+    if (a.clienteNome) linhas.push(`Cliente: ${a.clienteNome}`);
+    if (a.data) linhas.push(`Data: ${fmtData(a.data)}${a.hora ? ' ' + a.hora : ''}`);
+    if (a.prioridade) linhas.push(`Prioridade: ${a.prioridade}`);
+    linhas.push(`Status: ${STATUS_LABEL_ANOT[statusAnot(a)]}`);
+    if (a.descricao) linhas.push('', a.descricao);
+    const texto = linhas.join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
+  }
+
   function limparFiltroAnotacoes() {
     document.getElementById('filtro-anot-cliente').value = '';
     document.getElementById('filtro-anot-inicio').value = '';
@@ -5486,6 +5502,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td style="max-width:420px;font-size:13px;color:var(--text-primary)">${a.descricao || '—'}</td>
         <td>
           <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
             <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
