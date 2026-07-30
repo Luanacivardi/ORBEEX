@@ -1586,13 +1586,17 @@
 
     <div class="card card-compact">
       <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
-      <div class="form-row">
-        <div class="form-group"><label>Cliente</label>
-          <select id="filtro-anot-cliente" onchange="renderizarAnotacoes()"><option value="">Todos os clientes</option></select>
+      <div class="form-row" style="grid-template-columns:repeat(auto-fit, minmax(115px, 1fr))">
+        <div class="form-group" style="grid-column:span 2">
+          <label>Palavra-chave</label>
+          <input type="text" id="filtro-anot-busca" placeholder="Título ou descrição..." oninput="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px">
         </div>
-        <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()"></div>
-        <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()"></div>
-        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary" style="width:100%;justify-content:center" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar</button></div>
+        <div class="form-group"><label>Cliente</label>
+          <select id="filtro-anot-cliente" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"><option value="">Todos os clientes</option></select>
+        </div>
+        <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"></div>
+        <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"></div>
+        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:5px 8px;font-size:12px" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar</button></div>
       </div>
       <div class="form-group" style="margin-top:.25rem;margin-bottom:0">
         <label>Status</label>
@@ -5478,6 +5482,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('filtro-anot-cliente').value = '';
     document.getElementById('filtro-anot-inicio').value = '';
     document.getElementById('filtro-anot-fim').value = '';
+    document.getElementById('filtro-anot-busca').value = '';
     document.querySelectorAll('#filtro-anot-status input[type="checkbox"]').forEach(c => c.checked = true);
     renderizarAnotacoes();
   }
@@ -5488,6 +5493,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const fCliente = document.getElementById('filtro-anot-cliente')?.value || '';
     const fInicio  = document.getElementById('filtro-anot-inicio')?.value || '';
     const fFim     = document.getElementById('filtro-anot-fim')?.value || '';
+    const fBusca   = (document.getElementById('filtro-anot-busca')?.value || '').trim().toLowerCase();
     const statusChks   = [...document.querySelectorAll('#filtro-anot-status input[type="checkbox"]')];
     const statusMarcados = statusChks.filter(c => c.checked).map(c => c.value);
     const fStatus = (statusMarcados.length && statusMarcados.length < statusChks.length) ? statusMarcados : null;
@@ -5497,6 +5503,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (fInicio)  lista = lista.filter(a => a.data && a.data >= fInicio);
     if (fFim)     lista = lista.filter(a => a.data && a.data <= fFim);
     if (fStatus)  lista = lista.filter(a => fStatus.includes(statusAnot(a)));
+    if (fBusca)   lista = lista.filter(a => (a.titulo||'').toLowerCase().includes(fBusca) || (a.descricao||'').toLowerCase().includes(fBusca));
 
     lista.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
