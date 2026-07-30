@@ -166,14 +166,15 @@
     .home-split-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
     .home-split-row > * { flex: 1 1 0; min-width: 320px; }
     .home-split-row .home-agenda { max-width: none; margin: 0; }
-    .home-agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
-    .home-agenda-header h3 { font-size: 16px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; }
+    .home-agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
+    .home-agenda-header h3 { font-size: 14px; font-weight: 700; color: var(--navy); display: flex; align-items: center; gap: 8px; }
     .home-agenda-header h3 i { color: var(--gold); }
     .home-agenda-link { background: none; border: none; color: var(--text-secondary); font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px; }
     .home-agenda-link:hover { color: var(--navy); }
+    #home-agenda-lista { max-height: 230px; overflow-y: auto; padding-right: 4px; }
     .home-agenda-item {
-      background: #fff; border: 1px solid var(--border); border-radius: 12px;
-      padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; gap: 14px;
+      background: #fff; border: 1px solid var(--border); border-radius: 10px;
+      padding: 8px 10px; margin-bottom: 6px; display: flex; align-items: center; gap: 10px;
       cursor: pointer; transition: box-shadow .15s, border-color .15s, transform .15s;
     }
     .home-agenda-item:hover { border-color: var(--gold); box-shadow: 0 6px 18px rgba(232,184,75,.18); transform: translateY(-2px); }
@@ -187,14 +188,14 @@
     .home-agenda-item.item-concluida .home-agenda-hora { background: #d1fae5; color: #047857; }
     .home-agenda-vazio-mini { text-align: center; padding: 1.2rem 1rem; color: var(--text-secondary); font-size: 12px; background: #fff; border: 1px dashed var(--border); border-radius: 12px; }
     .home-agenda-hora {
-      width: 64px; flex-shrink: 0; text-align: center; font-weight: 700; font-size: 13px; color: var(--navy);
-      background: var(--surface-1); border-radius: 8px; padding: 8px 4px; line-height: 1.3;
+      width: 52px; flex-shrink: 0; text-align: center; font-weight: 700; font-size: 11.5px; color: var(--navy);
+      background: var(--surface-1); border-radius: 7px; padding: 5px 3px; line-height: 1.25;
     }
-    .home-agenda-hora small { display: block; font-weight: 500; color: var(--text-secondary); font-size: 10px; }
+    .home-agenda-hora small { display: block; font-weight: 500; color: var(--text-secondary); font-size: 9px; }
     .home-agenda-info { flex: 1; min-width: 0; }
-    .home-agenda-cliente { font-weight: 700; font-size: 14px; color: var(--navy); }
-    .home-agenda-pauta { font-size: 12px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .home-agenda-status { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 5px 10px; border-radius: 20px; white-space: nowrap; }
+    .home-agenda-cliente { font-weight: 700; font-size: 12.5px; color: var(--navy); }
+    .home-agenda-pauta { font-size: 11px; color: var(--text-secondary); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .home-agenda-status { flex-shrink: 0; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 20px; white-space: nowrap; }
     .home-agenda-status.pendente { background: var(--gold-bg); color: var(--text-warning); }
     .home-agenda-status.feito { background: #d1fae5; color: #065f46; }
     .home-agenda-vazio { text-align: center; padding: 2.5rem 1rem; color: var(--text-secondary); font-size: 13px; background: #fff; border: 1px dashed var(--border); border-radius: 12px; }
@@ -1614,7 +1615,7 @@
       <div style="overflow-x:auto">
         <table class="table">
           <thead><tr>
-            <th></th><th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th>Ação</th>
+            <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right">Status / Ação</th>
           </tr></thead>
           <tbody id="tbody-anotacoes"></tbody>
         </table>
@@ -3893,13 +3894,22 @@ let clienteEditandoId = null;
     // Filtra e agrupa por data
     let dados = planejamento.filter(p => p.inicio >= dataInicio && p.inicio <= dataFim);
     if (filtroCliente) dados = dados.filter(p => p.clienteNome === filtroCliente);
-    dados.sort((a, b) => a.inicio.localeCompare(b.inicio) || (a.entrada||'').localeCompare(b.entrada||''));
+    dados.sort((a, b) => a.inicio.localeCompare(b.inicio));
 
     const porData = {};
     dados.forEach(p => { if (!porData[p.inicio]) porData[p.inicio] = []; porData[p.inicio].push(p); });
     // Incluir datas que só têm anotações
     anotacoes.filter(a => !a.concluida && a.data >= dataInicio && a.data <= dataFim)
       .forEach(a => { if (!porData[a.data]) porData[a.data] = []; });
+    // Dentro de cada dia: ordenar por horário de execução (sem horário fica ao final)
+    Object.keys(porData).forEach(iso => {
+      porData[iso].sort((a, b) => {
+        const ah = !!(a.entrada && a.saida), bh = !!(b.entrada && b.saida);
+        if (ah && bh) return a.entrada.localeCompare(b.entrada);
+        if (ah !== bh) return ah ? -1 : 1;
+        return 0;
+      });
+    });
 
     const MESES = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
     const DIAS  = ['Domingo','Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado'];
@@ -5443,6 +5453,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   const STATUS_LABEL_ANOT = { pendente: 'A Fazer', andamento: 'Em Andamento', concluida: 'Concluído' };
 
+  function hexToRgba(hex, alpha) {
+    if (!hex || hex[0] !== '#') return `rgba(107,114,128,${alpha})`;
+    const h = hex.replace('#', '');
+    const full = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+    const r = parseInt(full.substring(0, 2), 16), g = parseInt(full.substring(2, 4), 16), b = parseInt(full.substring(4, 6), 16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
   function enviarAnotacaoWhats(id) {
     const a = anotacoes.find(a => a.id === id);
     if (!a) return;
@@ -5486,7 +5504,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!tbody) return;
 
     if (!lista.length) {
-      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
       return;
     }
 
@@ -5501,19 +5519,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
 
       return `<tr>
-        <td style="text-align:center">
-          <button onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
-            style="width:22px;height:22px;padding:0;border-radius:5px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
-            ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:14px;font-weight:700"></i>' : ''}
-          </button>
-        </td>
         <td>${a.titulo}</td>
-        <td>${a.clienteNome ? `<span style="font-weight:600;color:${corCliente(a.clienteNome)}">${a.clienteNome}</span>` : '—'}</td>
+        <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
-        <td style="max-width:220px;font-size:12px;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${a.descricao || ''}">${a.descricao || '—'}</td>
+        <td style="font-size:12px;color:var(--text-primary);white-space:normal;word-break:break-word">${a.descricao || '—'}</td>
         <td>
-          <div class="btn-acao-row">
+          <div class="btn-acao-row" style="justify-content:flex-end">
+            <button onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
+              style="width:22px;height:22px;padding:0;border-radius:5px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0">
+              ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:14px;font-weight:700"></i>' : ''}
+            </button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
             <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
