@@ -1946,12 +1946,27 @@
     ];
 
     return pronto.then(function() {
-      return Promise.all(buscas.map(function(par) {
+      return Promise.allSettled(buscas.map(function(par) {
         return fetch(SUPABASE_URL + '/rest/v1/' + par[1], { headers: sbAuthHeaders() })
           .then(checarResposta)
           .then(function(r) { return r.json(); })
           .then(function(linhas) { window.__SRV__[par[0]] = Array.isArray(linhas) ? linhas : []; });
-      }));
+      })).then(function(resultados) {
+        // Uma tabela com erro (ex.: coluna nova ainda não criada no Supabase) não pode mais
+        // travar o carregamento das demais — cada tabela é independente.
+        var falhas = resultados
+          .map(function(r, i) { return r.status === 'rejected' ? buscas[i][0] : null; })
+          .filter(Boolean);
+        if (falhas.length) {
+          console.error('Falha ao carregar tabela(s):', falhas.join(', '), resultados);
+          window.__SRV_ERRO_TABELAS__ = falhas;
+          // Só bloqueia o app com o aviso de erro geral se uma tabela essencial ao trabalho diário falhar.
+          var essenciais = ['clientes', 'planejamento', 'tarefas'];
+          if (falhas.some(function(f) { return essenciais.indexOf(f) !== -1; })) {
+            window.__SRV_ERRO__ = true;
+          }
+        }
+      });
     }).catch(function(e) {
       console.error('Erro ao carregar dados do Supabase:', e);
       window.__SRV_ERRO__ = true;
@@ -7469,7 +7484,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   carregarDadosServidor().then(function() {
     if (window.__SRV_ERRO__) {
-      alert('⚠️ Não foi possível carregar os dados do servidor (Supabase). Verifique sua conexão e recarregue a página.\n\nOs dados NÃO serão salvos até a conexão ser restabelecida.');
+      alert('⚠️ Não foi possível carregar os dados essenciais do servidor (Supabase). Verifique sua conexão e recarregue a página.\n\nOs dados NÃO serão salvos até a conexão ser restabelecida.');
+    } else if (window.__SRV_ERRO_TABELAS__ && window.__SRV_ERRO_TABELAS__.length) {
+      console.warn('Algumas seções não carregaram e podem aparecer vazias: ' + window.__SRV_ERRO_TABELAS__.join(', ') + '. O restante do app funciona normalmente.');
     }
     clientes     = lsGet('clientes');
     tarefas      = lsGet('tarefas');
