@@ -907,6 +907,52 @@
     </div>
 
     <div class="card">
+      <div class="card-header"><i class="ti ti-repeat"></i> Despesa Recorrente</div>
+      <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px">Cadastre uma despesa fixa (aluguel, mensalidade, assinatura de ferramenta etc.) e o sistema lança automaticamente os próximos vencimentos nesta aba.</p>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoria <span style="color:red">*</span></label>
+          <select id="desprec-categoria">
+            <option value="Contador">📊 Contador</option>
+            <option value="Gasolina">⛽ Gasolina</option>
+            <option value="Alimentação">🍽️ Alimentação</option>
+            <option value="Impostos">🧾 Impostos</option>
+            <option value="Outros">📦 Outros</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Valor (R$) <span style="color:red">*</span></label><input type="number" id="desprec-valor" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="form-group">
+          <label>Frequência <span style="color:red">*</span></label>
+          <select id="desprec-frequencia">
+            <option value="mensal">Mensal</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Data do 1º Vencimento <span style="color:red">*</span></label><input type="date" id="desprec-inicio"></div>
+        <div class="form-group"><label>Encerrar em <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label><input type="date" id="desprec-fim"></div>
+        <div class="form-group"><label>Cliente relacionado <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
+          <select id="desprec-cliente"><option value="">— Sem cliente —</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="desprec-descricao" placeholder="Ex: Assinatura Supabase, Aluguel do escritório..."></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:1.25rem">
+        <button class="btn btn-primary" id="desprec-btn-salvar" onclick="salvarDespesaRecorrente()"><i class="ti ti-repeat"></i> Criar Recorrência</button>
+        <button class="btn btn-sm" id="desprec-btn-cancelar" onclick="cancelarEdicaoDespesaRecorrente()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th><th>1º Venc.</th><th>Encerra em</th><th>Status</th><th>Ação</th></tr></thead>
+          <tbody id="tbody-despesas-recorrentes"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
       <div class="form-row">
         <div class="form-group"><label>Categoria</label>
@@ -1679,7 +1725,7 @@
         else if (tabName === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); }
         else if (tabName === 'dashboard') { atualizarDashboardPlan(); renderizarDashboard(); }
         else if (tabName === 'anotacoes') { renderizarAnotacoes(); }
-        else if (tabName === 'despesas') { renderizarDespesas(); }
+        else if (tabName === 'despesas') { renderizarDespesas(); renderizarDespesasRecorrentes(); }
         else if (tabName === 'clientes') { renderizarClientes(); }
         else if (tabName === 'strategya') { renderizarOrcamentos(); renderizarStrategya(); }
       } catch(e2) { console.error('Erro ao renderizar aba ' + tabName + ':', e2); }
@@ -1785,7 +1831,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], diario: [], orcamentos: [], strategyaAssinaturas: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [] };
   window.__SRV_ERRO__ = false;
 
   function carregarDadosServidor() {
@@ -1804,7 +1850,8 @@
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,planejamentoId:planejamento_id'],
       ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,criadaEm:criada_em'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
-      ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome'],
+      ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id'],
+      ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes']
@@ -1828,6 +1875,7 @@
   let tarefas     = [];
   let planejamento= [];
   let despesas    = [];
+  let despesasRecorrentes = [];
   let diario      = [];
   let orcamentos  = [];
   let strategyaAssinaturas = [];
@@ -5670,13 +5718,193 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <tr>
         <td>${fmtData(d.data)}</td>
         <td>${ICON_DESPESA[d.categoria] || '📦'} ${d.categoria}</td>
-        <td style="color:var(--text-secondary);font-size:12px">${d.descricao || '<em>sem descrição</em>'}</td>
+        <td style="color:var(--text-secondary);font-size:12px">${d.recorrenteId ? '<i class="ti ti-repeat" title="Gerada por recorrência" style="color:var(--gold)"></i> ' : ''}${d.descricao || '<em>sem descrição</em>'}</td>
         <td>${d.clienteNome || '—'}</td>
         <td>R$ ${fmtVal((parseFloat(d.valor)||0))}</td>
         <td>
           <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="editarDespesa('${d.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarDespesa('${d.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+// ===== DESPESAS RECORRENTES =====
+  let despesaRecorrenteEditandoId = null;
+  const PASSOS_FREQUENCIA = { mensal: 1, trimestral: 3, anual: 12 };
+  const LABEL_FREQUENCIA = { mensal: 'Mensal', trimestral: 'Trimestral', anual: 'Anual' };
+
+  // Soma n meses a uma data ISO (yyyy-mm-dd), preservando o dia quando possível
+  // e ajustando para o último dia do mês quando ele não existir (ex: 31/01 + 1 mês = 28 ou 29/02).
+  function addMeses(iso, n) {
+    const [ano, mes, dia] = iso.split('-').map(Number);
+    const d = new Date(ano, (mes - 1) + n, 1);
+    const ultimoDiaDoMes = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+    d.setDate(Math.min(dia, ultimoDiaDoMes));
+    return isoData(d);
+  }
+
+  function salvarDespesaRecorrente() {
+    const categoria = document.getElementById('desprec-categoria').value;
+    const valor = parseFloat(document.getElementById('desprec-valor').value);
+    const frequencia = document.getElementById('desprec-frequencia').value;
+    const dataInicio = document.getElementById('desprec-inicio').value;
+    const dataFim = document.getElementById('desprec-fim').value || null;
+    const descricao = document.getElementById('desprec-descricao').value.trim();
+    const clienteId = document.getElementById('desprec-cliente').value;
+    const clienteObj = clientes.find(c => c.id == clienteId);
+
+    if (!valor || valor <= 0) { alert('Informe um valor válido'); return; }
+    if (!dataInicio)          { alert('Informe a data do 1º vencimento'); return; }
+    if (dataFim && dataFim < dataInicio) { alert('A data de encerramento não pode ser anterior ao 1º vencimento'); return; }
+
+    const dadosLocais = { categoria, valor, frequencia, dataInicio, dataFim, descricao, clienteId: clienteId || null, clienteNome: clienteObj ? clienteObj.nome : '' };
+    const dadosServidor = { categoria, valor, frequencia, data_inicio: dataInicio, data_fim: dataFim, descricao, cliente_id: clienteId || null, cliente_nome: clienteObj ? clienteObj.nome : '' };
+
+    if (despesaRecorrenteEditandoId) {
+      const r = despesasRecorrentes.find(r => r.id === despesaRecorrenteEditandoId);
+      if (r) {
+        const anterior = Object.assign({}, r);
+        Object.assign(r, dadosLocais);
+        persistir(
+          sbTable('gh_despesas_recorrentes').update(r.id, dadosServidor),
+          function() { Object.assign(r, anterior); renderizarDespesasRecorrentes(); }
+        );
+      }
+    } else {
+      const nova = Object.assign({ id: crypto.randomUUID(), ativa: true }, dadosLocais);
+      despesasRecorrentes.push(nova);
+      persistir(
+        sbTable('gh_despesas_recorrentes').insert(Object.assign({ id: nova.id, ativa: true }, dadosServidor)),
+        function() { despesasRecorrentes = despesasRecorrentes.filter(r => r.id !== nova.id); renderizarDespesasRecorrentes(); }
+      );
+    }
+    cancelarEdicaoDespesaRecorrente();
+    renderizarDespesasRecorrentes();
+    gerarDespesasRecorrentesPendentes();
+  }
+
+  function editarDespesaRecorrente(id) {
+    const r = despesasRecorrentes.find(r => r.id === id);
+    if (!r) return;
+    despesaRecorrenteEditandoId = id;
+    document.getElementById('desprec-categoria').value = r.categoria;
+    document.getElementById('desprec-valor').value = r.valor;
+    document.getElementById('desprec-frequencia').value = r.frequencia;
+    document.getElementById('desprec-inicio').value = r.dataInicio;
+    document.getElementById('desprec-fim').value = r.dataFim || '';
+    document.getElementById('desprec-descricao').value = r.descricao || '';
+    document.getElementById('desprec-cliente').value = r.clienteId || '';
+    const btn = document.getElementById('desprec-btn-salvar');
+    if (btn) { btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição'; btn.style.background = '#f59e0b'; }
+    const btnC = document.getElementById('desprec-btn-cancelar');
+    if (btnC) btnC.style.display = '';
+    document.getElementById('desprec-categoria').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function cancelarEdicaoDespesaRecorrente() {
+    despesaRecorrenteEditandoId = null;
+    document.getElementById('desprec-categoria').value = 'Contador';
+    document.getElementById('desprec-valor').value = '';
+    document.getElementById('desprec-frequencia').value = 'mensal';
+    document.getElementById('desprec-inicio').value = '';
+    document.getElementById('desprec-fim').value = '';
+    document.getElementById('desprec-descricao').value = '';
+    document.getElementById('desprec-cliente').value = '';
+    const btn = document.getElementById('desprec-btn-salvar');
+    if (btn) { btn.innerHTML = '<i class="ti ti-repeat"></i> Criar Recorrência'; btn.style.background = ''; }
+    const btnC = document.getElementById('desprec-btn-cancelar');
+    if (btnC) btnC.style.display = 'none';
+  }
+
+  function pausarRetomarRecorrencia(id) {
+    const r = despesasRecorrentes.find(r => r.id === id);
+    if (!r) return;
+    const ativaAnterior = r.ativa;
+    r.ativa = !r.ativa;
+    renderizarDespesasRecorrentes();
+    persistir(
+      sbTable('gh_despesas_recorrentes').update(r.id, { ativa: r.ativa }),
+      function() { r.ativa = ativaAnterior; renderizarDespesasRecorrentes(); }
+    );
+    if (r.ativa) gerarDespesasRecorrentesPendentes();
+  }
+
+  function deletarDespesaRecorrente(id) {
+    if (!confirm('Remover esta recorrência? As despesas já lançadas por ela permanecem na lista de Despesas Lançadas.')) return;
+    const removida = despesasRecorrentes.find(r => r.id === id);
+    despesasRecorrentes = despesasRecorrentes.filter(r => r.id !== id);
+    renderizarDespesasRecorrentes();
+    persistir(
+      sbTable('gh_despesas_recorrentes').remove(id),
+      function() { if (removida) despesasRecorrentes.push(removida); renderizarDespesasRecorrentes(); }
+    );
+  }
+
+  // Gera automaticamente, na tabela de despesas, os lançamentos de todas as recorrências ativas
+  // cuja data prevista já chegou e que ainda não foram gerados (evita duplicidade via recorrenteId + data).
+  function gerarDespesasRecorrentesPendentes() {
+    const hoje = hojeISO();
+    const novas = [];
+    despesasRecorrentes.forEach(function(r) {
+      if (!r.ativa) return;
+      const passo = PASSOS_FREQUENCIA[r.frequencia] || 1;
+      let dataOcorrencia = r.dataInicio;
+      let guarda = 0;
+      while (dataOcorrencia <= hoje && (!r.dataFim || dataOcorrencia <= r.dataFim) && guarda < 500) {
+        guarda++;
+        const jaExiste = despesas.some(function(d) { return d.recorrenteId === r.id && d.data === dataOcorrencia; })
+          || novas.some(function(n) { return n.recorrenteId === r.id && n.data === dataOcorrencia; });
+        if (!jaExiste) {
+          novas.push({
+            id: crypto.randomUUID(), categoria: r.categoria, data: dataOcorrencia, valor: r.valor,
+            descricao: r.descricao, clienteId: r.clienteId || null, clienteNome: r.clienteNome || '',
+            recorrenteId: r.id
+          });
+        }
+        dataOcorrencia = addMeses(dataOcorrencia, passo);
+      }
+    });
+    if (!novas.length) return;
+    despesas.push.apply(despesas, novas);
+    persistir(
+      sbTable('gh_despesas').insertMany(novas.map(function(n) {
+        return { id: n.id, categoria: n.categoria, data: n.data, valor: n.valor, descricao: n.descricao, cliente_id: n.clienteId, cliente_nome: n.clienteNome, recorrente_id: n.recorrenteId };
+      })),
+      function() { despesas = despesas.filter(function(d) { return novas.indexOf(d) === -1; }); renderizarDespesas(); }
+    );
+    renderizarDespesas();
+  }
+
+  function renderizarDespesasRecorrentes() {
+    const selCliente = document.getElementById('desprec-cliente');
+    if (selCliente) {
+      const opts = clientes.map(c => `<option value="${c.id}">${c.nome} - ${c.projeto}</option>`).join('');
+      selCliente.innerHTML = `<option value="">— Sem cliente —</option>${opts}`;
+    }
+
+    const tbody = document.getElementById('tbody-despesas-recorrentes');
+    if (!tbody) return;
+    if (!despesasRecorrentes.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:2rem">Nenhuma despesa recorrente cadastrada</td></tr>`;
+      return;
+    }
+    const lista = [...despesasRecorrentes].sort((a, b) => a.dataInicio.localeCompare(b.dataInicio));
+    tbody.innerHTML = lista.map(r => `
+      <tr>
+        <td style="color:var(--text-secondary);font-size:12px">${r.descricao || '<em>sem descrição</em>'}</td>
+        <td>${ICON_DESPESA[r.categoria] || '📦'} ${r.categoria}</td>
+        <td>R$ ${fmtVal(parseFloat(r.valor) || 0)}</td>
+        <td>${LABEL_FREQUENCIA[r.frequencia] || r.frequencia}</td>
+        <td>${fmtData(r.dataInicio)}</td>
+        <td>${r.dataFim ? fmtData(r.dataFim) : '—'}</td>
+        <td><span class="badge ${r.ativa ? 'badge-success' : 'badge-warning'}">${r.ativa ? 'Ativa' : 'Pausada'}</span></td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon ${r.ativa ? '' : 'btn-success'}" onclick="pausarRetomarRecorrencia('${r.id}')" title="${r.ativa ? 'Pausar' : 'Reativar'}" style="${r.ativa ? 'background:#6b7280;color:#fff' : ''}"><i class="ti ${r.ativa ? 'ti-player-pause' : 'ti-player-play'}"></i></button>
+            <button class="btn btn-icon" onclick="editarDespesaRecorrente('${r.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon btn-danger" onclick="deletarDespesaRecorrente('${r.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </td>
       </tr>`).join('');
@@ -6817,11 +7045,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     tarefas      = lsGet('tarefas');
     planejamento = lsGet('planejamento');
     despesas     = lsGet('despesas');
+    despesasRecorrentes = lsGet('despesasRecorrentes');
     diario       = lsGet('diario');
     historico    = lsGet('historico');
     anotacoes    = lsGet('anotacoes');
     orcamentos   = lsGet('orcamentos');
     strategyaAssinaturas = lsGet('strategyaAssinaturas');
+    try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
   });
 </script>
