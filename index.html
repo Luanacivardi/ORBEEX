@@ -2205,6 +2205,7 @@ let clienteEditandoId = null;
         <div style="font-weight:500;margin-bottom:8px">R$ ${fmtVal(c.taxa)}/h</div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
          <div class="btn-acao-row">
+          <button class="btn btn-icon" onclick="gerarRelatorioEvolucao('${c.id}')" title="Relatório de Evolução do Projeto" style="background:#0c4a6e;color:#fff"><i class="ti ti-chart-line"></i></button>
           <button class="btn btn-icon" onclick="editarCliente('${c.id}')" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
           <button class="btn btn-icon btn-danger" onclick="deletarCliente('${c.id}')" title="Remover"><i class="ti ti-trash"></i></button>
         </div>
@@ -2219,6 +2220,149 @@ let clienteEditandoId = null;
       sbTable('gh_clientes').remove(id),
       function() { if (removido) clientes.push(removido); renderizarClientes(); atualizarSelectsClientes(); }
     );
+  }
+
+  /* ===== RELATÓRIO DE EVOLUÇÃO DO PROJETO (sem valores/horas — só pontos verificados) ===== */
+  const MESES_ABREV = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+  function gerarRelatorioEvolucao(clienteId) {
+    const cliente = clientes.find(c => c.id === clienteId);
+    if (!cliente) return;
+
+    const pontos = anotacoes
+      .filter(a => a.clienteId == clienteId && a.concluida && a.visivelRelatorio !== false && a.data)
+      .sort((a,b) => (a.data + (a.hora||'')).localeCompare(b.data + (b.hora||'')));
+
+    if (!pontos.length) {
+      alert(`Nenhum ponto verificado (Anotação concluída e visível no relatório) encontrado para ${cliente.nome} ainda.`);
+      return;
+    }
+
+    const agora = new Date();
+    const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+    const periodoFmt = `${fmtData(pontos[0].data)} a ${fmtData(pontos[pontos.length-1].data)}`;
+
+    // Evolução mensal: quantos pontos foram verificados em cada mês do período do projeto
+    const chavesMes = [];
+    pontos.forEach(p => { const k = p.data.slice(0,7); if (!chavesMes.includes(k)) chavesMes.push(k); });
+    chavesMes.sort();
+    const contagemMensal = chavesMes.map(k => pontos.filter(p => p.data.slice(0,7) === k).length);
+    const maxMensal = Math.max(...contagemMensal, 1);
+    let acumulado = 0;
+    const barrasMes = chavesMes.map((k, i) => {
+      acumulado += contagemMensal[i];
+      const [ano, mes] = k.split('-');
+      const alturaPct = Math.round((contagemMensal[i] / maxMensal) * 100);
+      return `
+        <div class="eq-bar-col">
+          <div class="eq-bar-valor">${contagemMensal[i]}</div>
+          <div class="eq-bar-track"><div class="eq-bar-fill" style="height:${Math.max(alturaPct,6)}%"></div></div>
+          <div class="eq-bar-label">${MESES_ABREV[parseInt(mes,10)-1]}/${ano.slice(2)}</div>
+        </div>`;
+    }).join('');
+
+    // Distribuição por categoria
+    const porCategoria = {};
+    pontos.forEach(p => { const cat = p.categoria || 'Geral'; porCategoria[cat] = (porCategoria[cat]||0) + 1; });
+    const maxCategoria = Math.max(...Object.values(porCategoria), 1);
+    const linhasCategoria = Object.entries(porCategoria)
+      .sort((a,b) => b[1]-a[1])
+      .map(([cat, qtd]) => `
+        <div class="eq-cat-row">
+          <div class="eq-cat-label">${cat}</div>
+          <div class="eq-cat-track"><div class="eq-cat-fill" style="width:${Math.round((qtd/maxCategoria)*100)}%"></div></div>
+          <div class="eq-cat-valor">${qtd}</div>
+        </div>`).join('');
+
+    // Linha do tempo completa
+    const linhaTempo = pontos.slice().reverse().map(p => `
+      <div class="eq-tl-item">
+        <div class="eq-tl-data">${fmtData(p.data)}</div>
+        <div class="eq-tl-corpo">
+          <div class="eq-tl-titulo"><span class="eq-tl-badge">${p.categoria || 'Geral'}</span> ${p.titulo}</div>
+          ${p.descricao ? `<div class="eq-tl-desc">${p.descricao}</div>` : ''}
+        </div>
+      </div>`).join('');
+
+    const janela = window.open('', '', 'width=1050,height=800');
+    janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Evolução do Projeto — ${cliente.nome}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',Arial,sans-serif;background:#f5f5f5;color:#1a1a2e;font-size:12px}
+  .doc{background:#fff;max-width:860px;margin:20px auto;border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
+  .cab{display:flex;justify-content:space-between;align-items:flex-start;padding:28px 36px 16px}
+  .logo-marca{font-size:28px;font-weight:900;color:#252538;letter-spacing:1px}.logo-marca span{color:#E8B84B}
+  .logo-sub{font-size:8px;color:#6b6b8a;letter-spacing:1.4px;text-transform:uppercase;margin-top:3px}
+  .cab-contato{font-size:10px;color:#6b6b8a;margin-top:8px;line-height:1.6}
+  .cab-dir{text-align:right}.doc-titulo{font-size:18px;font-weight:800;color:#252538;letter-spacing:.5px}
+  .doc-meta{margin-top:8px;font-size:11px;color:#6b6b8a;line-height:1.8}.meta-label{font-weight:600;color:#252538}
+  .cab-barra{height:4px;background:linear-gradient(90deg,#252538 0%,#0c4a6e 100%);margin:0 36px}
+  .partes{display:flex;padding:16px 36px;background:#f8f8fc;border-bottom:1px solid #e2e2ee}
+  .parte{flex:1}.parte-titulo{font-size:8px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#9999aa;margin-bottom:5px}
+  .parte-nome{font-size:15px;font-weight:700;color:#252538}.parte-info{font-size:11px;color:#6b6b8a;margin-top:2px}
+  .parte-sep{width:1px;background:#e2e2ee;margin:0 24px}
+  .sec-titulo{padding:16px 36px 8px;font-size:11px;font-weight:700;color:#252538;text-transform:uppercase;letter-spacing:.5px}
+  .resumo-topo{margin:0 36px;padding:14px 18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12.5px;color:#0c4a6e}
+  .resumo-topo strong{font-size:16px}
+  .eq-bars{display:flex;align-items:flex-end;gap:10px;margin:8px 36px 4px;padding:14px 10px 0;height:150px;border-bottom:1px solid #e2e2ee}
+  .eq-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+  .eq-bar-valor{font-size:10px;font-weight:700;color:#0c4a6e;margin-bottom:3px}
+  .eq-bar-track{width:60%;height:100%;display:flex;align-items:flex-end}
+  .eq-bar-fill{width:100%;background:linear-gradient(180deg,#0c4a6e,#3b82f6);border-radius:3px 3px 0 0}
+  .eq-bar-label{font-size:9px;color:#6b6b8a;margin-top:6px;white-space:nowrap}
+  .eq-cat-row{display:flex;align-items:center;gap:10px;margin:0 36px;padding:5px 0}
+  .eq-cat-label{width:90px;font-size:10.5px;color:#252538;font-weight:600;flex-shrink:0}
+  .eq-cat-track{flex:1;height:9px;background:#f0f0f6;border-radius:5px;overflow:hidden}
+  .eq-cat-fill{height:100%;background:#E8B84B}
+  .eq-cat-valor{width:22px;text-align:right;font-size:11px;font-weight:700;color:#252538}
+  .eq-tl-item{display:flex;gap:14px;margin:0 36px;padding:10px 0;border-bottom:1px solid #f0f0f6}
+  .eq-tl-data{width:70px;flex-shrink:0;font-size:10.5px;color:#6b6b8a;font-weight:600;white-space:nowrap}
+  .eq-tl-badge{display:inline-block;background:#252538;color:#E8B84B;font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 7px;border-radius:10px;margin-right:6px}
+  .eq-tl-titulo{font-size:12px;font-weight:600;color:#1a1a2e}
+  .eq-tl-desc{font-size:10.5px;color:#6b6b8a;margin-top:3px;line-height:1.4}
+  .rodape{margin:24px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
+  @media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}@page{size:A4;margin:8mm}.eq-tl-item{page-break-inside:avoid}}
+</style></head><body>
+<div class="doc">
+  <div class="cab">
+    <div class="cab-esq">
+      <div class="logo-marca">ORB<span>EEX</span></div>
+      <div class="logo-sub">Assessoria em Sistemas de Gestão</div>
+      <div class="cab-contato">luana.civardi@orbeex.com.br<br>Bento Gonçalves – RS</div>
+    </div>
+    <div class="cab-dir">
+      <div class="doc-titulo">EVOLUÇÃO DO PROJETO</div>
+      <div class="doc-meta">
+        <div><span class="meta-label">Emissão:</span> ${dataEmissao}</div>
+        <div><span class="meta-label">Período:</span> ${periodoFmt}</div>
+      </div>
+    </div>
+  </div>
+  <div class="cab-barra"></div>
+  <div class="partes">
+    <div class="parte"><div class="parte-titulo">PRESTADOR DE SERVIÇOS</div><div class="parte-nome">ORBEEX</div><div class="parte-info">Assessoria em Sistemas de Gestão</div></div>
+    <div class="parte-sep"></div>
+    <div class="parte"><div class="parte-titulo">PROJETO</div><div class="parte-nome">${cliente.nome}</div>${cliente.projeto ? `<div class="parte-info">${cliente.projeto}</div>` : ''}</div>
+  </div>
+
+  <div class="resumo-topo"><strong>${pontos.length}</strong> ponto(s) verificado(s) e confirmado(s) ao longo do projeto, entre ${fmtData(pontos[0].data)} e ${fmtData(pontos[pontos.length-1].data)}.</div>
+
+  <div class="sec-titulo"><i>📈</i> Evolução Mensal</div>
+  <div class="eq-bars">${barrasMes}</div>
+
+  <div class="sec-titulo"><i>📂</i> Distribuição por Tipo de Ponto</div>
+  <div style="margin-bottom:14px">${linhasCategoria}</div>
+
+  <div class="sec-titulo"><i>🗓️</i> Linha do Tempo</div>
+  <div style="margin-bottom:8px">${linhaTempo}</div>
+
+  <div class="rodape">
+    ORBEEX · Assessoria em Sistemas de Gestão · luana.civardi@orbeex.com.br · Bento Gonçalves – RS<br>
+    <span style="font-size:9px">Gerado em ${agora.toLocaleDateString('pt-BR')}</span>
+  </div>
+</div>
+</body></html>`);
+    janela.document.close();
+    setTimeout(() => { janela.document.title = ''; janela.print(); }, 400);
   }
 
   function atualizarSelectsClientes() {
