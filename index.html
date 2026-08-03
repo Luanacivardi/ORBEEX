@@ -288,6 +288,39 @@
     .status-concluido { background: var(--bg-success); color: var(--text-success); }
     .status-bloqueado { background: #fee2e2; color: #991b1b; }
 
+    /* ===== BOARD DE ATIVIDADES (kanban) ===== */
+    .view-toggle { display:flex; gap:6px; margin-bottom:1rem; }
+    .view-toggle button { padding:6px 14px; border:1px solid var(--border); background:transparent; border-radius:var(--radius); cursor:pointer; font-size:12px; color:var(--text-secondary); }
+    .view-toggle button.active { background:var(--navy); color:var(--gold); border-color:var(--navy); font-weight:600; }
+    .board-cols { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:start; }
+    @media (max-width:900px) { .board-cols { grid-template-columns:1fr; } }
+    .board-col { background:var(--surface-1); border-radius:var(--radius); padding:10px; min-height:80px; }
+    .board-col-header { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-secondary); padding:4px 6px 10px; }
+    .board-col-count { background:var(--surface-2); border-radius:20px; padding:1px 8px; font-size:11px; font-weight:700; }
+    .board-card { background:var(--surface-2); border:1px solid var(--border); border-left:4px solid var(--border); border-radius:6px; padding:10px 12px; margin-bottom:8px; box-shadow:var(--shadow-sm); }
+    .board-card.atrasada { border-left-color:#dc2626; }
+    .board-card.afazer { border-left-color:#E8B84B; }
+    .board-card.andamento { border-left-color:#0c4a6e; }
+    .board-card.concluido { border-left-color:#10b981; }
+    .board-card-cliente { font-size:11px; font-weight:700; color:var(--navy); margin-bottom:2px; }
+    .board-card-pauta { font-size:12px; color:var(--text-primary); margin-bottom:6px; line-height:1.35; }
+    .board-card-meta { font-size:11px; color:var(--text-secondary); margin-bottom:8px; }
+    .board-card-actions { display:flex; gap:6px; flex-wrap:wrap; }
+    .board-card-actions .btn { padding:4px 9px; font-size:11px; }
+    .board-col-vazio { font-size:12px; color:var(--text-secondary); text-align:center; padding:14px 4px; }
+
+    /* ===== PAINEL DE PENDÊNCIAS (Home) ===== */
+    .pend-panel-header { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:.75rem; }
+    .pend-cols { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    @media (max-width:700px) { .pend-cols { grid-template-columns:1fr; } }
+    .pend-col-title { font-size:12px; font-weight:700; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; }
+    .pend-item { display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:6px; background:var(--surface-1); margin-bottom:6px; }
+    .pend-item-info { flex:1; min-width:0; }
+    .pend-item-cliente { font-size:11px; font-weight:700; color:var(--navy); }
+    .pend-item-titulo { font-size:12px; color:var(--text-primary); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .pend-item-data { font-size:11px; color:#b91c1c; font-weight:600; white-space:nowrap; }
+    .pend-item-acao .btn { padding:3px 8px; font-size:11px; }
+
     .filters { display: flex; gap: 8px; margin-bottom: 1rem; flex-wrap: wrap; }
     .filter-btn {
       padding: 6px 12px; border: 1px solid var(--border); background: transparent;
@@ -871,6 +904,25 @@
           </div>
         </div>
       </div>
+
+      <div class="card" id="card-pendencias" style="margin-top:1rem">
+        <div class="pend-panel-header">
+          <div class="card-header" style="margin-bottom:0"><i class="ti ti-alert-triangle"></i> Pendências</div>
+          <select id="home-pend-cliente" onchange="renderizarPendenciasHome()" style="width:auto;padding:6px 10px;font-size:12px">
+            <option value="">Todos os clientes</option>
+          </select>
+        </div>
+        <div class="pend-cols">
+          <div>
+            <div class="pend-col-title">Agenda atrasada</div>
+            <div id="home-agenda-atrasadas"></div>
+          </div>
+          <div>
+            <div class="pend-col-title">Anotações em aberto</div>
+            <div id="home-agenda-pendentes"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
  
@@ -1210,26 +1262,56 @@
       </div>
 
       <div class="card">
-        <div class="card-header"><i class="ti ti-list"></i> Tarefas Planejadas</div>
-        <div class="filters">
-          <button class="filter-btn active" onclick="filtrarPlan('Todas',event)">Todas</button>
-          <button class="filter-btn" onclick="filtrarPlan('Não confirmado',event)">Não confirmado</button>
-          <button class="filter-btn" onclick="filtrarPlan('Confirmado',event)">Confirmado</button>
+        <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <span><i class="ti ti-list"></i> Tarefas Planejadas</span>
+          <div class="view-toggle">
+            <button class="active" id="plan-view-btn-lista" onclick="alternarVisaoPlan('lista')"><i class="ti ti-list"></i> Lista</button>
+            <button id="plan-view-btn-board" onclick="alternarVisaoPlan('board')"><i class="ti ti-layout-kanban"></i> Board</button>
+          </div>
         </div>
-        <div id="plan-massa-toolbar" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#f0f4ff;border-bottom:1px solid #c7d2fe;flex-wrap:wrap">
-          <span id="plan-massa-count" style="font-size:13px;font-weight:600;color:#3730a3;min-width:120px"></span>
-          <button class="btn btn-success btn-sm" onclick="confirmarSelecionados()"><i class="ti ti-checks"></i> Confirmar Selecionados</button>
-          <button class="btn btn-primary btn-sm" onclick="cobrarSelecionados()"><i class="ti ti-receipt"></i> Gerar Cobrança em Massa</button>
-          <button class="btn btn-secondary btn-sm" onclick="desmarcarTodosPlan()"><i class="ti ti-x"></i> Desmarcar</button>
+
+        <div id="plan-view-lista">
+          <div class="filters">
+            <button class="filter-btn active" onclick="filtrarPlan('Todas',event)">Todas</button>
+            <button class="filter-btn" onclick="filtrarPlan('Não confirmado',event)">Não confirmado</button>
+            <button class="filter-btn" onclick="filtrarPlan('Confirmado',event)">Confirmado</button>
+          </div>
+          <div id="plan-massa-toolbar" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#f0f4ff;border-bottom:1px solid #c7d2fe;flex-wrap:wrap">
+            <span id="plan-massa-count" style="font-size:13px;font-weight:600;color:#3730a3;min-width:120px"></span>
+            <button class="btn btn-success btn-sm" onclick="confirmarSelecionados()"><i class="ti ti-checks"></i> Confirmar Selecionados</button>
+            <button class="btn btn-primary btn-sm" onclick="cobrarSelecionados()"><i class="ti ti-receipt"></i> Gerar Cobrança em Massa</button>
+            <button class="btn btn-secondary btn-sm" onclick="desmarcarTodosPlan()"><i class="ti ti-x"></i> Desmarcar</button>
+          </div>
+          <div style="overflow-x:auto">
+            <table class="table">
+              <thead><tr>
+                <th style="width:36px"><input type="checkbox" id="plan-chk-todos" title="Selecionar todos" onchange="selecionarTodosPlan(this.checked)"></th>
+                <th>Cliente</th><th>Data</th><th>Horário</th><th>Pauta</th><th>Modalidade</th><th>Horas</th><th>Valor</th><th>Status</th><th>Ação</th>
+              </tr></thead>
+              <tbody id="tbody-plan"></tbody>
+            </table>
+          </div>
         </div>
-        <div style="overflow-x:auto">
-          <table class="table">
-            <thead><tr>
-              <th style="width:36px"><input type="checkbox" id="plan-chk-todos" title="Selecionar todos" onchange="selecionarTodosPlan(this.checked)"></th>
-              <th>Cliente</th><th>Data</th><th>Horário</th><th>Pauta</th><th>Modalidade</th><th>Horas</th><th>Valor</th><th>Status</th><th>Ação</th>
-            </tr></thead>
-            <tbody id="tbody-plan"></tbody>
-          </table>
+
+        <div id="plan-view-board" style="display:none">
+          <div class="board-cols">
+            <div class="board-col">
+              <div class="board-col-header">A Fazer <span class="board-col-count" id="board-count-afazer">0</span></div>
+              <div id="board-col-afazer"></div>
+            </div>
+            <div class="board-col">
+              <div class="board-col-header">Atrasada <span class="board-col-count" id="board-count-atrasada">0</span></div>
+              <div id="board-col-atrasada"></div>
+            </div>
+            <div class="board-col">
+              <div class="board-col-header">Em Andamento <span class="board-col-count" id="board-count-andamento">0</span></div>
+              <div id="board-col-andamento"></div>
+            </div>
+            <div class="board-col">
+              <div class="board-col-header">Concluído <span class="board-col-count" id="board-count-concluido">0</span></div>
+              <div id="board-col-concluido"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1624,7 +1706,13 @@
         <label>Descrição</label>
         <textarea id="anot-descricao" placeholder="Detalhes, contexto, links..." rows="2" style="min-height:44px"></textarea>
       </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <div class="form-group" style="margin-bottom:0">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="anot-visivel-relatorio" checked>
+          Visível no relatório do cliente <span style="font-size:11px;color:var(--text-secondary)">(quando concluída, aparece no relatório de cobrança)</span>
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:.75rem">
         <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()"><i class="ti ti-plus"></i> Adicionar</button>
         <button class="btn btn-sm" id="anot-btn-cancelar" onclick="cancelarEdicaoAnot()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
@@ -1848,7 +1936,7 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,planejamentoId:planejamento_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,criadaEm:criada_em'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,criadaEm:criada_em'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
@@ -2695,6 +2783,8 @@ let clienteEditandoId = null;
 
     renderizarHomeAgendaDia(hoje);
     inicializarDiario(hoje);
+    preencherFiltroPendClientes();
+    renderizarPendenciasHome();
   }
 
   // ===== DIÁRIO DO DIA (rascunho pessoal, sem virar registro de horas) =====
@@ -2787,17 +2877,39 @@ let clienteEditandoId = null;
     }).join('');
   }
 
+  /* Preenche o dropdown de cliente do painel de Pendências (Home), unindo clientes de planejamento e anotações */
+  function preencherFiltroPendClientes() {
+    const sel = document.getElementById('home-pend-cliente');
+    if (!sel) return;
+    const atual = sel.value;
+    const nomes = new Set();
+    planejamento.forEach(p => { if (p.clienteNome) nomes.add(p.clienteNome); });
+    anotacoes.forEach(a => { if (a.clienteNome) nomes.add(a.clienteNome); });
+    const ordenados = [...nomes].sort((a,b) => a.localeCompare(b, 'pt-BR'));
+    sel.innerHTML = '<option value="">Todos os clientes</option>' + ordenados.map(n => `<option value="${n}">${n}</option>`).join('');
+    if (ordenados.includes(atual)) sel.value = atual;
+  }
+
+  /* Wrapper chamado pelo filtro de cliente do painel de Pendências */
+  function renderizarPendenciasHome() {
+    const hoje = new Date().toISOString().split('T')[0];
+    renderizarHomeAtrasadas(hoje);
+    renderizarHomePendentes(hoje);
+  }
+
   /* Tarefas atrasadas: planejamento de dias anteriores ainda não registrado em horas */
   function renderizarHomeAtrasadas(hoje) {
     const cont = document.getElementById('home-agenda-atrasadas');
     if (!cont) return;
 
+    const fCliente = document.getElementById('home-pend-cliente')?.value || '';
     const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
     const modIcon = m => m === 'Home Office' ? '🏠' : '🏢';
 
-    const atrasadas = planejamento
-      .filter(p => (p.termino || p.inicio) < hoje && !idsReg.has(p.id))
-      .sort((a, b) => (a.inicio + (a.entrada||'')).localeCompare(b.inicio + (b.entrada||'')));
+    let atrasadas = planejamento
+      .filter(p => (p.termino || p.inicio) < hoje && !idsReg.has(p.id));
+    if (fCliente) atrasadas = atrasadas.filter(p => p.clienteNome === fCliente);
+    atrasadas.sort((a, b) => (a.inicio + (a.entrada||'')).localeCompare(b.inicio + (b.entrada||'')));
 
     if (atrasadas.length === 0) {
       cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma tarefa atrasada. 🎉</div>`;
@@ -2807,13 +2919,15 @@ let clienteEditandoId = null;
     cont.innerHTML = atrasadas.map(p => {
       const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
       return `
-      <div class="home-agenda-item item-atrasada" onclick="confirmarERegistrar('${p.id}')">
-        <div class="home-agenda-hora">${fmtData(p.inicio)}${p.entrada ? `<small>${p.entrada}</small>` : ''}</div>
-        <div class="home-agenda-info">
-          <div class="home-agenda-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
-          <div class="home-agenda-pauta">${pauta}</div>
+      <div class="pend-item">
+        <div class="pend-item-info" onclick="confirmarERegistrar('${p.id}')" style="cursor:pointer">
+          <div class="pend-item-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
+          <div class="pend-item-titulo">${pauta}</div>
         </div>
-        <span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>
+        <div class="pend-item-data">${fmtData(p.inicio)}</div>
+        <div class="pend-item-acao">
+          <button class="btn btn-secondary" onclick="event.stopPropagation();enviarPlanejamentoWhats('${p.id}')" title="Enviar cobrança"><i class="ti ti-brand-whatsapp"></i></button>
+        </div>
       </div>`;
     }).join('');
   }
@@ -2823,9 +2937,10 @@ let clienteEditandoId = null;
     const cont = document.getElementById('home-agenda-pendentes');
     if (!cont) return;
 
-    const pendentes = anotacoes
-      .filter(a => !a.concluida)
-      .sort((a, b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+    const fCliente = document.getElementById('home-pend-cliente')?.value || '';
+    let pendentes = anotacoes.filter(a => !a.concluida);
+    if (fCliente) pendentes = pendentes.filter(a => a.clienteNome === fCliente);
+    pendentes.sort((a, b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
     if (pendentes.length === 0) {
       cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma pendência em aberto. 🎉</div>`;
@@ -2834,18 +2949,28 @@ let clienteEditandoId = null;
 
     cont.innerHTML = pendentes.map(a => {
       const atrasada = a.data && a.data < hoje;
-      const ehHoje = a.data === hoje;
-      const destaque = atrasada ? 'item-atrasada' : (ehHoje ? 'item-hoje' : '');
       return `
-      <div class="home-agenda-item ${destaque}" onclick="irPara('anotacoes')">
-        <div class="home-agenda-hora">${a.data ? `${fmtData(a.data)}${a.hora ? `<small>${a.hora}</small>` : ''}` : '—'}</div>
-        <div class="home-agenda-info">
-          <div class="home-agenda-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
-          <div class="home-agenda-pauta">${a.titulo}</div>
+      <div class="pend-item" onclick="irPara('anotacoes')" style="cursor:pointer">
+        <div class="pend-item-info">
+          <div class="pend-item-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
+          <div class="pend-item-titulo">${a.titulo}</div>
         </div>
-            ${atrasada ? '<span class="home-agenda-status pendente" style="background:#fee2e2;color:#b91c1c">Atrasada</span>' : ''}
+        ${a.data ? `<div class="pend-item-data" style="${atrasada ? '' : 'color:var(--text-secondary)'}">${fmtData(a.data)}</div>` : ''}
       </div>`;
     }).join('');
+  }
+
+  /* Gera texto de cobrança/follow-up (padrão WhatsApp) para uma tarefa atrasada do planejamento */
+  function enviarPlanejamentoWhats(id) {
+    const p = planejamento.find(p => p.id === id);
+    if (!p) return;
+    const linhas = [];
+    linhas.push(`*${p.clienteNome || 'Cliente'}*`);
+    linhas.push(`Data prevista: ${fmtData(p.inicio)}${p.entrada ? ' ' + p.entrada : ''}`);
+    linhas.push(`Status: Atrasada`);
+    linhas.push('', p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida');
+    const texto = linhas.join('\n');
+    window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   }
 
   function filtrarPlan(filtro, ev) {
@@ -2897,6 +3022,126 @@ let clienteEditandoId = null;
       </tr>`;
     }).join('');
     atualizarToolbarPlan();
+    renderizarBoardAtividades();
+  }
+
+  /* Alterna entre a visão de Lista e a visão de Board (Kanban) da aba Atividades */
+  function alternarVisaoPlan(view) {
+    const btnLista = document.getElementById('plan-view-btn-lista');
+    const btnBoard = document.getElementById('plan-view-btn-board');
+    const elLista  = document.getElementById('plan-view-lista');
+    const elBoard  = document.getElementById('plan-view-board');
+    if (!btnLista || !btnBoard || !elLista || !elBoard) return;
+    if (view === 'board') {
+      btnBoard.classList.add('active'); btnLista.classList.remove('active');
+      elBoard.style.display = ''; elLista.style.display = 'none';
+      renderizarBoardAtividades();
+    } else {
+      btnLista.classList.add('active'); btnBoard.classList.remove('active');
+      elLista.style.display = ''; elBoard.style.display = 'none';
+    }
+  }
+
+  /* Renderiza o board (kanban) da aba Atividades, respeitando os mesmos filtros da lista */
+  function renderizarBoardAtividades() {
+    const cols = {
+      afazer: document.getElementById('board-col-afazer'),
+      atrasada: document.getElementById('board-col-atrasada'),
+      andamento: document.getElementById('board-col-andamento'),
+      concluido: document.getElementById('board-col-concluido')
+    };
+    // Board não montado nesta renderização (ex.: outra aba ativa) — não faz nada
+    if (!cols.afazer || !cols.atrasada || !cols.andamento || !cols.concluido) return;
+
+    const hoje = new Date().toISOString().split('T')[0];
+    const fCliente    = document.getElementById('filtro-atv-cliente')?.value    || '';
+    const fModalidade = document.getElementById('filtro-atv-modalidade')?.value || '';
+    const fDtIni      = document.getElementById('filtro-atv-dt-ini')?.value     || '';
+    const fDtFim      = document.getElementById('filtro-atv-dt-fim')?.value     || '';
+    const modIcon = m => m === 'Home Office' ? '🏠' : '🏢';
+
+    const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
+
+    let base = planejamento.slice();
+    if (fCliente)    base = base.filter(p => p.clienteId == fCliente);
+    if (fModalidade) base = base.filter(p => (p.modalidade || 'Presencial') === fModalidade);
+    if (fDtIni)      base = base.filter(p => p.inicio >= fDtIni);
+    if (fDtFim)      base = base.filter(p => p.inicio <= fDtFim);
+
+    const naoRegistrados = base.filter(p => !idsReg.has(p.id));
+    const afazer    = naoRegistrados.filter(p => !p.confirmado && (p.termino || p.inicio) >= hoje);
+    const atrasada  = naoRegistrados.filter(p => !p.confirmado && (p.termino || p.inicio) < hoje);
+    const andamento = naoRegistrados.filter(p => p.confirmado);
+
+    // "Concluído": tarefas de horas já registradas. Sem filtro de data, usa os últimos 30 dias por padrão;
+    // se você definir Data início/fim no filtro do topo, o período escolhido manda, sem limite de 30 dias.
+    let concluidas;
+    if (fDtIni || fDtFim) {
+      concluidas = tarefas.filter(t => t.planejamentoId && (!fDtIni || t.data >= fDtIni) && (!fDtFim || t.data <= fDtFim));
+    } else {
+      const limite30 = new Date(); limite30.setDate(limite30.getDate() - 30);
+      const limite30ISO = limite30.toISOString().split('T')[0];
+      concluidas = tarefas.filter(t => t.planejamentoId && t.data >= limite30ISO);
+    }
+    if (fCliente) concluidas = concluidas.filter(t => t.clienteId == fCliente);
+    concluidas.sort((a,b) => b.data.localeCompare(a.data));
+
+    // Renderizar centenas de cards de uma vez pesa a tela sem trazer benefício — mostra as mais recentes
+    // e avisa quantas ficaram de fora, em vez de travar o board quando a base de clientes crescer.
+    const LIMITE_CARDS_CONCLUIDO = 40;
+    const totalConcluidas = concluidas.length;
+    const concluidasExibidas = concluidas.slice(0, LIMITE_CARDS_CONCLUIDO);
+
+    const cardPlan = (p, tipo) => {
+      const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
+      let acoes = `<button class="btn btn-secondary" onclick="editarPlanejamento('${p.id}')"><i class="ti ti-pencil"></i></button>`;
+      if (tipo === 'andamento') {
+        acoes = `<button class="btn btn-success" onclick="registrarHorasDoBoard('${p.id}')"><i class="ti ti-clock"></i> Registrar horas</button>` + acoes;
+      } else {
+        acoes = `<button class="btn btn-success" onclick="confirmarERegistrar('${p.id}')"><i class="ti ti-check"></i> Confirmar</button>` + acoes;
+      }
+      if (tipo === 'atrasada') {
+        acoes += `<button class="btn btn-secondary" onclick="enviarPlanejamentoWhats('${p.id}')" title="Enviar cobrança"><i class="ti ti-brand-whatsapp"></i></button>`;
+      }
+      return `
+      <div class="board-card ${tipo}">
+        <div class="board-card-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
+        <div class="board-card-pauta">${pauta}</div>
+        <div class="board-card-meta">${fmtData(p.inicio)}${p.entrada && p.saida ? ' · '+p.entrada+'–'+p.saida : ''}</div>
+        <div class="board-card-actions">${acoes}</div>
+      </div>`;
+    };
+
+    const cardTarefa = (t) => `
+      <div class="board-card concluido">
+        <div class="board-card-cliente">${t.clienteNome || '—'}</div>
+        <div class="board-card-pauta">${t.atividade || '—'}</div>
+        <div class="board-card-meta">${fmtData(t.data)} · ${(parseFloat(t.horas)||0).toFixed(1)}h</div>
+      </div>`;
+
+    const vazio = 'Nada por aqui.';
+    cols.afazer.innerHTML    = afazer.length    ? afazer.map(p => cardPlan(p, 'afazer')).join('')       : `<div class="board-col-vazio">${vazio}</div>`;
+    cols.atrasada.innerHTML  = atrasada.length  ? atrasada.map(p => cardPlan(p, 'atrasada')).join('')    : `<div class="board-col-vazio">${vazio}</div>`;
+    cols.andamento.innerHTML = andamento.length ? andamento.map(p => cardPlan(p, 'andamento')).join('')  : `<div class="board-col-vazio">${vazio}</div>`;
+    cols.concluido.innerHTML = concluidasExibidas.length
+      ? concluidasExibidas.map(cardTarefa).join('') + (totalConcluidas > LIMITE_CARDS_CONCLUIDO
+          ? `<div class="board-col-vazio">+ ${totalConcluidas - LIMITE_CARDS_CONCLUIDO} mais no período — filtre por cliente ou por data para ver o restante</div>`
+          : '')
+      : `<div class="board-col-vazio">${vazio}</div>`;
+
+    document.getElementById('board-count-afazer').textContent    = afazer.length;
+    document.getElementById('board-count-atrasada').textContent  = atrasada.length;
+    document.getElementById('board-count-andamento').textContent = andamento.length;
+    document.getElementById('board-count-concluido').textContent = totalConcluidas;
+  }
+
+  /* Atalho do card "Em Andamento": leva direto para Registrar Horas com a tarefa pré-preenchida */
+  function registrarHorasDoBoard(id) {
+    irPara('horas');
+    setTimeout(() => {
+      const sel = document.getElementById('horas-tarefa-plan');
+      if (sel) { sel.value = id; preencherComTarefa(); }
+    }, 150);
   }
 
   function atualizarDashboardPlan() {
@@ -4232,6 +4477,26 @@ function gerarRelatorioCobranca() {
           <td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
         </tr>`).join('');
 
+      // Anotações confirmadas (concluídas) deste cliente, dentro do período de horas do relatório —
+      // dá visibilidade ao cliente de pontos de conversa/cobrança que foram verificados no dia, mesmo sem gerar horas.
+      const datasCliente = ts.map(t => t.data).sort();
+      const periodoIni = datasCliente[0], periodoFim = datasCliente[datasCliente.length - 1];
+      const anotConcluidas = anotacoes
+        .filter(a => a.concluida && a.visivelRelatorio !== false && a.clienteNome === nomeCliente && a.data && a.data >= periodoIni && a.data <= periodoFim)
+        .sort((a,b) => (a.data||'').localeCompare(b.data||''));
+
+      const secAnotacoes = anotConcluidas.length ? `
+        <div class="sec-titulo"><i>✅</i> Pontos Verificados no Período</div>
+        <table class="srv-table anot-table">
+          <thead><tr><th>Data</th><th>Assunto</th><th>Observação</th></tr></thead>
+          <tbody>${anotConcluidas.map(a => `
+            <tr>
+              <td>${fmtData(a.data)}</td>
+              <td>${a.titulo || '—'}</td>
+              <td>${a.descricao || '—'}</td>
+            </tr>`).join('')}</tbody>
+        </table>` : '';
+
       faturas += `
       <div class="fatura${idx > 0 ? ' quebra' : ''}">
         <div class="cab">
@@ -4267,6 +4532,7 @@ function gerarRelatorioCobranca() {
             </tr>
           </tfoot>
         </table>
+        ${secAnotacoes}
         <div class="resumo">
           <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
           ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${fmtVal(desconto)}</span></div>` : ''}
@@ -4305,6 +4571,8 @@ function gerarRelatorioCobranca() {
   .srv-table td{padding:9px 10px;border-bottom:1px solid #f0f0f6;vertical-align:middle}
   .srv-table tr:nth-child(even) td{background:#fafafa}
   .srv-table tfoot .total-row td{background:#f4f4f8;font-size:12px;padding:10px}
+  .anot-table thead tr{background:#6b6b8a}
+  .anot-table td:last-child{color:#4a4a63;font-size:10.5px}
   .tc{text-align:center}.tr{text-align:right}.valor-cel{font-weight:600;color:#252538}
   .total-valor{font-size:14px;font-weight:800;color:#252538}
   .resumo{margin:20px 36px 8px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
@@ -5399,6 +5667,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const cliId  = cliSel ? cliSel.value : '';
     const cliObj = clientes.find(c => c.id == cliId);
     const status = document.getElementById('anot-status').value || 'pendente';
+    const visivelRelatorio = document.getElementById('anot-visivel-relatorio')?.checked !== false;
     const dados = {
       titulo,
       clienteId:   cliId,
@@ -5410,6 +5679,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       descricao:   document.getElementById('anot-descricao').value.trim(),
       status,
       concluida:   status === 'concluida',
+      visivelRelatorio,
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
@@ -5420,7 +5690,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           sbTable('gh_anotacoes').update(a.id, {
             titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
             data: dados.data, hora: dados.hora, categoria: dados.categoria, prioridade: dados.prioridade,
-            descricao: dados.descricao, status: dados.status, concluida: dados.concluida
+            descricao: dados.descricao, status: dados.status, concluida: dados.concluida,
+            visivel_relatorio: dados.visivelRelatorio
           }),
           function() { Object.assign(a, anterior); renderizarAnotacoes(); }
         );
@@ -5432,7 +5703,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         sbTable('gh_anotacoes').insert({
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, categoria: nova.categoria, prioridade: nova.prioridade,
-          descricao: nova.descricao, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm
+          descricao: nova.descricao, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm,
+          visivel_relatorio: nova.visivelRelatorio
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
       );
@@ -5454,6 +5726,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-prioridade').value = a.prioridade || 'Normal';
     document.getElementById('anot-status').value     = statusAnot(a);
     document.getElementById('anot-descricao').value  = a.descricao || '';
+    const chkVis = document.getElementById('anot-visivel-relatorio');
+    if (chkVis) chkVis.checked = a.visivelRelatorio !== false;
     const cliSel = document.getElementById('anot-cliente');
     if (cliSel) cliSel.value = a.clienteId || '';
     // Destaca o formulário e troca o botão
@@ -5472,6 +5746,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-categoria').value = 'Geral';
     document.getElementById('anot-prioridade').value = 'Normal';
     document.getElementById('anot-status').value = 'pendente';
+    const chkVis = document.getElementById('anot-visivel-relatorio'); if (chkVis) chkVis.checked = true;
     const cliSel = document.getElementById('anot-cliente'); if (cliSel) cliSel.value = '';
     const btn = document.getElementById('anot-btn-salvar');
     if (btn) { btn.innerHTML = '<i class="ti ti-plus"></i> Adicionar'; btn.style.background = ''; }
@@ -5574,7 +5849,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
 
       return `<tr>
-        <td>${a.titulo}</td>
+        <td>${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
@@ -7033,8 +7308,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     renderizarPlanejamento(); atualizarDashboardPlan();
     renderizarHome();
 
+    // Corretor ortográfico (pt-BR) em todos os campos de texto do app
+    ativarCorretorOrtografico();
+
     // Iniciar agenda na vista semana
     mudarVistaAgenda('semana');
+  }
+
+  /* Liga o corretor ortográfico do navegador (spellcheck) em pt-BR em todo campo de texto/textarea do app */
+  function ativarCorretorOrtografico() {
+    document.querySelectorAll('input[type="text"], input:not([type]), textarea').forEach(el => {
+      el.setAttribute('spellcheck', 'true');
+      el.setAttribute('lang', 'pt-BR');
+    });
   }
 
   carregarDadosServidor().then(function() {
