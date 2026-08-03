@@ -4,7 +4,7 @@
 // cache como reserva quando está sem internet. Chamadas ao Supabase NUNCA são
 // cacheadas, pra não mostrar dados desatualizados.
 
-const CACHE_NAME = 'gestor-horas-v1';
+const CACHE_NAME = 'gestor-horas-v2';
 const APP_SHELL = [
   './index.html',
   './login.html',
@@ -45,7 +45,9 @@ self.addEventListener('fetch', (event) => {
   }
 
   event.respondWith(
-    fetch(req)
+    // cache: 'no-store' ignora o cache HTTP do navegador (não só o do Service Worker),
+    // senão o navegador pode devolver uma cópia antiga achando que já é "a rede".
+    fetch(req, { cache: 'no-store' })
       .then((resposta) => {
         const copia = resposta.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put(req, copia)).catch(() => {});
