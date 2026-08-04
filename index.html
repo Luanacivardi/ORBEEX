@@ -959,9 +959,32 @@
             <option value="Outros">📦 Outros</option>
           </select>
         </div>
-        <div class="form-group"><label>Data <span style="color:red">*</span></label><input type="date" id="desp-data"></div>
         <div class="form-group"><label>Valor (R$) <span style="color:red">*</span></label><input type="number" id="desp-valor" step="0.01" min="0" placeholder="0,00"></div>
+        <div class="form-group">
+          <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;margin-top:6px">
+            <input type="checkbox" id="desp-recorrente" onchange="alternarDespesaRecorrente()">
+            É uma despesa recorrente? <span style="font-size:11px;color:var(--text-secondary)">(aluguel, mensalidade, assinatura...)</span>
+          </label>
+        </div>
       </div>
+
+      <div id="desp-campos-unico" class="form-row">
+        <div class="form-group" style="grid-column:1/-1;max-width:240px"><label>Data <span style="color:red">*</span></label><input type="date" id="desp-data"></div>
+      </div>
+
+      <div id="desp-campos-recorrente" class="form-row" style="display:none">
+        <div class="form-group">
+          <label>Frequência <span style="color:red">*</span></label>
+          <select id="desp-frequencia">
+            <option value="mensal">Mensal</option>
+            <option value="trimestral">Trimestral</option>
+            <option value="anual">Anual</option>
+          </select>
+        </div>
+        <div class="form-group"><label>Data do 1º Vencimento <span style="color:red">*</span></label><input type="date" id="desp-inicio"></div>
+        <div class="form-group"><label>Encerrar em <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label><input type="date" id="desp-fim"></div>
+      </div>
+
       <div class="form-row">
         <div class="form-group"><label>Descrição</label><input type="text" id="desp-descricao" placeholder="Ex: Combustível viagem Tedesco, Honorários julho..."></div>
         <div class="form-group"><label>Cliente relacionado <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
@@ -969,50 +992,13 @@
         </div>
       </div>
       <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" id="desp-btn-salvar" onclick="salvarDespesa()"><i class="ti ti-plus"></i> Lançar Despesa</button>
-        <button class="btn btn-sm" id="desp-btn-cancelar" onclick="cancelarEdicaoDespesa()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        <button class="btn btn-primary" id="desp-btn-salvar" onclick="salvarDespesaUnificada()"><i class="ti ti-plus"></i> Lançar Despesa</button>
+        <button class="btn btn-sm" id="desp-btn-cancelar" onclick="cancelarEdicaoDespesaUnificada()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
       </div>
-    </div>
+      <p style="font-size:11px;color:var(--text-secondary);margin:10px 0 0">Despesas recorrentes lançam automaticamente os próximos vencimentos nesta aba e entram no cálculo do Lucro do Mês, no Dashboard.</p>
 
-    <div class="card">
-      <div class="card-header"><i class="ti ti-repeat"></i> Despesa Recorrente</div>
-      <p style="font-size:12px;color:var(--text-secondary);margin:0 0 12px">Cadastre uma despesa fixa (aluguel, mensalidade, assinatura de ferramenta etc.) e o sistema lança automaticamente os próximos vencimentos nesta aba.</p>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Categoria <span style="color:red">*</span></label>
-          <select id="desprec-categoria">
-            <option value="Contador">📊 Contador</option>
-            <option value="Gasolina">⛽ Gasolina</option>
-            <option value="Alimentação">🍽️ Alimentação</option>
-            <option value="Impostos">🧾 Impostos</option>
-            <option value="Outros">📦 Outros</option>
-          </select>
-        </div>
-        <div class="form-group"><label>Valor (R$) <span style="color:red">*</span></label><input type="number" id="desprec-valor" step="0.01" min="0" placeholder="0,00"></div>
-        <div class="form-group">
-          <label>Frequência <span style="color:red">*</span></label>
-          <select id="desprec-frequencia">
-            <option value="mensal">Mensal</option>
-            <option value="trimestral">Trimestral</option>
-            <option value="anual">Anual</option>
-          </select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Data do 1º Vencimento <span style="color:red">*</span></label><input type="date" id="desprec-inicio"></div>
-        <div class="form-group"><label>Encerrar em <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label><input type="date" id="desprec-fim"></div>
-        <div class="form-group"><label>Cliente relacionado <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
-          <select id="desprec-cliente"><option value="">— Sem cliente —</option></select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group" style="grid-column:1/-1"><label>Descrição</label><input type="text" id="desprec-descricao" placeholder="Ex: Assinatura Supabase, Aluguel do escritório..."></div>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:1.25rem">
-        <button class="btn btn-primary" id="desprec-btn-salvar" onclick="salvarDespesaRecorrente()"><i class="ti ti-repeat"></i> Criar Recorrência</button>
-        <button class="btn btn-sm" id="desprec-btn-cancelar" onclick="cancelarEdicaoDespesaRecorrente()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-      </div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto;margin-top:14px" id="desp-recorrentes-wrap">
+        <p style="font-size:12px;font-weight:600;color:var(--text-secondary);margin:0 0 8px">Recorrências cadastradas:</p>
         <table class="table">
           <thead><tr><th>Descrição</th><th>Categoria</th><th>Valor</th><th>Frequência</th><th>1º Venc.</th><th>Encerra em</th><th>Status</th><th>Ação</th></tr></thead>
           <tbody id="tbody-despesas-recorrentes"></tbody>
@@ -1758,14 +1744,40 @@
     </div>
 
     <div class="card">
-      <div class="card-header"><i class="ti ti-list"></i> Anotações</div>
-      <div style="overflow-x:auto">
-        <table class="table">
-          <thead><tr>
-            <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right">Status / Ação</th>
-          </tr></thead>
-          <tbody id="tbody-anotacoes"></tbody>
-        </table>
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span><i class="ti ti-list"></i> Anotações</span>
+        <div class="view-toggle">
+          <button class="active" id="anot-view-btn-lista" onclick="alternarVisaoAnot('lista')"><i class="ti ti-list"></i> Lista</button>
+          <button id="anot-view-btn-board" onclick="alternarVisaoAnot('board')"><i class="ti ti-layout-kanban"></i> Board</button>
+        </div>
+      </div>
+
+      <div id="anot-view-lista">
+        <div style="overflow-x:auto">
+          <table class="table">
+            <thead><tr>
+              <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right">Status / Ação</th>
+            </tr></thead>
+            <tbody id="tbody-anotacoes"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="anot-view-board" style="display:none">
+        <div class="board-cols" style="grid-template-columns:repeat(3,1fr)">
+          <div class="board-col">
+            <div class="board-col-header">A Fazer <span class="board-col-count" id="anotboard-count-pendente">0</span></div>
+            <div id="anotboard-col-pendente"></div>
+          </div>
+          <div class="board-col">
+            <div class="board-col-header">Em Andamento <span class="board-col-count" id="anotboard-count-andamento">0</span></div>
+            <div id="anotboard-col-andamento"></div>
+          </div>
+          <div class="board-col">
+            <div class="board-col-header">Concluído <span class="board-col-count" id="anotboard-count-concluida">0</span></div>
+            <div id="anotboard-col-concluida"></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -2301,6 +2313,7 @@ let clienteEditandoId = null;
             </div>
             <span class="ent-row-status" style="background:${statusCor}22;color:${statusCor}">${statusLabel}</span>
             <div class="ent-row-acoes">
+              <button class="btn-icon-sm" onclick="editarEntregavel('${e.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
               ${!e.dataEntrega
                 ? `<button class="btn-icon-sm" onclick="marcarEntregaveComoEntregue('${e.id}')" title="Marcar como entregue"><i class="ti ti-check"></i></button>`
                 : `<button class="btn-icon-sm" onclick="reabrirEntregavel('${e.id}')" title="Reabrir"><i class="ti ti-rotate-clockwise"></i></button>`}
@@ -2326,9 +2339,9 @@ let clienteEditandoId = null;
           </div>
           <div class="proj-card-body">
             <div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap">
-              <input type="text" id="novo-ent-titulo-${p.id}" placeholder="Novo entregável..." style="flex:2;min-width:140px;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px">
-              <input type="date" id="novo-ent-prazo-${p.id}" style="flex:1;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px">
-              <button class="btn btn-secondary btn-sm" onclick="adicionarEntregavel('${p.id}')"><i class="ti ti-plus"></i></button>
+              <input type="text" id="novo-ent-titulo-${p.id}" placeholder="Novo entregável..." style="flex:2 1 160px;min-width:0;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px">
+              <input type="date" id="novo-ent-prazo-${p.id}" style="flex:1 1 130px;min-width:0;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px">
+              <button class="btn btn-secondary btn-sm" onclick="adicionarEntregavel('${p.id}')" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
             </div>
             ${linhasEnt}
           </div>
@@ -2402,6 +2415,55 @@ let clienteEditandoId = null;
     persistir(
       sbTable('gh_entregaveis').insert({ id: novo.id, projeto_id: projetoId, titulo, prazo }),
       function() { entregaveis = entregaveis.filter(e => e.id !== novo.id); renderizarModalProjetos(); }
+    );
+
+    // Todo entregável cadastrado gera automaticamente uma Anotação vinculada ao projeto,
+    // pra ficar registrado no histórico do projeto mesmo antes de ser confirmado como entregue.
+    const projeto = projetos.find(p => p.id === projetoId);
+    const clienteObj = projeto ? clientes.find(c => c.id === projeto.clienteId) : null;
+    const hoje = new Date().toISOString().split('T')[0];
+    const notaAuto = {
+      id: crypto.randomUUID(),
+      titulo: titulo,
+      clienteId: projeto ? (projeto.clienteId || '') : '',
+      clienteNome: clienteObj ? clienteObj.nome : '',
+      data: prazo || hoje,
+      hora: '',
+      projetoId,
+      prioridade: 'Normal',
+      descricao: 'Entregável planejado' + (prazo ? (' — prazo ' + fmtData(prazo)) : ''),
+      status: 'pendente',
+      concluida: false,
+      visivelRelatorio: true,
+      criadaEm: hoje,
+    };
+    anotacoes.unshift(notaAuto);
+    renderizarAnotacoes();
+    persistir(
+      sbTable('gh_anotacoes').insert({
+        id: notaAuto.id, titulo: notaAuto.titulo, cliente_id: notaAuto.clienteId || null, cliente_nome: notaAuto.clienteNome,
+        data: notaAuto.data, hora: notaAuto.hora, projeto_id: notaAuto.projetoId, prioridade: notaAuto.prioridade,
+        descricao: notaAuto.descricao, status: notaAuto.status, concluida: notaAuto.concluida, criada_em: notaAuto.criadaEm,
+        visivel_relatorio: notaAuto.visivelRelatorio
+      }),
+      function() { anotacoes = anotacoes.filter(a => a.id !== notaAuto.id); renderizarAnotacoes(); }
+    );
+  }
+
+  function editarEntregavel(id) {
+    const e = entregaveis.find(e => e.id === id);
+    if (!e) return;
+    const novoTitulo = prompt('Título do entregável:', e.titulo);
+    if (novoTitulo === null || !novoTitulo.trim()) return;
+    const novoPrazo = prompt('Prazo (AAAA-MM-DD):', e.prazo || '');
+    if (novoPrazo === null) return;
+    const anterior = { titulo: e.titulo, prazo: e.prazo };
+    e.titulo = novoTitulo.trim();
+    e.prazo = novoPrazo.trim() || null;
+    renderizarModalProjetos();
+    persistir(
+      sbTable('gh_entregaveis').update(e.id, { titulo: e.titulo, prazo: e.prazo }),
+      function() { Object.assign(e, anterior); renderizarModalProjetos(); }
     );
   }
 
@@ -2525,12 +2587,33 @@ let clienteEditandoId = null;
     }).join('');
   }
 
+  /* Linha do tempo GRÁFICA dos entregáveis: marcos numa linha horizontal, ordenados por prazo,
+     coloridos por status (verde=entregue, dourado=pendente, vermelho=atrasado). */
+  function construirTimelineGraficaEntregaveis(ents) {
+    if (!ents.length) return '';
+    const hoje = new Date().toISOString().split('T')[0];
+    const ordenados = ents.slice().sort((a,b) => (a.prazo||'9999').localeCompare(b.prazo||'9999'));
+    const itens = ordenados.map(e => {
+      const atrasado = !e.dataEntrega && e.prazo && e.prazo < hoje;
+      const statusLabel = e.dataEntrega ? 'Entregue' : atrasado ? 'Atrasado' : 'Pendente';
+      const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
+      return `
+        <div class="eq-tlg-item">
+          <div class="eq-tlg-data">${e.prazo ? fmtData(e.prazo) : '—'}</div>
+          <div class="eq-tlg-dot" style="border-color:${statusCor};box-shadow:0 0 0 2px ${statusCor}"></div>
+          <div class="eq-tlg-titulo">${e.titulo}</div>
+          <div class="eq-tlg-status" style="color:${statusCor}">${statusLabel}</div>
+        </div>`;
+    }).join('');
+    return `<div class="eq-tlg-wrap">${itens}</div>`;
+  }
+
   /* Monta uma seção completa (entregáveis + evolução mensal + timeline) para um projeto ou para "Geral" */
   function construirSecaoEvolucao(titulo, pontos, ents) {
     if (!pontos.length && (!ents || !ents.length)) return '';
     const entregaveisHtml = (ents && ents.length)
-      ? `<div class="sec-titulo" style="padding-top:10px"><i>📦</i> Entregáveis — ${titulo}</div>
-         <div style="margin-bottom:8px">${construirLinhaTempoEntregaveis(ents)}</div>`
+      ? `<div class="sec-titulo" style="padding-top:10px"><i>📦</i> Linha do Tempo de Entregáveis — ${titulo}</div>
+         ${construirTimelineGraficaEntregaveis(ents)}`
       : '';
     return `
       <div class="sec-titulo eq-proj-titulo"><i>📁</i> ${titulo}</div>
@@ -2660,8 +2743,15 @@ let clienteEditandoId = null;
   .eq-tl-corpo{flex:1}
   .eq-tl-titulo{font-size:12px;font-weight:600;color:#1a1a2e}
   .eq-tl-desc{font-size:10.5px;color:#6b6b8a;margin-top:3px;line-height:1.4}
+  .eq-tlg-wrap{display:flex;flex-wrap:wrap;margin:6px 36px 18px}
+  .eq-tlg-item{width:110px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;position:relative;padding:22px 6px 0;text-align:center}
+  .eq-tlg-item:not(:first-child)::before{content:'';position:absolute;top:27px;left:-50%;width:100%;height:2px;background:#e2e2ee;z-index:0}
+  .eq-tlg-data{font-size:8.5px;color:#6b6b8a;margin-bottom:4px;white-space:nowrap}
+  .eq-tlg-dot{width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid #E8B84B;margin-bottom:6px;position:relative;z-index:1}
+  .eq-tlg-titulo{font-size:9px;font-weight:600;color:#1a1a2e;line-height:1.3}
+  .eq-tlg-status{font-size:8px;font-weight:700;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
   .rodape{margin:24px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
-  @media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}@page{size:A4;margin:8mm}.eq-tl-item{page-break-inside:avoid}}
+  @media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}@page{size:A4;margin:8mm}.eq-tl-item{page-break-inside:avoid}.eq-tlg-item{page-break-inside:avoid}}
 </style></head><body>
 <div class="doc">
   <div class="cab">
@@ -4944,36 +5034,25 @@ function gerarRelatorioCobranca() {
       const totalPagar = Math.max(0, totalV - desconto);
       const cliObj  = clientes.find(c => c.nome === nomeCliente) || {};
 
-      const linhas = ts.slice().sort((a,b) => a.data.localeCompare(b.data)).map(t => `
+      // Anotações confirmadas (concluídas e visíveis) deste cliente, agrupadas por data — mostradas
+      // como títulos logo abaixo da atividade do dia correspondente na tabela de Horas.
+      const anotConcluidas = anotacoes.filter(a => a.concluida && a.visivelRelatorio !== false && a.clienteNome === nomeCliente && a.data);
+      const titulosPorData = {};
+      anotConcluidas.forEach(a => { (titulosPorData[a.data] = titulosPorData[a.data] || []).push(a.titulo); });
+
+      const linhas = ts.slice().sort((a,b) => a.data.localeCompare(b.data)).map(t => {
+        const titulosDoDia = titulosPorData[t.data];
+        return `
         <tr>
           <td>${fmtData(t.data)}</td>
-          <td>${t.atividade || '—'}</td>
+          <td>${t.atividade || '—'}${titulosDoDia ? `<div class="ln-anot">${titulosDoDia.map(tt => '• ' + tt).join('<br>')}</div>` : ''}</td>
           <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
           ${comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
           <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
           <td class="tr">R$ ${fmtVal((parseFloat(t.taxa)||0))}</td>
           <td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
-        </tr>`).join('');
-
-      // Anotações confirmadas (concluídas) deste cliente, dentro do período de horas do relatório —
-      // dá visibilidade ao cliente de pontos de conversa/cobrança que foram verificados no dia, mesmo sem gerar horas.
-      const datasCliente = ts.map(t => t.data).sort();
-      const periodoIni = datasCliente[0], periodoFim = datasCliente[datasCliente.length - 1];
-      const anotConcluidas = anotacoes
-        .filter(a => a.concluida && a.visivelRelatorio !== false && a.clienteNome === nomeCliente && a.data && a.data >= periodoIni && a.data <= periodoFim)
-        .sort((a,b) => (a.data||'').localeCompare(b.data||''));
-
-      const secAnotacoes = anotConcluidas.length ? `
-        <div class="sec-titulo"><i>✅</i> Pontos Verificados no Período</div>
-        <table class="srv-table anot-table">
-          <thead><tr><th>Data</th><th>Assunto</th><th>Observação</th></tr></thead>
-          <tbody>${anotConcluidas.map(a => `
-            <tr>
-              <td>${fmtData(a.data)}</td>
-              <td>${a.titulo || '—'}</td>
-              <td>${a.descricao || '—'}</td>
-            </tr>`).join('')}</tbody>
-        </table>` : '';
+        </tr>`;
+      }).join('');
 
       faturas += `
       <div class="fatura${idx > 0 ? ' quebra' : ''}">
@@ -5010,7 +5089,6 @@ function gerarRelatorioCobranca() {
             </tr>
           </tfoot>
         </table>
-        ${secAnotacoes}
         <div class="resumo">
           <div class="resumo-item"><span class="resumo-label">Total de Serviços</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
           ${desconto > 0 ? `<div class="resumo-item"><span class="resumo-label" style="color:#dc2626">Desconto</span><span class="resumo-val" style="color:#dc2626">− R$ ${fmtVal(desconto)}</span></div>` : ''}
@@ -5049,8 +5127,7 @@ function gerarRelatorioCobranca() {
   .srv-table td{padding:9px 10px;border-bottom:1px solid #f0f0f6;vertical-align:middle}
   .srv-table tr:nth-child(even) td{background:#fafafa}
   .srv-table tfoot .total-row td{background:#f4f4f8;font-size:12px;padding:10px}
-  .anot-table thead tr{background:#6b6b8a}
-  .anot-table td:last-child{color:#4a4a63;font-size:10.5px}
+  .ln-anot{margin-top:4px;font-size:10px;color:#6b6b8a;line-height:1.5}
   .tc{text-align:center}.tr{text-align:right}.valor-cel{font-weight:600;color:#252538}
   .total-valor{font-size:14px;font-weight:800;color:#252538}
   .resumo{margin:20px 36px 8px;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
@@ -5727,11 +5804,15 @@ ${faturas}
     const totalPendGeral = vConfNaoRegGeral + vRegNaoCobradoGeral;
     const mrrStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').reduce((s,a)=>s+(a.valorMensal||0),0);
     const qtdAssinStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').length;
+    const chaveMesAtual = anoAtual + '-' + String(mesAtual + 1).padStart(2,'0');
+    const vDespesasMes = despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).reduce((s,d)=>s+(parseFloat(d.valor)||0),0);
+    const vLucroMes = vMesFat - vDespesasMes;
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
-    { label:'% Atingido do Planejamento',    value: pctFatMes.toFixed(0)+'%',    sub: vPlanMes>0?'do planejado já faturado':'Sem planejamento neste mês', cor: pctFatMes>=80?'#10b981':pctFatMes>=50?'#E8B84B':'#ef4444' },
+      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
+      { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Faturado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
       { label:'Faturamento STRATEGYA (MRR)',   value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#E8B84B' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
@@ -6247,6 +6328,89 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (btnC) btnC.style.display = 'none';
   }
 
+  /* Alterna entre a visão de Lista e a visão de Board (Kanban) da aba Anotações */
+  function alternarVisaoAnot(view) {
+    const btnLista = document.getElementById('anot-view-btn-lista');
+    const btnBoard = document.getElementById('anot-view-btn-board');
+    const elLista  = document.getElementById('anot-view-lista');
+    const elBoard  = document.getElementById('anot-view-board');
+    if (!btnLista || !btnBoard || !elLista || !elBoard) return;
+    if (view === 'board') {
+      btnBoard.classList.add('active'); btnLista.classList.remove('active');
+      elBoard.style.display = ''; elLista.style.display = 'none';
+    } else {
+      btnLista.classList.add('active'); btnBoard.classList.remove('active');
+      elLista.style.display = ''; elBoard.style.display = 'none';
+    }
+    renderizarBoardAnotacoes();
+  }
+
+  /* Renderiza o board (kanban) da aba Anotações, respeitando os mesmos filtros de busca/cliente/período da lista */
+  function renderizarBoardAnotacoes() {
+    const cols = {
+      pendente:  document.getElementById('anotboard-col-pendente'),
+      andamento: document.getElementById('anotboard-col-andamento'),
+      concluida: document.getElementById('anotboard-col-concluida')
+    };
+    if (!cols.pendente || !cols.andamento || !cols.concluida) return;
+
+    const hoje = new Date().toISOString().split('T')[0];
+    const fCliente = document.getElementById('filtro-anot-cliente')?.value || '';
+    const fInicio  = document.getElementById('filtro-anot-inicio')?.value || '';
+    const fFim     = document.getElementById('filtro-anot-fim')?.value || '';
+    const fBusca   = (document.getElementById('filtro-anot-busca')?.value || '').trim().toLowerCase();
+
+    let lista = [...anotacoes];
+    if (fCliente) lista = lista.filter(a => a.clienteId == fCliente);
+    if (fInicio)  lista = lista.filter(a => a.data && a.data >= fInicio);
+    if (fFim)     lista = lista.filter(a => a.data && a.data <= fFim);
+    if (fBusca)   lista = lista.filter(a => (a.titulo||'').toLowerCase().includes(fBusca) || (a.descricao||'').toLowerCase().includes(fBusca));
+    lista.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
+
+    const grupos = { pendente: [], andamento: [], concluida: [] };
+    lista.forEach(a => grupos[statusAnot(a)].push(a));
+
+    const setaMover = (status) => ({
+      pendente:  { esq: null,        dir: 'andamento' },
+      andamento: { esq: 'pendente',  dir: 'concluida' },
+      concluida: { esq: 'andamento', dir: null }
+    })[status];
+
+    const card = (a) => {
+      const status = statusAnot(a);
+      const vencida = status !== 'concluida' && a.data && a.data < hoje;
+      const corClasse = vencida ? 'atrasada' : status === 'concluida' ? 'concluido' : status === 'andamento' ? 'andamento' : 'afazer';
+      const badgePrio = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
+      const projetoNome = a.projetoId ? (projetos.find(p => p.id === a.projetoId) || {}).nome : null;
+      const setas = setaMover(status);
+      return `
+      <div class="board-card ${corClasse}">
+        <div class="board-card-cliente">${a.clienteNome ? a.clienteNome : 'Sem cliente'}${projetoNome ? ' · '+projetoNome : ''}</div>
+        <div class="board-card-pauta">${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
+        <div class="board-card-meta">
+          <span class="anot-badge ${badgePrio}" style="margin-right:6px">${a.prioridade}</span>
+          ${a.data ? fmtData(a.data) : '—'}${vencida ? ' · <span style="color:#dc2626;font-weight:700">Vencida</span>' : ''}
+        </div>
+        <div class="board-card-actions">
+          ${setas.esq ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.esq}')" title="Voltar"><i class="ti ti-arrow-left"></i></button>` : ''}
+          ${setas.dir ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.dir}')" title="Avançar"><i class="ti ti-arrow-right"></i></button>` : ''}
+          <button class="btn btn-secondary" onclick="enviarAnotacaoWhats('${a.id}')" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
+          <button class="btn btn-secondary" onclick="editarAnotacao('${a.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
+          <button class="btn btn-secondary" onclick="deletarAnotacao('${a.id}')" title="Excluir" style="color:#dc2626"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>`;
+    };
+
+    const vazio = 'Nada por aqui.';
+    cols.pendente.innerHTML  = grupos.pendente.length  ? grupos.pendente.map(card).join('')  : `<div class="board-col-vazio">${vazio}</div>`;
+    cols.andamento.innerHTML = grupos.andamento.length ? grupos.andamento.map(card).join('') : `<div class="board-col-vazio">${vazio}</div>`;
+    cols.concluida.innerHTML = grupos.concluida.length ? grupos.concluida.map(card).join('') : `<div class="board-col-vazio">${vazio}</div>`;
+
+    document.getElementById('anotboard-count-pendente').textContent  = grupos.pendente.length;
+    document.getElementById('anotboard-count-andamento').textContent = grupos.andamento.length;
+    document.getElementById('anotboard-count-concluida').textContent = grupos.concluida.length;
+  }
+
   function moverAnotacao(id, novoStatus) {
     const a = anotacoes.find(a => a.id === id);
     if (!a) return;
@@ -6360,11 +6524,37 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         </td>
       </tr>`;
     }).join('');
+    renderizarBoardAnotacoes();
   }
 // ===== DESPESAS =====
   let despesaEditandoId = null;
   const CATEGORIAS_DESPESA = ['Contador', 'Gasolina', 'Alimentação', 'Impostos', 'Outros'];
   const ICON_DESPESA = { Contador: '📊', Gasolina: '⛽', 'Alimentação': '🍽️', Impostos: '🧾', Outros: '📦' };
+
+  /* Alterna a visibilidade dos campos "data única" vs "recorrência" no lançador único de despesas */
+  function alternarDespesaRecorrente() {
+    const rec = document.getElementById('desp-recorrente').checked;
+    document.getElementById('desp-campos-unico').style.display = rec ? 'none' : '';
+    document.getElementById('desp-campos-recorrente').style.display = rec ? '' : 'none';
+    const btn = document.getElementById('desp-btn-salvar');
+    if (btn && !despesaEditandoId && !despesaRecorrenteEditandoId) {
+      btn.innerHTML = rec ? '<i class="ti ti-repeat"></i> Criar Recorrência' : '<i class="ti ti-plus"></i> Lançar Despesa';
+    }
+  }
+
+  /* Dispara o salvamento certo (única ou recorrente) conforme o checkbox do lançador único */
+  function salvarDespesaUnificada() {
+    if (document.getElementById('desp-recorrente').checked) salvarDespesaRecorrente();
+    else salvarDespesa();
+  }
+
+  /* Cancela qualquer edição em andamento (única ou recorrente) e reseta o lançador único */
+  function cancelarEdicaoDespesaUnificada() {
+    cancelarEdicaoDespesa();
+    cancelarEdicaoDespesaRecorrente();
+    document.getElementById('desp-recorrente').checked = false;
+    alternarDespesaRecorrente();
+  }
 
   function salvarDespesa() {
     const categoria = document.getElementById('desp-categoria').value;
@@ -6406,6 +6596,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const d = despesas.find(d => d.id === id);
     if (!d) return;
     despesaEditandoId = id;
+    despesaRecorrenteEditandoId = null;
+    document.getElementById('desp-recorrente').checked = false;
+    alternarDespesaRecorrente();
     document.getElementById('desp-categoria').value = d.categoria;
     document.getElementById('desp-data').value = d.data;
     document.getElementById('desp-valor').value = d.valor;
@@ -6426,9 +6619,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('desp-descricao').value = '';
     document.getElementById('desp-cliente').value = '';
     const btn = document.getElementById('desp-btn-salvar');
-    if (btn) { btn.innerHTML = '<i class="ti ti-plus"></i> Lançar Despesa'; btn.style.background = ''; }
+    if (btn && !despesaRecorrenteEditandoId) { btn.innerHTML = '<i class="ti ti-plus"></i> Lançar Despesa'; btn.style.background = ''; }
     const btnC = document.getElementById('desp-btn-cancelar');
-    if (btnC) btnC.style.display = 'none';
+    if (btnC && !despesaRecorrenteEditandoId) btnC.style.display = 'none';
   }
 
   function deletarDespesa(id) {
@@ -6514,13 +6707,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   function salvarDespesaRecorrente() {
-    const categoria = document.getElementById('desprec-categoria').value;
-    const valor = parseFloat(document.getElementById('desprec-valor').value);
-    const frequencia = document.getElementById('desprec-frequencia').value;
-    const dataInicio = document.getElementById('desprec-inicio').value;
-    const dataFim = document.getElementById('desprec-fim').value || null;
-    const descricao = document.getElementById('desprec-descricao').value.trim();
-    const clienteId = document.getElementById('desprec-cliente').value;
+    const categoria = document.getElementById('desp-categoria').value;
+    const valor = parseFloat(document.getElementById('desp-valor').value);
+    const frequencia = document.getElementById('desp-frequencia').value;
+    const dataInicio = document.getElementById('desp-inicio').value;
+    const dataFim = document.getElementById('desp-fim').value || null;
+    const descricao = document.getElementById('desp-descricao').value.trim();
+    const clienteId = document.getElementById('desp-cliente').value;
     const clienteObj = clientes.find(c => c.id == clienteId);
 
     if (!valor || valor <= 0) { alert('Informe um valor válido'); return; }
@@ -6557,33 +6750,38 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const r = despesasRecorrentes.find(r => r.id === id);
     if (!r) return;
     despesaRecorrenteEditandoId = id;
-    document.getElementById('desprec-categoria').value = r.categoria;
-    document.getElementById('desprec-valor').value = r.valor;
-    document.getElementById('desprec-frequencia').value = r.frequencia;
-    document.getElementById('desprec-inicio').value = r.dataInicio;
-    document.getElementById('desprec-fim').value = r.dataFim || '';
-    document.getElementById('desprec-descricao').value = r.descricao || '';
-    document.getElementById('desprec-cliente').value = r.clienteId || '';
-    const btn = document.getElementById('desprec-btn-salvar');
+    despesaEditandoId = null;
+    document.getElementById('desp-recorrente').checked = true;
+    alternarDespesaRecorrente();
+    document.getElementById('desp-categoria').value = r.categoria;
+    document.getElementById('desp-valor').value = r.valor;
+    document.getElementById('desp-frequencia').value = r.frequencia;
+    document.getElementById('desp-inicio').value = r.dataInicio;
+    document.getElementById('desp-fim').value = r.dataFim || '';
+    document.getElementById('desp-descricao').value = r.descricao || '';
+    document.getElementById('desp-cliente').value = r.clienteId || '';
+    const btn = document.getElementById('desp-btn-salvar');
     if (btn) { btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição'; btn.style.background = '#f59e0b'; }
-    const btnC = document.getElementById('desprec-btn-cancelar');
+    const btnC = document.getElementById('desp-btn-cancelar');
     if (btnC) btnC.style.display = '';
-    document.getElementById('desprec-categoria').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('desp-categoria').closest('.card').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   function cancelarEdicaoDespesaRecorrente() {
     despesaRecorrenteEditandoId = null;
-    document.getElementById('desprec-categoria').value = 'Contador';
-    document.getElementById('desprec-valor').value = '';
-    document.getElementById('desprec-frequencia').value = 'mensal';
-    document.getElementById('desprec-inicio').value = '';
-    document.getElementById('desprec-fim').value = '';
-    document.getElementById('desprec-descricao').value = '';
-    document.getElementById('desprec-cliente').value = '';
-    const btn = document.getElementById('desprec-btn-salvar');
-    if (btn) { btn.innerHTML = '<i class="ti ti-repeat"></i> Criar Recorrência'; btn.style.background = ''; }
-    const btnC = document.getElementById('desprec-btn-cancelar');
-    if (btnC) btnC.style.display = 'none';
+    document.getElementById('desp-frequencia').value = 'mensal';
+    document.getElementById('desp-inicio').value = '';
+    document.getElementById('desp-fim').value = '';
+    if (!despesaEditandoId) {
+      document.getElementById('desp-categoria').value = 'Contador';
+      document.getElementById('desp-valor').value = '';
+      document.getElementById('desp-descricao').value = '';
+      document.getElementById('desp-cliente').value = '';
+      const btn = document.getElementById('desp-btn-salvar');
+      if (btn) { btn.innerHTML = '<i class="ti ti-plus"></i> Lançar Despesa'; btn.style.background = ''; }
+      const btnC = document.getElementById('desp-btn-cancelar');
+      if (btnC) btnC.style.display = 'none';
+    }
   }
 
   function pausarRetomarRecorrencia(id) {
@@ -6646,12 +6844,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   function renderizarDespesasRecorrentes() {
-    const selCliente = document.getElementById('desprec-cliente');
-    if (selCliente) {
-      const opts = clientes.map(c => `<option value="${c.id}">${c.nome} - ${c.projeto}</option>`).join('');
-      selCliente.innerHTML = `<option value="">— Sem cliente —</option>${opts}`;
-    }
-
     const tbody = document.getElementById('tbody-despesas-recorrentes');
     if (!tbody) return;
     if (!despesasRecorrentes.length) {
@@ -7993,9 +8185,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <button onclick="fecharModalProjetos()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
     </div>
     <div class="modal-body">
-      <div style="display:flex;gap:8px">
-        <input type="text" id="modal-proj-novo-nome" placeholder="Nome do novo projeto (ex: 5S, Auditoria interna...)" style="flex:1;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
-        <button class="btn btn-primary btn-sm" onclick="adicionarProjeto()"><i class="ti ti-plus"></i> Adicionar</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="modal-proj-novo-nome" placeholder="Nome do novo projeto (ex: 5S, Auditoria interna...)" style="flex:1 1 220px;min-width:0;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+        <button class="btn btn-primary btn-sm" onclick="adicionarProjeto()" style="flex-shrink:0"><i class="ti ti-plus"></i> Adicionar</button>
       </div>
       <div id="modal-proj-lista"></div>
     </div>
