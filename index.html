@@ -288,6 +288,13 @@
     .status-concluido { background: var(--bg-success); color: var(--text-success); }
     .status-bloqueado { background: #fee2e2; color: #991b1b; }
 
+    /* ===== SUB-AÇÕES (checklist) DAS ANOTAÇÕES ===== */
+    .anotd-item { display:flex; align-items:center; gap:8px; padding:5px 0; }
+    .anotd-item-titulo { flex:1; font-size:13px; color:var(--text-primary); }
+    .anotd-item-titulo.feita { text-decoration:line-through; color:var(--text-secondary); }
+    .board-card-checklist { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; color:var(--text-secondary); background:var(--surface-1); padding:2px 7px; border-radius:20px; margin-right:6px; }
+    .board-card-responsavel { display:inline-flex; align-items:center; gap:4px; font-size:10.5px; color:#7c3aed; background:#7c3aed14; padding:2px 7px; border-radius:20px; }
+
     /* ===== PROJETOS E ENTREGÁVEIS ===== */
     .proj-card { border:1px solid var(--border); border-radius:10px; margin-bottom:12px; overflow:hidden; }
     .proj-card-header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:10px 14px; background:var(--surface-1); flex-wrap:wrap; }
@@ -1696,6 +1703,10 @@
             <option value="concluida">Concluído</option>
           </select>
         </div>
+        <div class="form-group">
+          <label>Responsável <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
+          <input type="text" id="anot-responsavel" placeholder="Ex: Vanessa, Ketlin...">
+        </div>
       </div>
       <div class="form-group">
         <label>Descrição</label>
@@ -1957,9 +1968,10 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,planejamentoId:planejamento_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,criadaEm:criada_em'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,responsavel,criadaEm:criada_em'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
+      ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
@@ -2007,6 +2019,7 @@
   let strategyaAssinaturas = [];
   let projetos    = [];
   let entregaveis = [];
+  let anotacaoItens = [];
 
   let filtroPlanoAtual = 'Todas';
   let tarefaSelecionadaId = null;
@@ -2612,18 +2625,19 @@ let clienteEditandoId = null;
   function construirSecaoEvolucao(titulo, pontos, ents) {
     if (!pontos.length && (!ents || !ents.length)) return '';
     const entregaveisHtml = (ents && ents.length)
-      ? `<div class="sec-titulo" style="padding-top:10px"><i>📦</i> Linha do Tempo de Entregáveis — ${titulo}</div>
+      ? `<div class="sec-titulo" style="padding-top:10px">Linha do Tempo de Entregáveis — ${titulo}</div>
          ${construirTimelineGraficaEntregaveis(ents)}`
       : '';
     return `
-      <div class="sec-titulo eq-proj-titulo"><i>📁</i> ${titulo}</div>
+      <div class="sec-titulo eq-proj-titulo">${titulo}</div>
       ${entregaveisHtml}
-      <div class="sec-titulo" style="padding-top:${entregaveisHtml ? '4px' : '10px'}"><i>📈</i> Evolução Mensal — ${titulo}</div>
+      <div class="sec-titulo" style="padding-top:${entregaveisHtml ? '4px' : '10px'}">Evolução Mensal — ${titulo}</div>
       <div class="eq-bars">${construirBarrasMensais(pontos)}</div>
-      ${pontos.length ? `<div class="sec-titulo" style="padding-top:4px"><i>🗓️</i> Pontos Verificados — ${titulo}</div>
+      ${pontos.length ? `<div class="sec-titulo" style="padding-top:4px">Pontos Verificados — ${titulo}</div>
       <div style="margin-bottom:8px">${construirLinhaTempoPontos(pontos)}</div>` : ''}
     `;
   }
+
 
   function gerarRelatorioEvolucao(clienteId, projetoId) {
     const cliente = clientes.find(c => c.id === clienteId);
@@ -2694,7 +2708,7 @@ let clienteEditandoId = null;
         </div>`).join('');
 
       corpoRelatorio = `
-        <div class="sec-titulo"><i>📂</i> Distribuição por Projeto</div>
+        <div class="sec-titulo">Distribuição por Projeto</div>
         <div style="margin-bottom:14px">${linhasDistribuicao}</div>
         ${secoes}`;
     }
@@ -2727,8 +2741,8 @@ let clienteEditandoId = null;
   .eq-proj-titulo{background:#f8f8fc;font-size:13px;margin-top:10px;border-top:2px solid #7c3aed;padding-top:12px}
   .resumo-topo{margin:0 36px;padding:14px 18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;font-size:12.5px;color:#0c4a6e}
   .resumo-topo strong{font-size:16px}
-  .eq-bars{display:flex;align-items:flex-end;gap:10px;margin:8px 36px 4px;padding:14px 10px 0;height:150px;border-bottom:1px solid #e2e2ee}
-  .eq-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
+  .eq-bars{display:flex;justify-content:center;align-items:flex-end;gap:14px;margin:8px 36px 4px;padding:14px 10px 0;height:150px;border-bottom:1px solid #e2e2ee}
+  .eq-bar-col{flex:0 1 64px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end}
   .eq-bar-valor{font-size:10px;font-weight:700;color:#0c4a6e;margin-bottom:3px}
   .eq-bar-track{width:60%;height:100%;display:flex;align-items:flex-end}
   .eq-bar-fill{width:100%;background:linear-gradient(180deg,#0c4a6e,#3b82f6);border-radius:3px 3px 0 0}
@@ -6237,6 +6251,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       projetoId,
       prioridade:  document.getElementById('anot-prioridade').value,
       descricao:   document.getElementById('anot-descricao').value.trim(),
+      responsavel: document.getElementById('anot-responsavel')?.value.trim() || '',
       status,
       concluida:   status === 'concluida',
       visivelRelatorio,
@@ -6250,7 +6265,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           sbTable('gh_anotacoes').update(a.id, {
             titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
             data: dados.data, hora: dados.hora, projeto_id: dados.projetoId || null, prioridade: dados.prioridade,
-            descricao: dados.descricao, status: dados.status, concluida: dados.concluida,
+            descricao: dados.descricao, responsavel: dados.responsavel, status: dados.status, concluida: dados.concluida,
             visivel_relatorio: dados.visivelRelatorio
           }),
           function() { Object.assign(a, anterior); renderizarAnotacoes(); }
@@ -6263,7 +6278,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         sbTable('gh_anotacoes').insert({
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, projeto_id: nova.projetoId || null, prioridade: nova.prioridade,
-          descricao: nova.descricao, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm,
+          descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm,
           visivel_relatorio: nova.visivelRelatorio
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
@@ -6297,6 +6312,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-prioridade').value = a.prioridade || 'Normal';
     document.getElementById('anot-status').value     = statusAnot(a);
     document.getElementById('anot-descricao').value  = a.descricao || '';
+    const campoResp = document.getElementById('anot-responsavel');
+    if (campoResp) campoResp.value = a.responsavel || '';
     const chkVis = document.getElementById('anot-visivel-relatorio');
     if (chkVis) chkVis.checked = a.visivelRelatorio !== false;
     const cliSel = document.getElementById('anot-cliente');
@@ -6315,7 +6332,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function cancelarEdicaoAnot() {
     anotEditandoId = null;
     const hoje = new Date().toISOString().split('T')[0];
-    ['anot-titulo','anot-hora','anot-descricao'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    ['anot-titulo','anot-hora','anot-descricao','anot-responsavel'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
     document.getElementById('anot-data').value = hoje;
     document.getElementById('anot-prioridade').value = 'Normal';
     document.getElementById('anot-status').value = 'pendente';
@@ -6383,17 +6400,24 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const badgePrio = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
       const projetoNome = a.projetoId ? (projetos.find(p => p.id === a.projetoId) || {}).nome : null;
       const setas = setaMover(status);
+      const subs = subacoesDe(a.id);
+      const subsFeitas = subs.filter(i => i.concluido).length;
       return `
       <div class="board-card ${corClasse}">
         <div class="board-card-cliente">${a.clienteNome ? a.clienteNome : 'Sem cliente'}${projetoNome ? ' · '+projetoNome : ''}</div>
-        <div class="board-card-pauta">${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
+        <div class="board-card-pauta" style="cursor:pointer" onclick="abrirModalAnotacaoDetalhe('${a.id}')">${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
         <div class="board-card-meta">
           <span class="anot-badge ${badgePrio}" style="margin-right:6px">${a.prioridade}</span>
           ${a.data ? fmtData(a.data) : '—'}${vencida ? ' · <span style="color:#dc2626;font-weight:700">Vencida</span>' : ''}
         </div>
+        ${(subs.length || a.responsavel) ? `<div style="margin:6px 0 2px">
+          ${subs.length ? `<span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}
+          ${a.responsavel ? `<span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}
+        </div>` : ''}
         <div class="board-card-actions">
           ${setas.esq ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.esq}')" title="Voltar"><i class="ti ti-arrow-left"></i></button>` : ''}
           ${setas.dir ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.dir}')" title="Avançar"><i class="ti ti-arrow-right"></i></button>` : ''}
+          <button class="btn btn-secondary" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Sub-ações / detalhes"><i class="ti ti-checklist"></i></button>
           <button class="btn btn-secondary" onclick="enviarAnotacaoWhats('${a.id}')" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
           <button class="btn btn-secondary" onclick="editarAnotacao('${a.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
           <button class="btn btn-secondary" onclick="deletarAnotacao('${a.id}')" title="Excluir" style="color:#dc2626"><i class="ti ti-trash"></i></button>
@@ -6409,6 +6433,112 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anotboard-count-pendente').textContent  = grupos.pendente.length;
     document.getElementById('anotboard-count-andamento').textContent = grupos.andamento.length;
     document.getElementById('anotboard-count-concluida').textContent = grupos.concluida.length;
+  }
+
+  /* ===== SUB-AÇÕES (checklist) DAS ANOTAÇÕES ===== */
+  let anotacaoDetalheId = null;
+
+  function subacoesDe(anotacaoId) {
+    return anotacaoItens.filter(i => i.anotacaoId === anotacaoId).sort((a,b) => (a.ordem||0) - (b.ordem||0));
+  }
+
+  function abrirModalAnotacaoDetalhe(id) {
+    const a = anotacoes.find(a => a.id === id);
+    if (!a) return;
+    anotacaoDetalheId = id;
+    document.getElementById('anotd-titulo').textContent = a.titulo;
+    document.getElementById('anotd-meta').textContent = [a.clienteNome, a.data ? fmtData(a.data) : null].filter(Boolean).join(' · ');
+    document.getElementById('anotd-responsavel').value = a.responsavel || '';
+    document.getElementById('anotd-descricao').value = a.descricao || '';
+    document.getElementById('anotd-novo-item').value = '';
+    renderizarChecklistDetalhe();
+    document.getElementById('modal-anotacao-detalhe').style.display = 'flex';
+  }
+
+  function fecharModalAnotacaoDetalhe() {
+    document.getElementById('modal-anotacao-detalhe').style.display = 'none';
+    anotacaoDetalheId = null;
+  }
+
+  function renderizarChecklistDetalhe() {
+    if (!anotacaoDetalheId) return;
+    const itens = subacoesDe(anotacaoDetalheId);
+    const feitas = itens.filter(i => i.concluido).length;
+    document.getElementById('anotd-checklist-contagem').textContent = itens.length ? `${feitas}/${itens.length}` : '';
+    document.getElementById('anotd-checklist-barra').style.width = itens.length ? Math.round((feitas/itens.length)*100) + '%' : '0%';
+    const lista = document.getElementById('anotd-checklist-lista');
+    lista.innerHTML = itens.length ? itens.map(i => `
+      <div class="anotd-item">
+        <input type="checkbox" ${i.concluido ? 'checked' : ''} onchange="alternarSubacao('${i.id}')">
+        <div class="anotd-item-titulo ${i.concluido ? 'feita' : ''}">${i.titulo}</div>
+        <button class="btn-icon-sm" onclick="excluirSubacao('${i.id}')" title="Excluir" style="color:#dc2626"><i class="ti ti-trash"></i></button>
+      </div>`).join('') : '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0">Nenhuma sub-ação ainda.</p>';
+    // Mantém o board/lista em dia com a contagem, mesmo com o modal aberto
+    renderizarAnotacoes();
+  }
+
+  function adicionarSubacao() {
+    if (!anotacaoDetalheId) return;
+    const input = document.getElementById('anotd-novo-item');
+    const titulo = input.value.trim();
+    if (!titulo) return;
+    const ordem = subacoesDe(anotacaoDetalheId).length;
+    const novo = { id: crypto.randomUUID(), anotacaoId: anotacaoDetalheId, titulo, concluido: false, ordem };
+    anotacaoItens.push(novo);
+    input.value = '';
+    renderizarChecklistDetalhe();
+    persistir(
+      sbTable('gh_anotacao_itens').insert({ id: novo.id, anotacao_id: novo.anotacaoId, titulo, concluido: false, ordem }),
+      function() { anotacaoItens = anotacaoItens.filter(i => i.id !== novo.id); renderizarChecklistDetalhe(); }
+    );
+  }
+
+  function alternarSubacao(id) {
+    const item = anotacaoItens.find(i => i.id === id);
+    if (!item) return;
+    const anterior = item.concluido;
+    item.concluido = !item.concluido;
+    renderizarChecklistDetalhe();
+    persistir(
+      sbTable('gh_anotacao_itens').update(id, { concluido: item.concluido }),
+      function() { item.concluido = anterior; renderizarChecklistDetalhe(); }
+    );
+  }
+
+  function excluirSubacao(id) {
+    const removido = anotacaoItens.find(i => i.id === id);
+    anotacaoItens = anotacaoItens.filter(i => i.id !== id);
+    renderizarChecklistDetalhe();
+    persistir(
+      sbTable('gh_anotacao_itens').remove(id),
+      function() { if (removido) anotacaoItens.push(removido); renderizarChecklistDetalhe(); }
+    );
+  }
+
+  function salvarResponsavelDetalhe() {
+    if (!anotacaoDetalheId) return;
+    const a = anotacoes.find(a => a.id === anotacaoDetalheId);
+    if (!a) return;
+    const anterior = a.responsavel;
+    a.responsavel = document.getElementById('anotd-responsavel').value.trim();
+    renderizarAnotacoes();
+    persistir(
+      sbTable('gh_anotacoes').update(a.id, { responsavel: a.responsavel }),
+      function() { a.responsavel = anterior; renderizarAnotacoes(); }
+    );
+  }
+
+  function salvarDescricaoDetalhe() {
+    if (!anotacaoDetalheId) return;
+    const a = anotacoes.find(a => a.id === anotacaoDetalheId);
+    if (!a) return;
+    const anterior = a.descricao;
+    a.descricao = document.getElementById('anotd-descricao').value.trim();
+    renderizarAnotacoes();
+    persistir(
+      sbTable('gh_anotacoes').update(a.id, { descricao: a.descricao }),
+      function() { a.descricao = anterior; renderizarAnotacoes(); }
+    );
   }
 
   function moverAnotacao(id, novoStatus) {
@@ -6504,9 +6634,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const status    = statusAnot(a);
       const vencida    = status !== 'concluida' && a.data && a.data < hoje;
       const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
+      const subs = subacoesDe(a.id);
+      const subsFeitas = subs.filter(i => i.concluido).length;
 
       return `<tr>
-        <td>${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}</td>
+        <td>${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
@@ -6517,6 +6649,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
               style="border-radius:7px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
               ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:15px;font-weight:700"></i>' : ''}
             </button>
+            <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Sub-ações / detalhes" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
             <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
@@ -8027,6 +8160,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     strategyaAssinaturas = lsGet('strategyaAssinaturas');
     projetos     = lsGet('projetos');
     entregaveis  = lsGet('entregaveis');
+    anotacaoItens = lsGet('anotacaoItens');
     try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
   });
@@ -8178,6 +8312,39 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 </div>
 
 <!-- Modal Confirmar e Registrar -->
+<div id="modal-anotacao-detalhe" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalAnotacaoDetalhe()">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header">
+      <h3 id="anotd-titulo" style="font-size:15px"></h3>
+      <button onclick="fecharModalAnotacaoDetalhe()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+    </div>
+    <div class="modal-body">
+      <div id="anotd-meta" style="font-size:12px;color:var(--text-secondary)"></div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Responsável</label>
+        <input type="text" id="anotd-responsavel" placeholder="Ex: Vanessa, Ketlin..." onchange="salvarResponsavelDetalhe()">
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Descrição</label>
+        <textarea id="anotd-descricao" rows="3" onchange="salvarDescricaoDetalhe()"></textarea>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <label style="margin-bottom:0">Sub-ações <span id="anotd-checklist-contagem" style="font-weight:400;color:var(--text-secondary)"></span></label>
+        </div>
+        <div class="ent-progress-track" style="height:6px;background:var(--surface-1);border-radius:4px;overflow:hidden;margin-bottom:10px">
+          <div id="anotd-checklist-barra" style="height:100%;background:#10b981;width:0%"></div>
+        </div>
+        <div id="anotd-checklist-lista"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input type="text" id="anotd-novo-item" placeholder="Adicionar sub-ação..." style="flex:1 1 200px;min-width:0;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarSubacao();}">
+          <button class="btn btn-secondary btn-sm" onclick="adicionarSubacao()" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="modal-projetos" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalProjetos()">
   <div class="modal-box" style="max-width:680px">
     <div class="modal-header">
