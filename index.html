@@ -1653,89 +1653,28 @@
 
   <!-- ABA ANOTAÇÕES -->
   <div id="anotacoes" class="tab-content">
-    <div class="card">
-      <div class="card-header"><i class="ti ti-plus"></i> Nova Anotação</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Título</label>
-          <input type="text" id="anot-titulo" placeholder="Ex: Ligar para cliente, Enviar proposta...">
-        </div>
-        <div class="form-group">
-          <label>Cliente <span style="font-size:11px;color:var(--text-secondary)">(opcional — aparece na agenda)</span></label>
-          <select id="anot-cliente" onchange="atualizarProjetosAnotacao()"><option value="">— Sem cliente —</option></select>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group"><label>Data / Prazo</label><input type="date" id="anot-data"></div>
-        <div class="form-group"><label>Hora (opcional)</label><input type="time" id="anot-hora"></div>
-        <div class="form-group">
-          <label>Projeto <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
-          <select id="anot-projeto"><option value="">Geral</option></select>
-        </div>
-        <div class="form-group">
-          <label>Prioridade</label>
-          <select id="anot-prioridade">
-            <option value="Normal">Normal</option>
-            <option value="Alta">Alta</option>
-            <option value="Crítica">Crítica</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Status inicial</label>
-          <select id="anot-status">
-            <option value="pendente">A Fazer</option>
-            <option value="andamento">Em Andamento</option>
-            <option value="concluida">Concluído</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Responsável <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
-          <input type="text" id="anot-responsavel" placeholder="Ex: Vanessa, Ketlin...">
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Descrição</label>
-        <textarea id="anot-descricao" placeholder="Detalhes, contexto, links..." rows="2" style="min-height:44px"></textarea>
-      </div>
-      <div class="form-group" style="margin-bottom:0">
-        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
-          <input type="checkbox" id="anot-visivel-relatorio" checked>
-          Visível no relatório do cliente <span style="font-size:11px;color:var(--text-secondary)">(quando concluída, aparece no relatório de cobrança)</span>
-        </label>
-      </div>
-      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:.75rem">
-        <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()"><i class="ti ti-plus"></i> Adicionar</button>
-        <button class="btn btn-sm" id="anot-btn-cancelar" onclick="cancelarEdicaoAnot()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
-      </div>
-    </div>
-
     <div class="card card-compact">
-      <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
-      <div class="form-row" style="grid-template-columns:repeat(auto-fit, minmax(115px, 1fr))">
-        <div class="form-group" style="grid-column:span 2">
-          <label>Palavra-chave</label>
-          <input type="text" id="filtro-anot-busca" placeholder="Título ou descrição..." oninput="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px">
-        </div>
-        <div class="form-group"><label>Cliente</label>
-          <select id="filtro-anot-cliente" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"><option value="">Todos os clientes</option></select>
-        </div>
-        <div class="form-group"><label>Período Inicial</label><input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"></div>
-        <div class="form-group"><label>Período Final</label><input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()" style="padding:5px 8px;font-size:12px"></div>
-        <div class="form-group"><label>&nbsp;</label><button class="btn btn-secondary btn-sm" style="width:100%;justify-content:center;padding:5px 8px;font-size:12px" onclick="limparFiltroAnotacoes()"><i class="ti ti-x"></i> Limpar</button></div>
+      <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+        <span><i class="ti ti-filter"></i> Anotações</span>
+        <button class="btn btn-primary btn-sm" onclick="abrirModalNovaAnotacao()"><i class="ti ti-plus"></i> Nova Anotação</button>
       </div>
-      <div class="form-group" style="margin-top:.25rem;margin-bottom:0">
-        <label>Status</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="filtro-anot-busca" placeholder="Buscar por título ou descrição..." oninput="renderizarAnotacoes()" style="flex:2 1 180px;min-width:0;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:8px">
+        <select id="filtro-anot-cliente" onchange="renderizarAnotacoes()" style="flex:1 1 150px;min-width:0;padding:6px 10px;font-size:12px"><option value="">Todos os clientes</option></select>
+        <input type="date" id="filtro-anot-inicio" onchange="renderizarAnotacoes()" style="flex:1 1 120px;min-width:0;padding:6px 10px;font-size:12px" title="Período inicial">
+        <input type="date" id="filtro-anot-fim" onchange="renderizarAnotacoes()" style="flex:1 1 120px;min-width:0;padding:6px 10px;font-size:12px" title="Período final">
         <div style="display:flex;gap:5px;flex-wrap:wrap" id="filtro-anot-status">
           <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
             <input type="checkbox" value="pendente" checked onchange="renderizarAnotacoes()"> A Fazer
           </label>
           <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
-            <input type="checkbox" value="andamento" checked onchange="renderizarAnotacoes()"> Em Andamento
+            <input type="checkbox" value="andamento" checked onchange="renderizarAnotacoes()"> Andamento
           </label>
           <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
             <input type="checkbox" value="concluida" checked onchange="renderizarAnotacoes()"> Concluído
           </label>
         </div>
+        <button class="btn-icon-sm" onclick="limparFiltroAnotacoes()" title="Limpar filtros"><i class="ti ti-x"></i></button>
       </div>
     </div>
 
@@ -6213,9 +6152,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
       );
+      // Entra em modo edição na mesma janela, pra liberar as sub-ações sem precisar reabrir
+      anotEditandoId = nova.id;
+      const tit = document.getElementById('anotd-modal-titulo'); if (tit) tit.textContent = 'Editar Anotação';
     }
-    cancelarEdicaoAnot();
     renderizarAnotacoes();
+    atualizarModoModalAnotacao();
   }
 
   /* Popula o select de Projeto na Anotação com os projetos ativos do cliente escolhido */
@@ -6232,47 +6174,34 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   let anotEditandoId = null;
 
-  function editarAnotacao(id) {
-    const a = anotacoes.find(a => a.id === id);
-    if (!a) return;
-    anotEditandoId = id;
+  /* Preenche o card/modal com os dados de uma anotação existente */
+  function popularFormAnotacao(a) {
     document.getElementById('anot-titulo').value     = a.titulo || '';
     document.getElementById('anot-data').value       = a.data || '';
     document.getElementById('anot-hora').value       = a.hora || '';
     document.getElementById('anot-prioridade').value = a.prioridade || 'Normal';
     document.getElementById('anot-status').value     = statusAnot(a);
     document.getElementById('anot-descricao').value  = a.descricao || '';
-    const campoResp = document.getElementById('anot-responsavel');
-    if (campoResp) campoResp.value = a.responsavel || '';
-    const chkVis = document.getElementById('anot-visivel-relatorio');
-    if (chkVis) chkVis.checked = a.visivelRelatorio !== false;
-    const cliSel = document.getElementById('anot-cliente');
-    if (cliSel) cliSel.value = a.clienteId || '';
+    document.getElementById('anot-responsavel').value = a.responsavel || '';
+    document.getElementById('anot-visivel-relatorio').checked = a.visivelRelatorio !== false;
+    document.getElementById('anot-cliente').value = a.clienteId || '';
     atualizarProjetosAnotacao();
-    const projSel = document.getElementById('anot-projeto');
-    if (projSel) projSel.value = a.projetoId || '';
-    // Destaca o formulário e troca o botão
-    const btn = document.getElementById('anot-btn-salvar');
-    if (btn) { btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição'; btn.style.background = '#f59e0b'; }
-    const btnC = document.getElementById('anot-btn-cancelar');
-    if (btnC) btnC.style.display = '';
-    document.querySelector('#anotacoes .card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    document.getElementById('anot-projeto').value = a.projetoId || '';
   }
 
-  function cancelarEdicaoAnot() {
-    anotEditandoId = null;
+  /* Limpa o card/modal para criar uma anotação nova */
+  function limparFormAnotacao() {
     const hoje = new Date().toISOString().split('T')[0];
-    ['anot-titulo','anot-hora','anot-descricao','anot-responsavel'].forEach(id => { const el = document.getElementById(id); if(el) el.value=''; });
+    document.getElementById('anot-titulo').value = '';
     document.getElementById('anot-data').value = hoje;
+    document.getElementById('anot-hora').value = '';
     document.getElementById('anot-prioridade').value = 'Normal';
     document.getElementById('anot-status').value = 'pendente';
-    const chkVis = document.getElementById('anot-visivel-relatorio'); if (chkVis) chkVis.checked = true;
-    const cliSel = document.getElementById('anot-cliente'); if (cliSel) cliSel.value = '';
+    document.getElementById('anot-descricao').value = '';
+    document.getElementById('anot-responsavel').value = '';
+    document.getElementById('anot-visivel-relatorio').checked = true;
+    document.getElementById('anot-cliente').value = '';
     atualizarProjetosAnotacao();
-    const btn = document.getElementById('anot-btn-salvar');
-    if (btn) { btn.innerHTML = '<i class="ti ti-plus"></i> Adicionar'; btn.style.background = ''; }
-    const btnC = document.getElementById('anot-btn-cancelar');
-    if (btnC) btnC.style.display = 'none';
   }
 
   /* Alterna entre a visão de Lista e a visão de Board (Kanban) da aba Anotações */
@@ -6365,40 +6294,55 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   /* ===== SUB-AÇÕES (checklist) DAS ANOTAÇÕES ===== */
-  let anotacaoDetalheId = null;
 
   function subacoesDe(anotacaoId) {
     return anotacaoItens.filter(i => i.anotacaoId === anotacaoId).sort((a,b) => (a.ordem||0) - (b.ordem||0));
   }
 
+  /* Abre o card no modo edição, com todos os campos e o checklist já disponíveis */
   function abrirModalAnotacaoDetalhe(id) {
     const a = anotacoes.find(a => a.id === id);
     if (!a) return;
-    anotacaoDetalheId = id;
-    document.getElementById('anotd-titulo').textContent = a.titulo;
-    document.getElementById('anotd-meta').textContent = [a.clienteNome, a.data ? fmtData(a.data) : null].filter(Boolean).join(' · ');
-    document.getElementById('anotd-responsavel').value = a.responsavel || '';
-    document.getElementById('anotd-descricao').value = a.descricao || '';
-    document.getElementById('anotd-novo-item').value = '';
-    renderizarChecklistDetalhe();
+    anotEditandoId = id;
+    document.getElementById('anotd-modal-titulo').textContent = 'Editar Anotação';
+    popularFormAnotacao(a);
+    atualizarModoModalAnotacao();
+    document.getElementById('modal-anotacao-detalhe').style.display = 'flex';
+  }
+
+  /* Abre o card vazio, no modo criação — o checklist libera assim que a anotação for salva */
+  function abrirModalNovaAnotacao() {
+    anotEditandoId = null;
+    document.getElementById('anotd-modal-titulo').textContent = 'Nova Anotação';
+    limparFormAnotacao();
+    atualizarModoModalAnotacao();
     document.getElementById('modal-anotacao-detalhe').style.display = 'flex';
   }
 
   function fecharModalAnotacaoDetalhe() {
     document.getElementById('modal-anotacao-detalhe').style.display = 'none';
-    anotacaoDetalheId = null;
+    anotEditandoId = null;
   }
 
-  /* Fecha o modal de detalhes e abre a edição completa (data, prioridade, projeto, status...) no formulário do topo */
-  function editarCamposDaDetalhe() {
-    const id = anotacaoDetalheId;
-    fecharModalAnotacaoDetalhe();
-    if (id) editarAnotacao(id);
+  /* Mostra o checklist só quando a anotação já existe (tem id salvo) */
+  function atualizarModoModalAnotacao() {
+    const msg = document.getElementById('anotd-checklist-vazio-msg');
+    const conteudo = document.getElementById('anotd-checklist-conteudo');
+    if (!msg || !conteudo) return;
+    if (anotEditandoId) {
+      msg.style.display = 'none';
+      conteudo.style.display = '';
+      const input = document.getElementById('anotd-novo-item'); if (input) input.value = '';
+      renderizarChecklistDetalhe();
+    } else {
+      msg.style.display = '';
+      conteudo.style.display = 'none';
+    }
   }
 
   function renderizarChecklistDetalhe() {
-    if (!anotacaoDetalheId) return;
-    const itens = subacoesDe(anotacaoDetalheId);
+    if (!anotEditandoId) return;
+    const itens = subacoesDe(anotEditandoId);
     const feitas = itens.filter(i => i.concluido).length;
     document.getElementById('anotd-checklist-contagem').textContent = itens.length ? `${feitas}/${itens.length}` : '';
     document.getElementById('anotd-checklist-barra').style.width = itens.length ? Math.round((feitas/itens.length)*100) + '%' : '0%';
@@ -6415,12 +6359,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   function adicionarSubacao() {
-    if (!anotacaoDetalheId) return;
+    if (!anotEditandoId) return;
     const input = document.getElementById('anotd-novo-item');
     const titulo = input.value.trim();
     if (!titulo) return;
-    const ordem = subacoesDe(anotacaoDetalheId).length;
-    const novo = { id: crypto.randomUUID(), anotacaoId: anotacaoDetalheId, titulo, concluido: false, ordem };
+    const ordem = subacoesDe(anotEditandoId).length;
+    const novo = { id: crypto.randomUUID(), anotacaoId: anotEditandoId, titulo, concluido: false, ordem };
     anotacaoItens.push(novo);
     input.value = '';
     renderizarChecklistDetalhe();
@@ -6463,32 +6407,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     persistir(
       sbTable('gh_anotacao_itens').remove(id),
       function() { if (removido) anotacaoItens.push(removido); renderizarChecklistDetalhe(); }
-    );
-  }
-
-  function salvarResponsavelDetalhe() {
-    if (!anotacaoDetalheId) return;
-    const a = anotacoes.find(a => a.id === anotacaoDetalheId);
-    if (!a) return;
-    const anterior = a.responsavel;
-    a.responsavel = document.getElementById('anotd-responsavel').value.trim();
-    renderizarAnotacoes();
-    persistir(
-      sbTable('gh_anotacoes').update(a.id, { responsavel: a.responsavel }),
-      function() { a.responsavel = anterior; renderizarAnotacoes(); }
-    );
-  }
-
-  function salvarDescricaoDetalhe() {
-    if (!anotacaoDetalheId) return;
-    const a = anotacoes.find(a => a.id === anotacaoDetalheId);
-    if (!a) return;
-    const anterior = a.descricao;
-    a.descricao = document.getElementById('anotd-descricao').value.trim();
-    renderizarAnotacoes();
-    persistir(
-      sbTable('gh_anotacoes').update(a.id, { descricao: a.descricao }),
-      function() { a.descricao = anterior; renderizarAnotacoes(); }
     );
   }
 
@@ -8294,35 +8212,78 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
 <!-- Modal Confirmar e Registrar -->
 <div id="modal-anotacao-detalhe" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalAnotacaoDetalhe()">
-  <div class="modal-box" style="max-width:560px">
+  <div class="modal-box" style="max-width:580px">
     <div class="modal-header">
-      <h3 id="anotd-titulo" style="font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis"></h3>
-      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
-        <button class="btn-icon-sm" onclick="editarCamposDaDetalhe()" title="Editar campos (data, prioridade, projeto...)"><i class="ti ti-pencil"></i></button>
-        <button onclick="fecharModalAnotacaoDetalhe()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);padding:0 0 0 4px">×</button>
-      </div>
+      <h3 id="anotd-modal-titulo" style="font-size:15px">Anotação</h3>
+      <button onclick="fecharModalAnotacaoDetalhe()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
     </div>
     <div class="modal-body">
-      <div id="anotd-meta" style="font-size:12px;color:var(--text-secondary)"></div>
       <div class="form-group" style="margin-bottom:0">
-        <label>Responsável</label>
-        <input type="text" id="anotd-responsavel" placeholder="Ex: Vanessa, Ketlin..." onchange="salvarResponsavelDetalhe()">
+        <label>Título</label>
+        <input type="text" id="anot-titulo" placeholder="Ex: Ligar para cliente, Enviar proposta...">
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Cliente <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
+          <select id="anot-cliente" onchange="atualizarProjetosAnotacao()"><option value="">— Sem cliente —</option></select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Projeto <span style="font-size:11px;color:var(--text-secondary)">(opcional)</span></label>
+          <select id="anot-projeto"><option value="">Geral</option></select>
+        </div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr">
+        <div class="form-group" style="margin-bottom:0"><label>Data / Prazo</label><input type="date" id="anot-data"></div>
+        <div class="form-group" style="margin-bottom:0"><label>Hora (opcional)</label><input type="time" id="anot-hora"></div>
+      </div>
+      <div class="form-row" style="grid-template-columns:1fr 1fr 1fr">
+        <div class="form-group" style="margin-bottom:0">
+          <label>Prioridade</label>
+          <select id="anot-prioridade">
+            <option value="Normal">Normal</option>
+            <option value="Alta">Alta</option>
+            <option value="Crítica">Crítica</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Status</label>
+          <select id="anot-status">
+            <option value="pendente">A Fazer</option>
+            <option value="andamento">Em Andamento</option>
+            <option value="concluida">Concluído</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Responsável</label>
+          <input type="text" id="anot-responsavel" placeholder="Ex: Vanessa...">
+        </div>
       </div>
       <div class="form-group" style="margin-bottom:0">
         <label>Descrição</label>
-        <textarea id="anotd-descricao" rows="3" onchange="salvarDescricaoDetalhe()"></textarea>
+        <textarea id="anot-descricao" rows="2" placeholder="Detalhes, contexto, links..."></textarea>
       </div>
-      <div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-          <label style="margin-bottom:0">Sub-ações <span id="anotd-checklist-contagem" style="font-weight:400;color:var(--text-secondary)"></span></label>
-        </div>
-        <div class="ent-progress-track" style="height:6px;background:var(--surface-1);border-radius:4px;overflow:hidden;margin-bottom:10px">
-          <div id="anotd-checklist-barra" style="height:100%;background:#10b981;width:0%"></div>
-        </div>
-        <div id="anotd-checklist-lista"></div>
-        <div style="display:flex;gap:6px;margin-top:8px">
-          <input type="text" id="anotd-novo-item" placeholder="Adicionar sub-ação..." style="flex:1 1 200px;min-width:0;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarSubacao();}">
-          <button class="btn btn-secondary btn-sm" onclick="adicionarSubacao()" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
+      <div class="form-group" style="margin-bottom:0">
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="anot-visivel-relatorio" checked>
+          Visível no relatório do cliente <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
+        </label>
+      </div>
+      <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()" style="width:100%;justify-content:center"><i class="ti ti-device-floppy"></i> Salvar</button>
+
+      <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:6px">
+        <div id="anotd-checklist-vazio-msg" style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px 0">Salve a anotação para adicionar sub-ações.</div>
+        <div id="anotd-checklist-conteudo" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <label style="margin-bottom:0">Sub-ações <span id="anotd-checklist-contagem" style="font-weight:400;color:var(--text-secondary)"></span></label>
+          </div>
+          <div style="height:6px;background:var(--surface-1);border-radius:4px;overflow:hidden;margin-bottom:10px">
+            <div id="anotd-checklist-barra" style="height:100%;background:#10b981;width:0%"></div>
+          </div>
+          <div id="anotd-checklist-lista"></div>
+          <div style="display:flex;gap:6px;margin-top:8px">
+            <input type="text" id="anotd-novo-item" placeholder="Adicionar sub-ação..." style="flex:1 1 200px;min-width:0;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px" onkeydown="if(event.key==='Enter'){event.preventDefault();adicionarSubacao();}">
+            <button class="btn btn-secondary btn-sm" onclick="adicionarSubacao()" style="flex-shrink:0"><i class="ti ti-plus"></i></button>
+          </div>
         </div>
       </div>
     </div>
