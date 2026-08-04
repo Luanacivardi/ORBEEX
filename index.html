@@ -163,7 +163,7 @@
    .home-card.orange:hover             { border-color: #ea580c; box-shadow: 0 12px 30px rgba(234,88,12,.2); }
 
     .home-agenda { max-width: 760px; margin: 0 auto; }
-    .home-split-row { display: flex; gap: 1.5rem; align-items: flex-start; flex-wrap: wrap; }
+    .home-split-row { display: flex; gap: 1.5rem; align-items: stretch; flex-wrap: wrap; }
     .home-split-row > * { flex: 1 1 0; min-width: 320px; }
     .home-split-row .home-agenda { max-width: none; margin: 0; }
     .home-agenda-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: .6rem; }
@@ -260,7 +260,7 @@
     .btn-secondary { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--border); }
     .btn-inline { width: auto; }
     .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 7px; font-size: 15px; flex-shrink: 0; }
-    .btn-acao-row { display: flex; gap: 4px; align-items: center; flex-wrap: nowrap; }
+    .btn-acao-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
 
     .table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 1rem; }
     .table thead { background: var(--surface-1); border-bottom: 1px solid var(--border); }
@@ -316,7 +316,8 @@
     .view-toggle button { padding:6px 14px; border:1px solid var(--border); background:transparent; border-radius:var(--radius); cursor:pointer; font-size:12px; color:var(--text-secondary); }
     .view-toggle button.active { background:var(--navy); color:var(--gold); border-color:var(--navy); font-weight:600; }
     .board-cols { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; align-items:start; }
-    @media (max-width:900px) { .board-cols { grid-template-columns:1fr; } }
+    .board-cols-3 { grid-template-columns:repeat(3,1fr); }
+    @media (max-width:900px) { .board-cols, .board-cols-3 { grid-template-columns:1fr; } }
     .board-col { background:var(--surface-1); border-radius:var(--radius); padding:10px; min-height:80px; }
     .board-col-header { display:flex; align-items:center; justify-content:space-between; font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-secondary); padding:4px 6px 10px; }
     .board-col-count { background:var(--surface-2); border-radius:20px; padding:1px 8px; font-size:11px; font-weight:700; }
@@ -911,7 +912,7 @@
           <div id="home-agenda-lista"></div>
         </div>
 
-        <div class="card card-compact" id="card-diario" style="margin-bottom:0">
+        <div class="card card-compact" id="card-diario" style="margin-bottom:0;display:flex;flex-direction:column">
           <div class="card-header" style="justify-content:space-between;margin-bottom:.5rem">
             <span><i class="ti ti-notes"></i> Diario do Dia</span>
             <span style="font-size:10px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
@@ -919,30 +920,14 @@
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
             <input type="date" id="diario-data" onchange="carregarDiarioDoDia()" style="width:auto;padding:5px 8px;font-size:12px">
             <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()" style="padding:5px 10px;font-size:11px">Hoje</button>
-            <span style="font-size:11px;color:var(--text-secondary)">Vira rascunho da atividade quando você confirmar uma tarefa desse dia</span>
           </div>
-          <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:60px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
+          <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:36px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
             <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)" style="padding:5px 10px;font-size:11px"><i class="ti ti-device-floppy"></i> Salvar agora</button>
           </div>
-        </div>
-      </div>
-
-      <div class="card" id="card-pendencias" style="margin-top:1rem">
-        <div class="pend-panel-header">
-          <div class="card-header" style="margin-bottom:0"><i class="ti ti-alert-triangle"></i> Pendências</div>
-          <select id="home-pend-cliente" onchange="renderizarPendenciasHome()" style="width:auto;padding:6px 10px;font-size:12px">
-            <option value="">Todos os clientes</option>
-          </select>
-        </div>
-        <div class="pend-cols">
-          <div>
-            <div class="pend-col-title">Agenda atrasada</div>
-            <div id="home-agenda-atrasadas"></div>
-          </div>
-          <div>
-            <div class="pend-col-title">Anotações em aberto</div>
-            <div id="home-agenda-pendentes"></div>
+          <div style="border-top:1px solid var(--border);margin-top:.75rem;padding-top:.6rem;flex:1">
+            <div class="pend-col-title" style="margin-bottom:6px">Anotações de hoje</div>
+            <div id="home-anot-hoje"></div>
           </div>
         </div>
       </div>
@@ -1775,7 +1760,7 @@
       </div>
 
       <div id="anot-view-board" style="display:none">
-        <div class="board-cols" style="grid-template-columns:repeat(3,1fr)">
+        <div class="board-cols board-cols-3">
           <div class="board-col">
             <div class="board-col-header">A Fazer <span class="board-col-count" id="anotboard-count-pendente">0</span></div>
             <div id="anotboard-col-pendente"></div>
@@ -2612,8 +2597,8 @@ let clienteEditandoId = null;
       const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
       return `
         <div class="eq-tlg-item">
-          <div class="eq-tlg-data">${e.prazo ? fmtData(e.prazo) : '—'}</div>
           <div class="eq-tlg-dot" style="border-color:${statusCor};box-shadow:0 0 0 2px ${statusCor}"></div>
+          <div class="eq-tlg-data">${e.prazo ? fmtData(e.prazo) : 'Sem prazo'}</div>
           <div class="eq-tlg-titulo">${e.titulo}</div>
           <div class="eq-tlg-status" style="color:${statusCor}">${statusLabel}</div>
         </div>`;
@@ -2757,13 +2742,13 @@ let clienteEditandoId = null;
   .eq-tl-corpo{flex:1}
   .eq-tl-titulo{font-size:12px;font-weight:600;color:#1a1a2e}
   .eq-tl-desc{font-size:10.5px;color:#6b6b8a;margin-top:3px;line-height:1.4}
-  .eq-tlg-wrap{display:flex;flex-wrap:wrap;margin:6px 36px 18px}
-  .eq-tlg-item{width:110px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;position:relative;padding:22px 6px 0;text-align:center}
-  .eq-tlg-item:not(:first-child)::before{content:'';position:absolute;top:27px;left:-50%;width:100%;height:2px;background:#e2e2ee;z-index:0}
-  .eq-tlg-data{font-size:8.5px;color:#6b6b8a;margin-bottom:4px;white-space:nowrap}
-  .eq-tlg-dot{width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid #E8B84B;margin-bottom:6px;position:relative;z-index:1}
+  .eq-tlg-wrap{display:flex;flex-wrap:wrap;margin:14px 36px 18px;row-gap:20px}
+  .eq-tlg-item{width:120px;flex-shrink:0;display:flex;flex-direction:column;align-items:center;position:relative;padding:0 8px;text-align:center}
+  .eq-tlg-item:not(:first-child)::before{content:'';position:absolute;top:5px;left:-50%;width:100%;height:2px;background:#e2e2ee;z-index:0}
+  .eq-tlg-dot{width:12px;height:12px;border-radius:50%;background:#fff;border:2.5px solid #E8B84B;margin-bottom:8px;position:relative;z-index:1}
+  .eq-tlg-data{font-size:8.5px;color:#6b6b8a;white-space:nowrap;margin-bottom:3px}
   .eq-tlg-titulo{font-size:9px;font-weight:600;color:#1a1a2e;line-height:1.3}
-  .eq-tlg-status{font-size:8px;font-weight:700;margin-top:2px;text-transform:uppercase;letter-spacing:.3px}
+  .eq-tlg-status{font-size:8px;font-weight:700;margin-top:3px;text-transform:uppercase;letter-spacing:.3px}
   .rodape{margin:24px 36px 28px;padding-top:12px;border-top:1px solid #e2e2ee;font-size:10px;color:#9999aa;text-align:center}
   @media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}@page{size:A4;margin:8mm}.eq-tl-item{page-break-inside:avoid}.eq-tlg-item{page-break-inside:avoid}}
 </style></head><body>
@@ -3365,8 +3350,7 @@ let clienteEditandoId = null;
 
     renderizarHomeAgendaDia(hoje);
     inicializarDiario(hoje);
-    preencherFiltroPendClientes();
-    renderizarPendenciasHome();
+    renderizarAnotacoesHoje();
   }
 
   // ===== DIÁRIO DO DIA (rascunho pessoal, sem virar registro de horas) =====
@@ -3459,85 +3443,29 @@ let clienteEditandoId = null;
     }).join('');
   }
 
-  /* Preenche o dropdown de cliente do painel de Pendências (Home), unindo clientes de planejamento e anotações */
-  function preencherFiltroPendClientes() {
-    const sel = document.getElementById('home-pend-cliente');
-    if (!sel) return;
-    const atual = sel.value;
-    const nomes = new Set();
-    planejamento.forEach(p => { if (p.clienteNome) nomes.add(p.clienteNome); });
-    anotacoes.forEach(a => { if (a.clienteNome) nomes.add(a.clienteNome); });
-    const ordenados = [...nomes].sort((a,b) => a.localeCompare(b, 'pt-BR'));
-    sel.innerHTML = '<option value="">Todos os clientes</option>' + ordenados.map(n => `<option value="${n}">${n}</option>`).join('');
-    if (ordenados.includes(atual)) sel.value = atual;
-  }
-
-  /* Wrapper chamado pelo filtro de cliente do painel de Pendências */
-  function renderizarPendenciasHome() {
+  /* Anotações com data de hoje, exibidas logo abaixo do Diário do Dia */
+  function renderizarAnotacoesHoje() {
+    const cont = document.getElementById('home-anot-hoje');
+    if (!cont) return;
     const hoje = new Date().toISOString().split('T')[0];
-    renderizarHomeAtrasadas(hoje);
-    renderizarHomePendentes(hoje);
-  }
+    const doDia = anotacoes.filter(a => a.data === hoje)
+      .sort((a,b) => (a.hora||'99:99').localeCompare(b.hora||'99:99'));
 
-  /* Tarefas atrasadas: planejamento de dias anteriores ainda não registrado em horas */
-  function renderizarHomeAtrasadas(hoje) {
-    const cont = document.getElementById('home-agenda-atrasadas');
-    if (!cont) return;
-
-    const fCliente = document.getElementById('home-pend-cliente')?.value || '';
-    const idsReg = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
-    const modIcon = m => m === 'Home Office' ? '🏠' : '🏢';
-
-    let atrasadas = planejamento
-      .filter(p => (p.termino || p.inicio) < hoje && !idsReg.has(p.id));
-    if (fCliente) atrasadas = atrasadas.filter(p => p.clienteNome === fCliente);
-    atrasadas.sort((a, b) => (a.inicio + (a.entrada||'')).localeCompare(b.inicio + (b.entrada||'')));
-
-    if (atrasadas.length === 0) {
-      cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma tarefa atrasada. 🎉</div>`;
+    if (!doDia.length) {
+      cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma anotação para hoje.</div>`;
       return;
     }
 
-    cont.innerHTML = atrasadas.map(p => {
-      const pauta = p.atividade && p.atividade !== '—' ? p.atividade : 'Sem pauta definida';
+    cont.innerHTML = doDia.map(a => {
+      const status = statusAnot(a);
+      const feita = status === 'concluida';
       return `
-      <div class="pend-item">
-        <div class="pend-item-info" onclick="confirmarERegistrar('${p.id}')" style="cursor:pointer">
-          <div class="pend-item-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
-          <div class="pend-item-titulo">${pauta}</div>
-        </div>
-        <div class="pend-item-data">${fmtData(p.inicio)}</div>
-        <div class="pend-item-acao">
-          <button class="btn btn-secondary" onclick="event.stopPropagation();enviarPlanejamentoWhats('${p.id}')" title="Enviar cobrança"><i class="ti ti-brand-whatsapp"></i></button>
-        </div>
-      </div>`;
-    }).join('');
-  }
-
-  /* Ainda não registradas/concluídas: pendências (anotações) em aberto, ordenadas por data */
-  function renderizarHomePendentes(hoje) {
-    const cont = document.getElementById('home-agenda-pendentes');
-    if (!cont) return;
-
-    const fCliente = document.getElementById('home-pend-cliente')?.value || '';
-    let pendentes = anotacoes.filter(a => !a.concluida);
-    if (fCliente) pendentes = pendentes.filter(a => a.clienteNome === fCliente);
-    pendentes.sort((a, b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99') || (a.hora||'99:99').localeCompare(b.hora||'99:99'));
-
-    if (pendentes.length === 0) {
-      cont.innerHTML = `<div class="home-agenda-vazio-mini"><i class="ti ti-check"></i> Nenhuma pendência em aberto. 🎉</div>`;
-      return;
-    }
-
-    cont.innerHTML = pendentes.map(a => {
-      const atrasada = a.data && a.data < hoje;
-      return `
-      <div class="pend-item" onclick="irPara('anotacoes')" style="cursor:pointer">
+      <div class="pend-item" onclick="abrirModalAnotacaoDetalhe('${a.id}')" style="cursor:pointer">
         <div class="pend-item-info">
-          <div class="pend-item-cliente">${a.clienteNome ? '📌 '+a.clienteNome : '📌 Pendência'}</div>
-          <div class="pend-item-titulo">${a.titulo}</div>
+          <div class="pend-item-cliente">${a.clienteNome || 'Sem cliente'}</div>
+          <div class="pend-item-titulo" style="${feita ? 'text-decoration:line-through;color:var(--text-secondary)' : ''}">${a.titulo}</div>
         </div>
-        ${a.data ? `<div class="pend-item-data" style="${atrasada ? '' : 'color:var(--text-secondary)'}">${fmtData(a.data)}</div>` : ''}
+        ${a.hora ? `<div class="pend-item-data" style="color:var(--text-secondary)">${a.hora}</div>` : ''}
       </div>`;
     }).join('');
   }
@@ -5819,13 +5747,15 @@ ${faturas}
     const mrrStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').reduce((s,a)=>s+(a.valorMensal||0),0);
     const qtdAssinStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').length;
     const chaveMesAtual = anoAtual + '-' + String(mesAtual + 1).padStart(2,'0');
-    const vDespesasMes = despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).reduce((s,d)=>s+(parseFloat(d.valor)||0),0);
+    const vDespesasLancadasMes = despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).reduce((s,d)=>s+(parseFloat(d.valor)||0),0);
+    const vDespesasRecorrentesPrevistas = valorRecorrentesNoMes(anoAtual, mesAtual);
+    const vDespesasMes = vDespesasLancadasMes + vDespesasRecorrentesPrevistas;
     const vLucroMes = vMesFat - vDespesasMes;
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
-      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
+      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
       { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Faturado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
       { label:'Faturamento STRATEGYA (MRR)',   value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#E8B84B' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
@@ -6417,9 +6347,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="board-card-actions">
           ${setas.esq ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.esq}')" title="Voltar"><i class="ti ti-arrow-left"></i></button>` : ''}
           ${setas.dir ? `<button class="btn btn-secondary" onclick="moverAnotacao('${a.id}','${setas.dir}')" title="Avançar"><i class="ti ti-arrow-right"></i></button>` : ''}
-          <button class="btn btn-secondary" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Sub-ações / detalhes"><i class="ti ti-checklist"></i></button>
+          <button class="btn btn-secondary" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Detalhes / Editar / Sub-ações"><i class="ti ti-checklist"></i></button>
           <button class="btn btn-secondary" onclick="enviarAnotacaoWhats('${a.id}')" title="WhatsApp"><i class="ti ti-brand-whatsapp"></i></button>
-          <button class="btn btn-secondary" onclick="editarAnotacao('${a.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
           <button class="btn btn-secondary" onclick="deletarAnotacao('${a.id}')" title="Excluir" style="color:#dc2626"><i class="ti ti-trash"></i></button>
         </div>
       </div>`;
@@ -6460,6 +6389,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     anotacaoDetalheId = null;
   }
 
+  /* Fecha o modal de detalhes e abre a edição completa (data, prioridade, projeto, status...) no formulário do topo */
+  function editarCamposDaDetalhe() {
+    const id = anotacaoDetalheId;
+    fecharModalAnotacaoDetalhe();
+    if (id) editarAnotacao(id);
+  }
+
   function renderizarChecklistDetalhe() {
     if (!anotacaoDetalheId) return;
     const itens = subacoesDe(anotacaoDetalheId);
@@ -6471,6 +6407,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <div class="anotd-item">
         <input type="checkbox" ${i.concluido ? 'checked' : ''} onchange="alternarSubacao('${i.id}')">
         <div class="anotd-item-titulo ${i.concluido ? 'feita' : ''}">${i.titulo}</div>
+        <button class="btn-icon-sm" onclick="editarSubacao('${i.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
         <button class="btn-icon-sm" onclick="excluirSubacao('${i.id}')" title="Excluir" style="color:#dc2626"><i class="ti ti-trash"></i></button>
       </div>`).join('') : '<p style="font-size:12px;color:var(--text-secondary);margin:4px 0">Nenhuma sub-ação ainda.</p>';
     // Mantém o board/lista em dia com a contagem, mesmo com o modal aberto
@@ -6502,6 +6439,20 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     persistir(
       sbTable('gh_anotacao_itens').update(id, { concluido: item.concluido }),
       function() { item.concluido = anterior; renderizarChecklistDetalhe(); }
+    );
+  }
+
+  function editarSubacao(id) {
+    const item = anotacaoItens.find(i => i.id === id);
+    if (!item) return;
+    const novoTitulo = prompt('Sub-ação:', item.titulo);
+    if (novoTitulo === null || !novoTitulo.trim()) return;
+    const anterior = item.titulo;
+    item.titulo = novoTitulo.trim();
+    renderizarChecklistDetalhe();
+    persistir(
+      sbTable('gh_anotacao_itens').update(id, { titulo: item.titulo }),
+      function() { item.titulo = anterior; renderizarChecklistDetalhe(); }
     );
   }
 
@@ -6582,8 +6533,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     linhas.push(`*${a.titulo}*`);
     if (a.data) linhas.push(`Data: ${fmtData(a.data)}${a.hora ? ' ' + a.hora : ''}`);
     if (a.prioridade) linhas.push(`Prioridade: ${a.prioridade}`);
+    if (a.responsavel) linhas.push(`Responsável: ${a.responsavel}`);
     linhas.push(`Status: ${STATUS_LABEL_ANOT[statusAnot(a)]}`);
     if (a.descricao) linhas.push('', a.descricao);
+    const pendentes = subacoesDe(a.id).filter(i => !i.concluido);
+    if (pendentes.length) {
+      linhas.push('', '_Sub-ações pendentes:_');
+      pendentes.forEach(i => linhas.push(`☐ ${i.titulo}`));
+    }
     const texto = linhas.join('\n');
     window.open(`https://wa.me/?text=${encodeURIComponent(texto)}`, '_blank');
   }
@@ -6649,9 +6606,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
               style="border-radius:7px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
               ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:15px;font-weight:700"></i>' : ''}
             </button>
-            <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Sub-ações / detalhes" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
+            <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Detalhes / Editar / Sub-ações" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
-            <button class="btn btn-icon" onclick="editarAnotacao('${a.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </td>
@@ -6828,6 +6784,31 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   let despesaRecorrenteEditandoId = null;
   const PASSOS_FREQUENCIA = { mensal: 1, trimestral: 3, anual: 12 };
   const LABEL_FREQUENCIA = { mensal: 'Mensal', trimestral: 'Trimestral', anual: 'Anual' };
+
+  // Soma o valor das recorrências ativas cujo vencimento cai no mês informado, ainda que a
+  // data não tenha chegado e o lançamento em Despesas ainda não exista — evita duplicar
+  // valores que já foram efetivamente lançados (checa recorrenteId+data em `despesas`).
+  function valorRecorrentesNoMes(anoAlvo, mesAlvoIdx) {
+    const inicioMes = anoAlvo + '-' + String(mesAlvoIdx + 1).padStart(2, '0') + '-01';
+    const fimMesData = new Date(anoAlvo, mesAlvoIdx + 1, 0);
+    const fimMes = isoData(fimMesData);
+    let total = 0;
+    despesasRecorrentes.forEach(function(r) {
+      if (!r.ativa) return;
+      const passo = PASSOS_FREQUENCIA[r.frequencia] || 1;
+      let dataOcorrencia = r.dataInicio;
+      let guarda = 0;
+      while (dataOcorrencia <= fimMes && (!r.dataFim || dataOcorrencia <= r.dataFim) && guarda < 500) {
+        guarda++;
+        if (dataOcorrencia >= inicioMes && dataOcorrencia <= fimMes) {
+          const jaLancada = despesas.some(function(d) { return d.recorrenteId === r.id && d.data === dataOcorrencia; });
+          if (!jaLancada) total += parseFloat(r.valor) || 0;
+        }
+        dataOcorrencia = addMeses(dataOcorrencia, passo);
+      }
+    });
+    return total;
+  }
 
   // Soma n meses a uma data ISO (yyyy-mm-dd), preservando o dia quando possível
   // e ajustando para o último dia do mês quando ele não existir (ex: 31/01 + 1 mês = 28 ou 29/02).
@@ -8315,8 +8296,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 <div id="modal-anotacao-detalhe" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalAnotacaoDetalhe()">
   <div class="modal-box" style="max-width:560px">
     <div class="modal-header">
-      <h3 id="anotd-titulo" style="font-size:15px"></h3>
-      <button onclick="fecharModalAnotacaoDetalhe()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+      <h3 id="anotd-titulo" style="font-size:15px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis"></h3>
+      <div style="display:flex;align-items:center;gap:4px;flex-shrink:0">
+        <button class="btn-icon-sm" onclick="editarCamposDaDetalhe()" title="Editar campos (data, prioridade, projeto...)"><i class="ti ti-pencil"></i></button>
+        <button onclick="fecharModalAnotacaoDetalhe()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary);padding:0 0 0 4px">×</button>
+      </div>
     </div>
     <div class="modal-body">
       <div id="anotd-meta" style="font-size:12px;color:var(--text-secondary)"></div>
