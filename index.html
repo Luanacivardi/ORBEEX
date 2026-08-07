@@ -1464,11 +1464,10 @@
         <div class="form-group">
           <label>Categoria <span style="color:red">*</span></label>
           <select id="desp-categoria">
-            <option value="Contador">📊 Contador</option>
-            <option value="Gasolina">⛽ Gasolina</option>
-            <option value="Alimentação">🍽️ Alimentação</option>
-            <option value="Impostos">🧾 Impostos</option>
-            <option value="Outros">📦 Outros</option>
+            <option value="Fixo">📌 Fixo</option>
+            <option value="Variável">🔀 Variável</option>
+            <option value="Tecnologia">💻 Tecnologia</option>
+            <option value="Investimento">📈 Investimento</option>
           </select>
         </div>
         <div class="form-group"><label>Valor (R$) <span style="color:red">*</span></label><input type="number" id="desp-valor" step="0.01" min="0" placeholder="0,00"></div>
@@ -1524,11 +1523,10 @@
         <div class="form-group"><label>Categoria</label>
           <select id="filtro-desp-categoria" onchange="renderizarDespesas()">
             <option value="">Todas</option>
-            <option value="Contador">Contador</option>
-            <option value="Gasolina">Gasolina</option>
-            <option value="Alimentação">Alimentação</option>
-            <option value="Impostos">Impostos</option>
-            <option value="Outros">Outros</option>
+            <option value="Fixo">Fixo</option>
+            <option value="Variável">Variável</option>
+            <option value="Tecnologia">Tecnologia</option>
+            <option value="Investimento">Investimento</option>
           </select>
         </div>
         <div class="form-group"><label>Mês</label><input type="month" id="filtro-desp-mes" onchange="renderizarDespesas()"></div>
@@ -1598,6 +1596,7 @@
 
         <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:.5rem">
           <button class="btn btn-primary" id="oc-btn-salvar" onclick="salvarOrcamentoConsultoria()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Proposta</button>
+          <button class="btn btn-sm" onclick="imprimirOrcamentoConsultoriaForm()" style="background:var(--navy);color:#fff"><i class="ti ti-printer"></i> Imprimir / Pré-visualizar</button>
           <button class="btn btn-sm" onclick="ocNovo()" style="background:#6b7280;color:#fff"><i class="ti ti-file-plus"></i> Limpar / Nova</button>
           <button class="btn btn-sm" id="oc-btn-cancelar" onclick="ocCancelarEdicao()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar edição</button>
         </div>
@@ -1630,7 +1629,7 @@
         <label>Ano em análise:</label>
         <select id="dash-ano" onchange="renderizarDashboard()"></select>
       </div>
-      <span style="font-size:12px;color:var(--text-secondary)">Indicadores calculados com base no planejamento e nos registros de horas do ano selecionado</span>
+      <span style="font-size:12px;color:var(--text-secondary)">Funil, tabela mensal, histórico e por-cliente seguem o ano selecionado. Os KPIs de mês (Faturado, Despesas, Lucro) referem-se sempre ao mês corrente.</span>
     </div>
 
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
@@ -1974,7 +1973,7 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,planejamentoId:planejamento_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,responsavel,criadaEm:criada_em'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
@@ -2463,13 +2462,15 @@ let clienteEditandoId = null;
       visivelRelatorio: true,
       criadaEm: hoje,
     };
+    var _anoNA = parseInt(hoje.slice(0,4));
+    notaAuto.numero = anotacoes.filter(function(a){ return parseInt((((a.criadaEm||a.data||'')+'')).slice(0,4)) === _anoNA; }).reduce(function(m,a){ return Math.max(m, a.numero||0); }, 0) + 1;
     anotacoes.unshift(notaAuto);
     renderizarAnotacoes();
     persistir(
       sbTable('gh_anotacoes').insert({
         id: notaAuto.id, titulo: notaAuto.titulo, cliente_id: notaAuto.clienteId || null, cliente_nome: notaAuto.clienteNome,
         data: notaAuto.data, hora: notaAuto.hora, projeto_id: notaAuto.projetoId, prioridade: notaAuto.prioridade,
-        descricao: notaAuto.descricao, status: notaAuto.status, concluida: notaAuto.concluida, criada_em: notaAuto.criadaEm,
+        descricao: notaAuto.descricao, status: notaAuto.status, concluida: notaAuto.concluida, criada_em: notaAuto.criadaEm, numero: notaAuto.numero,
         visivel_relatorio: notaAuto.visivelRelatorio
       }),
       function() { anotacoes = anotacoes.filter(a => a.id !== notaAuto.id); renderizarAnotacoes(); }
@@ -5859,18 +5860,22 @@ ${faturas}
     // Confirmado = planejamento confirmado ainda não registrado + tudo já registrado (uma hora registrada já é "confirmada")
     const planConfPend = planConf.filter(p => !idsRegAno.has(p.id));
 
-    const hPlan  = planAnoPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
-    const hConf  = planConfPend.reduce((s,p) => s + p.horas, 0) + tarAno.reduce((s,t) => s + t.horas, 0) + hHistAno;
-    const hReal  = tarAno  .reduce((s,t) => s + t.horas, 0) + hHistAno;
+    const nHoras = x => parseFloat(x)||0, nValor = x => parseFloat(x)||0;
+    const hPlan  = planAnoPend.reduce((s,p) => s + nHoras(p.horas), 0) + tarAno.reduce((s,t) => s + nHoras(t.horas), 0) + hHistAno;
+    const hConf  = planConfPend.reduce((s,p) => s + nHoras(p.horas), 0) + tarAno.reduce((s,t) => s + nHoras(t.horas), 0) + hHistAno;
+    const hReal  = tarAno  .reduce((s,t) => s + nHoras(t.horas), 0) + hHistAno;
 
-    const vPlan  = planAnoPend.reduce((s,p) => s + p.valor, 0) + tarAno.reduce((s,t) => s + t.valor, 0) + vHistAno;
-    const vConf  = planConfPend.reduce((s,p) => s + p.valor, 0) + tarAno.reduce((s,t) => s + t.valor, 0) + vHistAno;
-    const vFat   = tarFat  .reduce((s,t) => s + t.valor, 0) + vHistAno;
+    const vPlan  = planAnoPend.reduce((s,p) => s + nValor(p.valor), 0) + tarAno.reduce((s,t) => s + nValor(t.valor), 0) + vHistAno;
+    const vConf  = planConfPend.reduce((s,p) => s + nValor(p.valor), 0) + tarAno.reduce((s,t) => s + nValor(t.valor), 0) + vHistAno;
+    const vFat   = tarFat  .reduce((s,t) => s + nValor(t.valor), 0) + vHistAno;
     const vPend  = tarAno  .filter(t=>!t.cobrado).reduce((s,t) => s + t.valor, 0);
 
     // mês corrente — realizadas
     const tarMes   = tarefas.filter(t => { const d=new Date(t.data); return d.getFullYear()===anoAtual && d.getMonth()===mesAtual; });
     const vMesFat  = tarMes.filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0);
+    const hMesReal  = tarMes.reduce((s,t)=>s+(parseFloat(t.horas)||0),0);
+    const vMesReal  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
+    const ticketHora = hMesReal > 0 ? vMesReal / hMesReal : 0;
 
     // mês corrente — planejamento + horas registradas (sem dupla contagem)
     const prefMes     = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}`;
@@ -5949,6 +5954,7 @@ ${faturas}
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
      { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
       { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
+      { label:'Ticket Médio / Hora',           value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
       { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Faturado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
       { label:'Faturamento STRATEGYA (MRR)',   value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#E8B84B' },
@@ -5968,9 +5974,10 @@ ${faturas}
       const histM = historico.filter(h => h.ano === ano && h.mes === m+1);
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
-   const idsRegM     = new Set(tM.map(t => t.planejamentoId).filter(Boolean));
-const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
-      const pMCPendente = pMC.filter(p => !idsRegM.has(p.id));
+      // Deduplicação no nível do ANO: um planejamento já registrado (em qualquer mês)
+      // não aparece mais como "pendente" no mês do inicio; o valor entra no mês do registro (tM).
+      const pMPendente  = pM.filter(p => !idsRegAno.has(p.id));
+      const pMCPendente = pMC.filter(p => !idsRegAno.has(p.id));
       return {
         mes:   MESES[m],
         hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
@@ -6006,10 +6013,15 @@ const pMPendente  = pM.filter(p => !idsRegM.has(p.id));
     ])].sort();
 
     const dadosHist = anosHist.map(a => {
-      const fatAuto = tarefas.filter(t=>t.cobrado && t.data.startsWith(String(a))).reduce((s,t)=>s+t.valor,0);
-      const fatMan  = historico.filter(h=>h.ano===a).reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
-      const planA   = planejamento.filter(p=>p.inicio.startsWith(String(a))).reduce((s,p)=>s+p.valor,0);
-      return { ano:a, fat:fatAuto+fatMan, plan:planA };
+      const prefA    = String(a);
+      const tA       = tarefas.filter(t=>t.data && t.data.startsWith(prefA));
+      const idsRegA  = new Set(tA.map(t=>t.planejamentoId).filter(Boolean));
+      const planPend = planejamento.filter(p=>p.inicio && p.inicio.startsWith(prefA) && !idsRegA.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+      const regA     = tA.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
+      const histA    = historico.filter(h=>h.ano===a).reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
+      const fatAuto  = tA.filter(t=>t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
+      // Planejado = mesma lógica do Funil (pendente do ano + registrado + histórico); Faturado = cobrado + histórico
+      return { ano:a, fat:fatAuto+histA, plan:planPend+regA+histA };
     });
 
     const ctxHist = document.getElementById('chart-historico').getContext('2d');
@@ -6106,17 +6118,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
       // sub-linhas por cliente
         var cliMes = {};
-        var idsRegPref = new Set(
-          tarAno.filter(function(t){ return t.data && t.data.startsWith(pref); })
-                .map(function(t){ return t.planejamentoId; }).filter(Boolean)
-        );
-   // Previsto por cliente = planejamento ainda não registrado (qualquer data) + tudo já registrado
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegPref.has(p.id); }).forEach(function(p) {
+   // Previsto por cliente = planejamento ainda não registrado no ano + tudo já registrado (no mês do registro)
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && !idsRegAno.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vPlan += parseFloat(p.valor) || 0;
         });
-        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado && !idsRegPref.has(p.id); }).forEach(function(p) {
+        planAno.filter(function(p){ return p.inicio && p.inicio.startsWith(pref) && p.confirmado && !idsRegAno.has(p.id); }).forEach(function(p) {
           var n = p.clienteNome || 'Sem cliente';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           cliMes[n].vConf += parseFloat(p.valor) || 0;
@@ -6217,6 +6225,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         porCliTabela[n].hFat += parseFloat(t.horas)||0;
         porCliTabela[n].vFat += parseFloat(t.valor)||0;
       }
+    });
+    // Histórico manual do ano: entra como planejado + confirmado + faturado (mesmo tratamento do Funil)
+    histAno.forEach(h => {
+      const n = h.cliente || 'Geral';
+      if (!porCliTabela[n]) porCliTabela[n] = { hPlan:0, vPlan:0, hConf:0, vConf:0, hFat:0, vFat:0 };
+      const hh = parseFloat(h.horas)||0, vv = parseFloat(h.valor)||0;
+      porCliTabela[n].hPlan += hh; porCliTabela[n].vPlan += vv;
+      porCliTabela[n].hConf += hh; porCliTabela[n].vConf += vv;
+      porCliTabela[n].hFat  += hh; porCliTabela[n].vFat  += vv;
     });
 
  const linhasCli = Object.entries(porCliTabela).sort((a,b) => b[1].vPlan - a[1].vPlan).map(([nome, d]) => {
@@ -6396,13 +6413,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         );
       }
     } else {
-      const nova = { id: crypto.randomUUID(), ...dados, criadaEm: hoje };
+      const anoNova = parseInt(hoje.slice(0,4));
+      const numeroNova = anotacoes.filter(function(a){ return parseInt((((a.criadaEm||a.data||'')+'')).slice(0,4)) === anoNova; }).reduce(function(m,a){ return Math.max(m, a.numero||0); }, 0) + 1;
+      const nova = { id: crypto.randomUUID(), ...dados, criadaEm: hoje, numero: numeroNova };
       anotacoes.unshift(nova);
       persistir(
         sbTable('gh_anotacoes').insert({
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, projeto_id: nova.projetoId || null, prioridade: nova.prioridade,
-          descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm,
+          descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm, numero: nova.numero,
           visivel_relatorio: nova.visivelRelatorio
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
@@ -6727,6 +6746,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     renderizarAnotacoes();
   }
 
+  // Código sequencial da anotação no formato AA-NNN (reinicia a cada ano)
+  function anotCodigo(a) {
+    if (!a || !a.numero) return '';
+    var base = (a.criadaEm || a.data || '') + '';
+    var yy = base.length >= 4 ? base.slice(2, 4) : '00';
+    return yy + '-' + String(a.numero).padStart(3, '0');
+  }
+
   function renderizarAnotacoes() {
     const hoje = new Date().toISOString().split('T')[0];
 
@@ -6768,7 +6795,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const subsFeitas = subs.filter(i => i.concluido).length;
 
       return `<tr>
-        <td>${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
+        <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
@@ -7098,14 +7125,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // Gera automaticamente, na tabela de despesas, os lançamentos de todas as recorrências ativas
   // cuja data prevista já chegou e que ainda não foram gerados (evita duplicidade via recorrenteId + data).
   function gerarDespesasRecorrentesPendentes() {
-    const hoje = hojeISO();
+    // Materializa as ocorrências até o FIM DO MÊS CORRENTE (não só até hoje):
+    // assim uma recorrente do mês (ex.: contador) já entra como despesa lançada
+    // assim que o mês começa, mesmo antes de chegar o dia dela.
+    const limite = isoData(new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0));
     const novas = [];
     despesasRecorrentes.forEach(function(r) {
       if (!r.ativa) return;
       const passo = PASSOS_FREQUENCIA[r.frequencia] || 1;
       let dataOcorrencia = r.dataInicio;
       let guarda = 0;
-      while (dataOcorrencia <= hoje && (!r.dataFim || dataOcorrencia <= r.dataFim) && guarda < 500) {
+      while (dataOcorrencia <= limite && (!r.dataFim || dataOcorrencia <= r.dataFim) && guarda < 500) {
         guarda++;
         const jaExiste = despesas.some(function(d) { return d.recorrenteId === r.id && d.data === dataOcorrencia; })
           || novas.some(function(n) { return n.recorrenteId === r.id && n.data === dataOcorrencia; });
@@ -7315,17 +7345,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
   function ocCancelarEdicao() { ocNovo(); }
 
-  function salvarOrcamentoConsultoria() {
+  // Coleta o estado atual do formulário (reusado por salvar e por imprimir/pré-visualizar)
+  function _ocColetarForm() {
     var cliente = document.getElementById('oc-cliente').value.trim();
-    if (!cliente) { alert('Informe o cliente'); document.getElementById('oc-cliente').focus(); return; }
     var objeto = document.getElementById('oc-objeto').value.trim();
-    if (!objeto) { alert('Descreva o objeto/escopo do serviço'); document.getElementById('oc-objeto').focus(); return; }
     var itensLimpos = ocItens.filter(function(it) { return (it.descricao || '').trim() || (parseFloat(it.valorUnit) || 0) > 0; });
-    if (!itensLimpos.length) { alert('Adicione ao menos um item com descrição ou valor'); return; }
     var calc = ocCalcular();
     var clienteObj = clientes.find(function(c) { return c.nome === cliente; });
     var hoje = document.getElementById('oc-data').value || new Date().toISOString().split('T')[0];
-    var campoLocal = {
+    var obj = {
       clienteNome: cliente, clienteId: clienteObj ? clienteObj.id : null,
       contato: document.getElementById('oc-contato').value.trim(),
       data: hoje, validadeDias: parseInt(document.getElementById('oc-validade').value) || 15,
@@ -7336,8 +7364,25 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       observacoes: document.getElementById('oc-obs').value.trim(),
       subtotal: calc.subtotal, total: calc.total, status: document.getElementById('oc-status').value
     };
+    return { cliente: cliente, objeto: objeto, itensLimpos: itensLimpos, obj: obj };
+  }
+
+  // Gera a proposta a partir do formulário atual, sem precisar salvar
+  function imprimirOrcamentoConsultoriaForm() {
+    var f = _ocColetarForm();
+    if (!f.cliente) { alert('Informe o cliente para gerar a proposta'); document.getElementById('oc-cliente').focus(); return; }
+    if (!f.itensLimpos.length) { alert('Adicione ao menos um item para gerar a proposta'); return; }
+    _ocGerarDocumentoOC(f.obj);
+  }
+
+  function salvarOrcamentoConsultoria() {
+    var f = _ocColetarForm();
+    if (!f.cliente) { alert('Informe o cliente'); document.getElementById('oc-cliente').focus(); return; }
+    if (!f.objeto) { alert('Descreva o objeto/escopo do serviço'); document.getElementById('oc-objeto').focus(); return; }
+    if (!f.itensLimpos.length) { alert('Adicione ao menos um item com descrição ou valor'); return; }
+    var campoLocal = f.obj;
     var payload = {
-      cliente_nome: campoLocal.clienteNome, cliente_id: campoLocal.clienteId, contato: campoLocal.contato,
+      cliente_nome: campoLocal.clienteNome, cliente_id: (campoLocal.clienteId == null ? null : String(campoLocal.clienteId)), contato: campoLocal.contato,
       data: campoLocal.data, validade_dias: campoLocal.validadeDias, norma: campoLocal.norma, objeto: campoLocal.objeto,
       itens: campoLocal.itens, desconto_pct: campoLocal.descontoPct, impostos_pct: campoLocal.impostosPct,
       prazo_execucao: campoLocal.prazoExecucao, condicoes_pagamento: campoLocal.condicoesPagamento,
@@ -7433,6 +7478,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function imprimirOrcamentoConsultoria(id) {
     var o = orcamentosConsult.find(function(x) { return x.id === id; });
     if (!o) { alert('Proposta não encontrada'); return; }
+    _ocGerarDocumentoOC(o);
+  }
+
+  function _ocGerarDocumentoOC(o) {
     var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
     var dataFmt = o.data ? o.data.split('-').reverse().join('/') : '';
     var subtotal = (o.itens || []).reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
