@@ -1464,10 +1464,11 @@
         <div class="form-group">
           <label>Categoria <span style="color:red">*</span></label>
           <select id="desp-categoria">
-            <option value="Fixo">📌 Fixo</option>
-            <option value="Variável">🔀 Variável</option>
-            <option value="Tecnologia">💻 Tecnologia</option>
-            <option value="Investimento">📈 Investimento</option>
+            <option value="Contador">📊 Contador</option>
+            <option value="Gasolina">⛽ Gasolina</option>
+            <option value="Alimentação">🍽️ Alimentação</option>
+            <option value="Impostos">🧾 Impostos</option>
+            <option value="Outros">📦 Outros</option>
           </select>
         </div>
         <div class="form-group"><label>Valor (R$) <span style="color:red">*</span></label><input type="number" id="desp-valor" step="0.01" min="0" placeholder="0,00"></div>
@@ -1523,10 +1524,11 @@
         <div class="form-group"><label>Categoria</label>
           <select id="filtro-desp-categoria" onchange="renderizarDespesas()">
             <option value="">Todas</option>
-            <option value="Fixo">Fixo</option>
-            <option value="Variável">Variável</option>
-            <option value="Tecnologia">Tecnologia</option>
-            <option value="Investimento">Investimento</option>
+            <option value="Contador">📊 Contador</option>
+            <option value="Gasolina">⛽ Gasolina</option>
+            <option value="Alimentação">🍽️ Alimentação</option>
+            <option value="Impostos">🧾 Impostos</option>
+            <option value="Outros">📦 Outros</option>
           </select>
         </div>
         <div class="form-group"><label>Mês</label><input type="month" id="filtro-desp-mes" onchange="renderizarDespesas()"></div>
@@ -1768,7 +1770,7 @@
         <div style="overflow-x:auto">
           <table class="table">
             <thead><tr>
-              <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right">Status / Ação</th>
+              <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right;white-space:nowrap;min-width:150px">Status / Ação</th>
             </tr></thead>
             <tbody id="tbody-anotacoes"></tbody>
           </table>
@@ -2256,6 +2258,14 @@ let clienteEditandoId = null;
     document.getElementById('cliente-btn-cancelar').style.display = 'none';
   }
 
+  function toggleTaxaCliente(iconEl) {
+    const span = iconEl.previousElementSibling;
+    const visivel = span.dataset.visivel === '1';
+    span.style.filter = visivel ? 'blur(5px)' : 'none';
+    span.dataset.visivel = visivel ? '0' : '1';
+    iconEl.className = visivel ? 'ti ti-eye' : 'ti ti-eye-off';
+  }
+
   function renderizarClientes() {
     document.getElementById('lista-clientes').innerHTML = clientes.map(c => `
       <div class="card-item" style="border-left:4px solid ${corCliente(c.nome)}">
@@ -2264,7 +2274,10 @@ let clienteEditandoId = null;
           ${c.nome}
         </div>
         <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${c.projeto}</div>
-        <div style="font-weight:500;margin-bottom:8px">R$ ${fmtVal(c.taxa)}/h</div>
+        <div style="font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+          <span class="taxa-oculta" data-visivel="0" style="filter:blur(5px);user-select:none;transition:filter .15s">R$ ${fmtVal(c.taxa)}/h</span>
+          <i class="ti ti-eye" style="cursor:pointer;color:var(--text-secondary);font-size:15px" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
+        </div>
         ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${c.obs}</div>` : ''}
          <div class="btn-acao-row">
           <button class="btn btn-icon" onclick="abrirModalProjetos('${c.id}')" title="Projetos e Entregáveis" style="background:#7c3aed;color:#fff"><i class="ti ti-briefcase"></i></button>
@@ -6755,8 +6768,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
         <td style="font-size:12px;color:var(--text-primary);white-space:normal;word-break:break-word">${a.descricao || '—'}</td>
-        <td>
-          <div class="btn-acao-row" style="justify-content:flex-end">
+        <td style="white-space:nowrap">
+          <div class="btn-acao-row" style="justify-content:flex-end;flex-wrap:nowrap">
             <button class="btn-icon" onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
               style="border-radius:7px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
               ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:15px;font-weight:700"></i>' : ''}
