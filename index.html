@@ -732,7 +732,7 @@
     /* ===== DASHBOARD ===== */
     .dash-kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
       gap: 1rem; margin-bottom: 1.5rem;
     }
     .dash-kpi {
@@ -1634,9 +1634,6 @@
 
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
     <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
-
-   <!-- Indicadores: Funil Anual + Mês Atual -->
-    <div class="dash-indicadores" id="dash-indicadores" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))"></div>
 
     <!-- Tabela resumo mensal (substitui o gráfico de evolução de faturamento mensal) -->
     <div class="card" style="margin-bottom:1rem">
@@ -5877,65 +5874,24 @@ ${faturas}
     const vMesReal  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
     const ticketHora = hMesReal > 0 ? vMesReal / hMesReal : 0;
 
-    // mês corrente — planejamento + horas registradas (sem dupla contagem)
+    // mês corrente — reconciliado com o Resumo Mensal (dedup por ANO + histórico do mês)
     const prefMes     = `${anoAtual}-${String(mesAtual+1).padStart(2,'0')}`;
-    const planMes     = planejamento.filter(p => p.inicio.startsWith(prefMes));
-    const idsRegMes   = new Set(tarMes.map(t => t.planejamentoId).filter(Boolean));
-    // planejamento não registrado ainda + todas as tarefas do mês
-   const vPlanPend   = planMes.filter(p => !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
-    const vTarMesTot  = tarMes.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const vPlanMes    = vPlanPend + vTarMesTot;
-   const vConfMes    = planMes.filter(p=>p.confirmado && !idsRegMes.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + vTarMesTot;
-    const pctMes      = vPlanMes > 0 ? Math.min(vTarMesTot/vPlanMes*100,100) : 0;
-    const pctFatMes   = vPlanMes > 0 ? Math.min(vMesFat/vPlanMes*100,100) : 0;
+    const _nvMes      = x => parseFloat(x)||0;
+    const _tMes       = tarefas.filter(t => t.data && t.data.startsWith(prefMes));
+    const _idsRegAnoAtual = new Set(tarefas.filter(t => t.data && t.data.startsWith(anoAtual + '-')).map(t => t.planejamentoId).filter(Boolean));
+    const _pMesPend   = planejamento.filter(p => p.inicio && p.inicio.startsWith(prefMes) && !_idsRegAnoAtual.has(p.id));
+    const _histMes    = historico.filter(h => h.ano === anoAtual && h.mes === mesAtual + 1);
+    const _vHistMes   = _histMes.reduce((s,h)=>s+_nvMes(h.valor),0);
+    const _hHistMes   = _histMes.reduce((s,h)=>s+_nvMes(h.horas),0);
+    const _tMesVal    = _tMes.reduce((s,t)=>s+_nvMes(t.valor),0);
+    const _tMesHoras  = _tMes.reduce((s,t)=>s+_nvMes(t.horas),0);
+    const mesPlan     = _pMesPend.reduce((s,p)=>s+_nvMes(p.valor),0) + _tMesVal + _vHistMes;
+    const mesConf     = _pMesPend.filter(p=>p.confirmado).reduce((s,p)=>s+_nvMes(p.valor),0) + _tMesVal + _vHistMes;
+    const mesFat      = _tMes.filter(t=>t.cobrado).reduce((s,t)=>s+_nvMes(t.valor),0) + _vHistMes;
+    const mesHConf    = _pMesPend.filter(p=>p.confirmado).reduce((s,p)=>s+_nvMes(p.horas),0) + _tMesHoras + _hHistMes;
+    const mesHFat     = _tMes.filter(t=>t.cobrado).reduce((s,t)=>s+_nvMes(t.horas),0) + _hHistMes;
 
-    // ── INDICADORES COMPARATIVOS ─────────────────────────────
-    const pctFat   = vConf > 0 ? Math.min(vFat /vConf*100,100) : 0;
-
-    document.getElementById('dash-indicadores').innerHTML = [
-      {
-        icon:'ti-chart-line', title:'Funil do Ano ' + ano,
-        a:{ label:'Planejado', val: 'R$ '+fmtVal(vPlan) },
-        b:{ label:'Confirmado', val: 'R$ '+fmtVal(vConf), cls:'gold' },
-        extra:{ label:'Faturado', val: 'R$ '+fmtVal(vFat), cls:'green' },
-        pct: pctFat, pctLabel:`${pctFat.toFixed(0)}% do confirmado já faturado`,
-        cor: pctFat>=80?'#10b981':pctFat>=50?'#E8B84B':'#ef4444'
-      },
-      {
-        icon:'ti-calendar-stats', title:'Mês Atual — ' + MESES[mesAtual] + '/' + anoAtual,
-        a:{ label:'Previsto', val: 'R$ '+fmtVal(vPlanMes) },
-        b:{ label:'Confirmado', val: 'R$ '+fmtVal(vConfMes), cls:'gold' },
-        extra:{ label:'Faturado', val: 'R$ '+fmtVal(vMesFat), cls:'green' },
-        pct: pctMes,
-        pctLabel: vPlanMes>0?`${pctMes.toFixed(0)}% realizado`:'Sem planejamento neste mês',
-        cor: pctMes>=80?'#10b981':pctMes>=50?'#E8B84B':'#ef4444'
-      }
-    ].map(ind => `
-      <div class="dash-ind">
-        <div class="dash-ind-title"><i class="ti ${ind.icon}"></i>${ind.title}</div>
-        <div class="dash-ind-row">
-          <div class="dash-ind-item">
-            <div class="dash-ind-label">${ind.a.label}</div>
-            <div class="dash-ind-value">${ind.a.val}</div>
-          </div>
-          <div class="dash-ind-sep">→</div>
-          <div class="dash-ind-item">
-            <div class="dash-ind-label">${ind.b.label}</div>
-            <div class="dash-ind-value ${ind.b.cls||''}">${ind.b.val}</div>
-          </div>
-          <div class="dash-ind-sep">·</div>
-          <div class="dash-ind-item">
-            <div class="dash-ind-label">${ind.extra.label}</div>
-            <div class="dash-ind-value ${ind.extra.cls||''}">${ind.extra.val}</div>
-          </div>
-        </div>
-        <div class="dash-ind-bar-wrap">
-          <div class="dash-ind-bar-track">
-            <div class="dash-ind-bar-fill" style="width:${ind.pct.toFixed(1)}%;background:${ind.cor}"></div>
-          </div>
-          <div class="dash-ind-pct" style="color:${ind.cor}">${ind.pctLabel}</div>
-        </div>
-      </div>`).join('');
+    // (indicadores em barras removidos a pedido — os totais do ANO seguem no Resumo Mensal)
 
   // ── KPIs principais ─────────────────────────────────────
     // Valor a faturar = tudo que já foi CONFIRMADO (planejado e ainda não registrado, ou já registrado em horas) e ainda não foi marcado como cobrado
@@ -5949,11 +5905,10 @@ ${faturas}
     const vDespesasLancadasMes = despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).reduce((s,d)=>s+(parseFloat(d.valor)||0),0);
     const vDespesasRecorrentesPrevistas = valorRecorrentesNoMes(anoAtual, mesAtual);
     const vDespesasMes = vDespesasLancadasMes + vDespesasRecorrentesPrevistas;
-    const vLucroMes = vMesFat - vDespesasMes;
+    const vLucroMes = mesFat - vDespesasMes;
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
-     { label:'Valor Planejado do Mês',        value:'R$ '+fmtVal(vPlanMes),       sub: MESES[mesAtual] + '/' + anoAtual, cor:'#93c5fd' },
-      { label:'Valor Faturado no Mês',         value:'R$ '+fmtVal(vMesFat),        sub: MESES[mesAtual] + '/' + anoAtual, cor:'#10b981' },
+      { label:'Planejado do Mês — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub:`<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px"><span style="color:#E8B84B;font-size:12.5px">Confirmado <b>R$ ${fmtVal(mesConf)}</b> · ${fmtVal(mesHConf)}h</span><span style="color:#10b981;font-size:12.5px">Faturado <b>R$ ${fmtVal(mesFat)}</b> · ${fmtVal(mesHFat)}h</span></div>`, cor:'#93c5fd' },
       { label:'Ticket Médio / Hora',           value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
       { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Faturado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
