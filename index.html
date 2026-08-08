@@ -7473,11 +7473,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '*{margin:0;padding:0;box-sizing:border-box}' +
       'body{font-family:"Segoe UI",Arial,sans-serif;color:#2b2b38;background:#f4f4f7;font-size:12.5px;line-height:1.5}' +
       '.doc{max-width:820px;margin:20px auto;background:#fff;box-shadow:0 4px 24px rgba(0,0,0,.08)}' +
-      '.head{background:#252538;color:#fff;padding:26px 40px;display:flex;justify-content:space-between;align-items:flex-start;border-bottom:4px solid #E8B84B}' +
-      '.logo{font-size:26px;font-weight:800;letter-spacing:1px}.logo span{color:#E8B84B}' +
-      '.sub{font-size:11px;color:rgba(255,255,255,.7);margin-top:2px;text-transform:uppercase;letter-spacing:.6px}' +
-      '.pinfo{font-size:10.5px;color:rgba(255,255,255,.6);margin-top:8px;line-height:1.6}' +
-      '.htitle{text-align:right}.htitle .t{font-size:15px;font-weight:700;letter-spacing:.5px}.htitle .d{font-size:11px;color:rgba(255,255,255,.65);margin-top:4px}' +
       '.parties{display:flex;gap:20px;padding:22px 40px 6px}' +
       '.party{flex:1;border:1px solid #e6e6ef;border-radius:8px;padding:12px 14px}' +
       '.party .cap{font-size:9.5px;text-transform:uppercase;letter-spacing:.6px;color:#9a9aae;font-weight:700;margin-bottom:5px}' +
@@ -7493,12 +7488,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '.obs{font-size:11.5px;color:#555;text-align:justify;white-space:pre-wrap}' +
       '.assina{display:flex;justify-content:space-between;gap:40px;padding:44px 40px 20px}' +
       '.assina .box{flex:1;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px;color:#555}' +
-      '.foot{padding:12px 40px 26px;border-top:1px solid #ececf3;text-align:center;font-size:10px;color:#a0a0b0}' +
       '@media print{body{background:#fff}.doc{box-shadow:none;margin:0;max-width:none}@page{margin:12mm 10mm}.sec,table.itens tr{page-break-inside:avoid}}' +
       '</style></head><body><div class="doc">' +
-      '<div class="head"><div><div class="logo">' + esc(OC_PRESTADOR.nome) + (OC_PRESTADOR.subtitulo ? '' : '') + '</div>' +
-      '<div class="sub">' + esc(OC_PRESTADOR.subtitulo) + '</div>' + (pInfo.length ? '<div class="pinfo">' + pInfo.join('<br>') + '</div>' : '') + '</div>' +
-      '<div class="htitle"><div class="t">PROPOSTA COMERCIAL</div><div class="d">Data: ' + dataFmt + '</div></div></div>' +
       '<div class="parties">' +
       '<div class="party"><div class="cap">Cliente</div><div class="nm">' + esc(o.clienteNome) + '</div>' + (o.contato ? '<div class="ln">A/C: ' + esc(o.contato) + '</div>' : '') + '</div>' +
       '<div class="party"><div class="cap">Status</div><div class="nm" style="text-transform:capitalize">' + esc(o.status || 'rascunho') + '</div><div class="ln">Validade: ' + (o.validadeDias || 15) + ' dias</div></div>' +
@@ -7509,7 +7500,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '<div class="sec"><h3>Condições</h3><div class="cond">' + condicoes.join('') + '</div></div>' +
       (o.observacoes ? '<div class="sec"><h3>Observações</h3><div class="obs">' + esc(o.observacoes) + '</div></div>' : '') +
       '<div class="assina"><div class="box">' + esc(OC_PRESTADOR.nome) + '</div><div class="box">' + esc(o.clienteNome) + '</div></div>' +
-      '<div class="foot">' + esc(OC_PRESTADOR.nome) + (OC_PRESTADOR.local ? ' · ' + esc(OC_PRESTADOR.local) : '') + ' — Proposta gerada em ' + dataFmt + '</div>' +
       '</div></body></html>';
 
     var janela = window.open('', '_blank');
