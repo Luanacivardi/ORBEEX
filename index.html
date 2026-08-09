@@ -922,7 +922,7 @@
     .apphead {
       background: linear-gradient(160deg, var(--navy) 0%, var(--navy-dark) 78%);
       margin: 0 -1rem;
-      padding: 1.4rem 1.75rem 1.5rem;
+      padding: 1.4rem 1.75rem 3.4rem;
       border-radius: 0 0 var(--radius-lg) var(--radius-lg);
       position: relative; overflow: hidden;
     }
@@ -1156,6 +1156,29 @@
       .btn:hover, .card:hover, .home-stat:hover, .board-card:hover, .home-card:hover { transform: none; }
     }
 
+    /* ── Ajustes da aba Início ──────────────────────────────────── */
+    .home-stat { padding: .85rem 1.05rem; }
+    .home-stat-val { font-size: 24px; }
+    .home-split-row { gap: 1.1rem; }
+    .home-agenda { display: flex; flex-direction: column; }
+    #home-agenda-lista { flex: 1; max-height: none; min-height: 150px; }
+    .home-agenda-vazio { padding: 2rem 1rem; border-radius: var(--radius); }
+    #card-diario textarea { min-height: 72px !important; }
+
+    /* ── Frases padrão do Diário ────────────────────────────────── */
+    .frases-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: .5rem; flex-wrap: wrap;
+    }
+    .frases-bar select {
+      width: auto; flex: 1; min-width: 190px; font-size: 12px;
+      padding: 6px 9px; background: var(--gold-bg);
+      border: 1px solid var(--gold-light); color: var(--text-warning);
+      font-weight: 600; cursor: pointer;
+    }
+    .frases-bar select:hover { background: #FAEDD0; }
+    .frases-dica { font-size: 10.5px; color: var(--text-muted); }
+
     /* ── Avisos: toast e status de conexão ─────────────────────── */
     .toast-wrap {
       position: fixed; right: 16px; bottom: 16px; z-index: 4000;
@@ -1252,14 +1275,14 @@
 
         <div class="card card-compact" id="card-diario" style="margin-bottom:0;display:flex;flex-direction:column">
           <div class="card-header" style="justify-content:space-between;margin-bottom:.5rem">
-            <span><i class="ti ti-notes"></i> Diario do Dia</span>
+            <span><i class="ti ti-notes"></i> Diário do Dia</span>
             <span style="font-size:10px;font-weight:400;color:var(--text-secondary);text-transform:none;letter-spacing:normal" id="diario-status"></span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:.5rem;flex-wrap:wrap">
             <input type="date" id="diario-data" onchange="carregarDiarioDoDia()" style="width:auto;padding:5px 8px;font-size:12px">
             <button class="btn btn-sm btn-secondary" onclick="irParaDiarioHoje()" style="padding:5px 10px;font-size:11px">Hoje</button>
           </div>
-          <textarea id="diario-texto" placeholder="Ex: 09h reuniao com Tedesco; 11h ajustei a IT de inspecao..." style="min-height:36px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
+          <textarea id="diario-texto" placeholder="Ex.: 09h visita técnica à Tedesco; 11h revisão da IT de inspeção..." style="min-height:36px;resize:vertical" oninput="agendarSalvarDiario()"></textarea>
           <div style="display:flex;justify-content:flex-end;margin-top:.4rem">
             <button class="btn btn-primary btn-sm" onclick="salvarDiario(true)" style="padding:5px 10px;font-size:11px"><i class="ti ti-device-floppy"></i> Salvar agora</button>
           </div>
@@ -9560,9 +9583,100 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var paineis = document.querySelectorAll('.tab-content');
     for (var j = 0; j < paineis.length; j++) paineis[j].setAttribute('role', 'tabpanel');
   }
+
+  /* ── 6. Frases padrão do Diário do Dia ───────────────────────── */
+  var FRASES = [
+    ['Visita e campo', [
+      'Visita técnica à [CLIENTE]. Percorridos os setores de [SETOR] para verificação in loco dos processos e levantamento de evidências.',
+      'Acompanhamento do processo produtivo em [SETOR], com verificação da aderência às instruções de trabalho e aos registros de inspeção.',
+      'Inspeção de processo em [SETOR]. Verificados dispositivos de medição, identificação de lotes e condições de armazenagem.',
+      'Levantamento de gargalos no fluxo de [PROCESSO], com registro fotográfico das condições encontradas.',
+      'Aplicação de checklist 5S nos setores de [SETOR]; pontuação registrada e desvios fotografados para o plano de ação.'
+    ]],
+    ['Auditoria e verificação', [
+      'Auditoria interna do processo de [PROCESSO], conforme requisito [REQUISITO] da ISO 9001:2015. Constatadas [N] não conformidades e [N] oportunidades de melhoria.',
+      'Verificação da eficácia das ações corretivas da auditoria anterior; [N] ações encerradas e [N] mantidas em acompanhamento.',
+      'Preparação para auditoria de [ORGANISMO]: conferência de evidências documentais e simulação de entrevistas com os donos de processo.',
+      'Análise crítica de documentos do SGQ: revisados [N] procedimentos e [N] instruções de trabalho quanto à aderência normativa.'
+    ]],
+    ['Tratativa de problema', [
+      'Tratativa de não conformidade [ID]: aplicada análise de causa raiz pelos 5 Porquês; definidas ação de contenção, correção e ação corretiva com responsáveis e prazos.',
+      'Construção de diagrama de Ishikawa com a equipe de [SETOR] para levantamento das causas de [PROBLEMA].',
+      'Abertura de RNC referente a [OCORRÊNCIA]; produto segregado e identificado conforme o procedimento de controle de PNC.',
+      'Análise de reclamação de cliente: levantado histórico do lote, verificados registros de processo e definida resposta formal.'
+    ]],
+    ['Reunião e alinhamento', [
+      'Reunião com [PARTICIPANTES] para alinhamento das ações do SGQ, definição de responsáveis e pactuação de prazos.',
+      'Reunião de análise crítica pela direção: apresentados desempenho dos indicadores, status das ações e necessidades de recurso.',
+      'Follow-up das pendências da última visita: [N] concluídas, [N] em andamento e [N] reprogramadas.',
+      'Apresentação de resultados do projeto [PROJETO] à direção, com proposta de continuidade.'
+    ]],
+    ['Documentação e indicadores', [
+      'Elaboração/revisão de [DOCUMENTO], contemplando os requisitos aplicáveis e a realidade atual do processo.',
+      'Atualização dos indicadores do mês e dos gráficos de monitoramento dos objetivos da qualidade.',
+      'Estruturação da matriz de riscos e oportunidades do processo de [PROCESSO].',
+      'Trabalho interno de consultoria: preparação de material, tratamento de dados e organização de evidências para [CLIENTE].',
+      'Treinamento sobre [TEMA] para a equipe de [SETOR]; [N] participantes, com lista de presença e avaliação de eficácia registradas.'
+    ]]
+  ];
+
+  function montarFrases() {
+    var txt = document.getElementById('diario-texto');
+    if (!txt || document.getElementById('frases-select')) return;
+
+    var bar = document.createElement('div');
+    bar.className = 'frases-bar';
+
+    var sel = document.createElement('select');
+    sel.id = 'frases-select';
+    sel.setAttribute('aria-label', 'Inserir frase padrão no diário');
+    var html = '<option value="">+ Inserir frase padrão…</option>';
+    for (var i = 0; i < FRASES.length; i++) {
+      html += '<optgroup label="' + FRASES[i][0] + '">';
+      for (var j = 0; j < FRASES[i][1].length; j++) {
+        var f = FRASES[i][1][j];
+        var curta = f.length > 62 ? f.slice(0, 62) + '…' : f;
+        html += '<option value="' + i + ':' + j + '">' + window.esc(curta) + '</option>';
+      }
+      html += '</optgroup>';
+    }
+    sel.innerHTML = html;
+
+    var dica = document.createElement('span');
+    dica.className = 'frases-dica';
+    dica.textContent = 'Troque os campos entre [ ] antes de salvar';
+
+    bar.appendChild(sel);
+    bar.appendChild(dica);
+    txt.parentNode.insertBefore(bar, txt);
+
+    sel.addEventListener('change', function () {
+      if (!sel.value) return;
+      var par = sel.value.split(':');
+      var frase = FRASES[+par[0]][1][+par[1]];
+      var ini = txt.selectionStart, fim = txt.selectionEnd, v = txt.value;
+      var antes = v.slice(0, ini), depois = v.slice(fim);
+      var sep = (antes && !/\n\s*$/.test(antes)) ? '\n' : '';
+      txt.value = antes + sep + frase + depois;
+      var pos = (antes + sep + frase).length;
+      txt.focus();
+      // posiciona no primeiro campo a preencher
+      var alvo = frase.indexOf('[');
+      if (alvo > -1) {
+        var base = (antes + sep).length;
+        txt.setSelectionRange(base + alvo, base + frase.indexOf(']', alvo) + 1);
+      } else {
+        txt.setSelectionRange(pos, pos);
+      }
+      sel.value = '';
+      if (typeof agendarSalvarDiario === 'function') agendarSalvarDiario();
+    });
+  }
+
   function iniciar() {
     semanticaAbas();
     rotular();
+    montarFrases();
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.tab-btn')) setTimeout(semanticaAbas, 0);
     });
