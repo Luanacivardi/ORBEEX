@@ -1136,7 +1136,7 @@
 
     /* ── Responsivo ─────────────────────────────────────────────── */
     @media (max-width: 860px) {
-      .apphead { padding: 1.1rem 1.1rem 1.2rem; border-radius: 0 0 16px 16px; }
+      .apphead { padding: 1.1rem 1.1rem 3rem; border-radius: 0 0 16px 16px; }
       .apphead-top { gap: .6rem; }
       .apphead-greet { text-align: left; }
       .apphead-greet h2 { font-size: 15px; }
@@ -1148,6 +1148,53 @@
     @media (max-width: 480px) {
       .home-stats { grid-template-columns: repeat(2, 1fr); }
       .apphead .header p { display: none; }
+    }
+
+    /* ── Celular: aba Início mais compacta ──────────────────────── */
+    @media (max-width: 760px) {
+      .home-stats { gap: .6rem; margin-top: -26px; }
+      .home-stat { padding: .75rem .85rem; }
+      .home-stat-label { font-size: 9.5px; letter-spacing: .3px; line-height: 1.25; }
+      .home-stat-val { font-size: 21px; }
+      .home-agenda-vazio { padding: 1.4rem 1rem; }
+      .home-agenda-vazio i { font-size: 26px; }
+      .home-secao-titulo { font-size: 14px; }
+      .card { padding: 1rem .9rem; }
+      /* dica de que a barra de abas rola para o lado */
+      .tabs {
+        scroll-snap-type: x proximity;
+        -webkit-mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+        mask-image: linear-gradient(to right, #000 88%, transparent 100%);
+      }
+      .tab-btn { scroll-snap-align: start; }
+    }
+
+    /* ── Celular: tabelas viram cartões empilhados ──────────────── */
+    @media (max-width: 760px) {
+      .table { border-collapse: separate; border-spacing: 0; font-size: 12.5px; }
+      .table thead { display: none; }
+      .table, .table tbody, .table tr, .table td { display: block; width: 100%; }
+      .table tr {
+        background: var(--surface-2); border: 1px solid var(--border);
+        border-radius: var(--radius); margin-bottom: .55rem;
+        padding: .15rem .8rem; box-shadow: var(--shadow-sm);
+      }
+      .table td {
+        border-bottom: 1px solid var(--border); padding: 9px 0;
+        display: flex; gap: 12px; align-items: baseline;
+        justify-content: space-between;
+        text-align: right !important; white-space: normal !important;
+      }
+      .table td:last-child { border-bottom: none; }
+      .table td::before {
+        content: attr(data-label); flex: 0 0 38%; text-align: left;
+        font-size: 9.5px; font-weight: 700; text-transform: uppercase;
+        letter-spacing: .4px; color: var(--text-muted); line-height: 1.4;
+      }
+      .table td[data-label=""]::before, .table td.td-full::before { display: none; }
+      .table td.td-full { justify-content: center; text-align: center !important; }
+      .table tr:hover td { background: transparent; }
+      .table td .btn { width: auto; }
     }
 
     /* ── Acessibilidade ─────────────────────────────────────────── */
@@ -9673,17 +9720,151 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
   }
 
+  // Copia o cabeçalho da coluna para cada célula — habilita o modo cartão no celular
+  function rotularTabelas() {
+    var tabelas = document.querySelectorAll('table.table');
+    for (var t = 0; t < tabelas.length; t++) {
+      var ths = tabelas[t].querySelectorAll('thead th');
+      if (!ths.length) continue;
+      var titulos = [];
+      for (var k = 0; k < ths.length; k++) titulos.push(ths[k].textContent.trim());
+      var linhas = tabelas[t].querySelectorAll('tbody tr');
+      for (var r = 0; r < linhas.length; r++) {
+        if (linhas[r].dataset.rot === '1') continue;
+        var tds = linhas[r].children;
+        for (var c = 0; c < tds.length; c++) {
+          if (tds[c].colSpan > 1) { tds[c].classList.add('td-full'); continue; }
+          tds[c].setAttribute('data-label', titulos[c] || '');
+        }
+        linhas[r].dataset.rot = '1';
+      }
+    }
+  }
+
+  /* ── 7. Normalização de texto livre ──────────────────────────── */
+  // Campos que recebem texto corrido e vão para relatório/fatura
+  var CAMPOS_TEXTO = [
+    'horas-atividade', 'horas-descricao', 'plan-atividade', 'massa-atividade',
+    'import-atividade', 'ag-edit-atividade', 'anot-titulo', 'anot-descricao',
+    'desp-descricao', 'hist-descricao', 'orc-dev-descricao', 'cliente-obs',
+    'modal-cliente-obs', 'oc-obs', 'evid-anotacao', 'diario-texto'
+  ];
+
+  // Siglas que nunca perdem a caixa alta.
+  // Excluídas de propósito as de 2 letras que colidem com palavras (OS, PO, DE, NA...)
+  var SIGLAS = ('ORBEEX ISO IATF VDA SGQ SGI SGA NBR NC RNC PNC PPAP APQP FMEA MSA SPC CEP MASP ' +
+    'PDCA SMETA SEDEX LGPD OIT EPI EPC CIPA PCMSO PGR ART PCP CNPJ CPF NFE KPI BSC SWOT ' +
+    'IT RH TÜV SGS BSI DNV OEE MTBF MTTR 8D 5S 5W2H').split(' ');
+  var SET_SIGLAS = {};
+  for (var q = 0; q < SIGLAS.length; q++) SET_SIGLAS[SIGLAS[q]] = 1;
+
+  // Conectivos: ficam minúsculos e nunca contam como nome próprio
+  var MINUSC = ('de da do das dos e em no na nos nas para por com sem a o as os ao aos à às ' +
+    'que se ou um uma uns umas sobre entre até como').split(' ');
+  var SET_MINUSC = {};
+  for (var w = 0; w < MINUSC.length; w++) SET_MINUSC[MINUSC[w]] = 1;
+
+  // Monta o dicionário de nomes próprios a partir dos clientes cadastrados,
+  // guardando a grafia original (Maxicorte, e não MAXICORTE)
+  function nomesProprios() {
+    var mapa = {};
+    try {
+      if (typeof clientes === 'undefined' || !clientes) return mapa;
+      for (var i = 0; i < clientes.length; i++) {
+        var partes = String(clientes[i].nome || '').split(/[\s/.,-]+/);
+        for (var j = 0; j < partes.length; j++) {
+          var t = partes[j];
+          if (t.length < 3) continue;
+          if (SET_MINUSC[t.toLowerCase()]) continue;
+          mapa[t.toLowerCase()] = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+        }
+      }
+    } catch (e) {}
+    return mapa;
+  }
+
+  function grauCaixaAlta(t) {
+    var letras = t.replace(/[^A-Za-zÀ-ÿ]/g, '');
+    if (letras.length < 12) return 0;
+    var altas = t.replace(/[^A-ZÀ-Þ]/g, '').length;
+    return altas / letras.length;
+  }
+
+  // CAIXA ALTA -> frase normal, preservando siglas, códigos e nomes de clientes
+  window.normalizarTexto = function (txt) {
+    if (!txt || grauCaixaAlta(txt) < 0.7) return txt;
+    var proprios = nomesProprios();
+
+    var saida = txt.replace(/[^\s]+/g, function (bloco) {
+      // separa pontuação das bordas para não perder vírgula, ponto e parênteses
+      var m = bloco.match(/^([^0-9A-Za-zÀ-ÿ]*)(.*?)([^0-9A-Za-zÀ-ÿ]*)$/);
+      var pre = m[1], nucleo = m[2], pos = m[3];
+      if (!nucleo) return bloco;
+      var chave = nucleo.toLowerCase();
+
+      if (SET_SIGLAS[nucleo.toUpperCase()]) return pre + nucleo.toUpperCase() + pos;
+      if (/\d/.test(nucleo) && /[A-Za-zÀ-ÿ]/.test(nucleo)) return pre + nucleo.toUpperCase() + pos; // PR006, ISO9001
+      if (proprios[chave]) return pre + proprios[chave] + pos;
+      return pre + nucleo.toLowerCase() + pos;
+    });
+
+    // maiúscula no início de cada frase
+    saida = saida.replace(/(^|[.!?;]\s+|\n\s*)([a-zà-ÿ])/g, function (m2, a, b) {
+      return a + b.toUpperCase();
+    });
+    return saida;
+  };
+
+  function normalizarCampo(el) {
+    if (!el || !el.value) return;
+    var antes = el.value;
+    var depois = window.normalizarTexto(antes);
+    if (depois !== antes) {
+      el.value = depois;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+      window.toast('Texto ajustado: estava todo em caixa alta.', 'ok', 3000);
+    }
+  }
+
+  function ligarNormalizacao() {
+    // corretor ortográfico nativo do navegador em todo texto livre
+    var campos = document.querySelectorAll('textarea, input[type="text"]');
+    for (var i = 0; i < campos.length; i++) {
+      if (!campos[i].hasAttribute('spellcheck')) {
+        campos[i].setAttribute('spellcheck', 'true');
+        campos[i].setAttribute('lang', 'pt-BR');
+      }
+    }
+    // normaliza a caixa ao sair do campo
+    document.addEventListener('focusout', function (e) {
+      var el = e.target;
+      if (!el || !el.id) return;
+      if (CAMPOS_TEXTO.indexOf(el.id) === -1) return;
+      normalizarCampo(el);
+    }, true);
+  }
+
   function iniciar() {
     semanticaAbas();
     rotular();
+    rotularTabelas();
     montarFrases();
+    ligarNormalizacao();
     document.addEventListener('click', function (e) {
       if (e.target && e.target.closest && e.target.closest('.tab-btn')) setTimeout(semanticaAbas, 0);
     });
     var pendente = null;
     new MutationObserver(function () {
       clearTimeout(pendente);
-      pendente = setTimeout(rotular, 400);
+      pendente = setTimeout(function () {
+        rotular(); rotularTabelas();
+        var novos = document.querySelectorAll('textarea:not([spellcheck]), input[type="text"]:not([spellcheck])');
+        for (var i = 0; i < novos.length; i++) {
+          novos[i].setAttribute('spellcheck', 'true');
+          novos[i].setAttribute('lang', 'pt-BR');
+        }
+      }, 400);
     }).observe(document.body, { childList: true, subtree: true });
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
