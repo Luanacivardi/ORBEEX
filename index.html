@@ -1197,6 +1197,70 @@
       .table td .btn { width: auto; }
     }
 
+
+    /* ══════════════════════════════════════════════════════════════
+       Celular — passe geral de layout (todas as abas)
+       ══════════════════════════════════════════════════════════════ */
+    @media (max-width: 760px) {
+
+      /* Toque: alvos de no mínimo 40px (WCAG 2.5.5) */
+      .btn { padding: 10px 14px; }
+      .btn-sm { padding: 8px 12px; }
+      .btn-icon { min-width: 40px; min-height: 40px; }
+      input[type="checkbox"], input[type="radio"] { width: 18px; height: 18px; }
+
+      /* Campos legíveis e sem zoom automático no foco */
+      input[type="text"], input[type="email"], input[type="number"],
+      input[type="date"], input[type="time"], textarea { font-size: 15px; }
+
+      /* Toda barra de ferramentas quebra em vez de estourar a tela */
+      .agenda-toolbar, .agenda-nav, .agenda-filtro, .toolbar, .subtabs,
+      .card-header, .filters, .board-col-header, .anot-toolbar { flex-wrap: wrap; }
+      .agenda-title { min-width: 0 !important; font-size: 15px; }
+      .agenda-filtro select, .filters select { max-width: 100%; }
+
+      /* Colunas viram pilha */
+      .home-split-row > * { min-width: 0 !important; flex: 1 1 100% !important; }
+      .grid-cards { grid-template-columns: 1fr; }
+      .dashboard-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+      .pend-cols, .board-cols, .board-cols-3, .dash-row { grid-template-columns: 1fr; }
+      .dash-card-wide, .dash-card-narrow, .dash-card-half { min-width: 0; }
+
+      /* Texto cortado por reticências passa a quebrar linha */
+      .pend-item-titulo, .home-agenda-pauta, .ent-row-titulo,
+      .semana-turno-evento-pauta, .board-card-titulo { white-space: normal; }
+      .semana-turno-evento-pauta { display: block; }
+
+      /* Gráficos nunca estouram a largura */
+      canvas { max-width: 100% !important; height: auto !important; }
+
+      /* Agenda — vista SEMANA rola lateralmente como bloco único,
+         em vez de espremer 7 colunas em 360px */
+      .semana-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+      .semana-scroll > * { min-width: 660px; }
+      .outlook-timegrid-wrap { max-height: 60vh; }
+
+      /* Agenda — vista MÊS: compromissos viram pontos coloridos */
+      .month-cell { min-height: 58px; padding: 3px; }
+      .month-cell-num { font-size: 11px; }
+      .month-dow { font-size: 9px; }
+      .outlook-month-grid .month-event,
+      .outlook-month-grid .month-anot {
+        display: inline-block; width: 7px; height: 7px; padding: 0;
+        border-radius: 50%; border-left: none; margin: 1px;
+        font-size: 0; overflow: hidden; vertical-align: middle;
+      }
+      .month-more { font-size: 9px; }
+
+      /* Modais ocupam a tela como folha inferior */
+      .modal-overlay { padding: 0; align-items: flex-end; }
+      .modal-box { max-width: 100%; max-height: 94vh; border-radius: 20px 20px 0 0; }
+      .modal-header { position: sticky; top: 0; background: #fff; z-index: 2; }
+
+      /* Respiro para a barra de navegação do aparelho */
+      .container { padding-bottom: calc(2rem + env(safe-area-inset-bottom)); }
+    }
+
     /* ── Acessibilidade ─────────────────────────────────────────── */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
@@ -9845,10 +9909,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     }, true);
   }
 
+  // A vista SEMANA é montada em um <div> sem classe; marca o pai para rolagem lateral
+  function marcarAgendaSemana() {
+    var hdr = document.querySelector('.outlook-week-header');
+    if (hdr && hdr.parentNode && !hdr.parentNode.classList.contains('semana-scroll')) {
+      hdr.parentNode.classList.add('semana-scroll');
+    }
+  }
+
   function iniciar() {
     semanticaAbas();
     rotular();
     rotularTabelas();
+    marcarAgendaSemana();
     montarFrases();
     ligarNormalizacao();
     document.addEventListener('click', function (e) {
@@ -9858,7 +9931,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     new MutationObserver(function () {
       clearTimeout(pendente);
       pendente = setTimeout(function () {
-        rotular(); rotularTabelas();
+        rotular(); rotularTabelas(); marcarAgendaSemana();
         var novos = document.querySelectorAll('textarea:not([spellcheck]), input[type="text"]:not([spellcheck])');
         for (var i = 0; i < novos.length; i++) {
           novos[i].setAttribute('spellcheck', 'true');
