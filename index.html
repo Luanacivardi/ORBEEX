@@ -1654,7 +1654,7 @@
             <button class="filter-btn" onclick="filtrarPlan('Confirmado',event)">Confirmado</button>
           </div>
           <div id="plan-massa-toolbar" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#f0f4ff;border-bottom:1px solid #c7d2fe;flex-wrap:wrap">
-            <span id="plan-massa-count" style="font-size:13px;font-weight:600;color:#3730a3;min-width:120px"></span>
+            <span class="plan-massa-count" style="font-size:13px;font-weight:600;color:#3730a3;min-width:120px"></span>
             <button class="btn btn-success btn-sm" onclick="confirmarSelecionados()"><i class="ti ti-checks"></i> Confirmar Selecionados</button>
             <button class="btn btn-primary btn-sm" onclick="cobrarSelecionados()"><i class="ti ti-receipt"></i> Gerar Cobrança em Massa</button>
             <button class="btn btn-danger btn-sm" onclick="excluirSelecionadosPlan()"><i class="ti ti-trash"></i> Excluir Selecionados</button>
@@ -1663,7 +1663,7 @@
           <div style="overflow-x:auto">
             <table class="table">
               <thead><tr>
-                <th style="width:36px"><input type="checkbox" id="plan-chk-todos" title="Selecionar todos" onchange="selecionarTodosPlan(this.checked)"></th>
+                <th style="width:36px"><input type="checkbox" class="plan-chk-todos" title="Selecionar todos" onchange="selecionarTodosPlan(this.checked)"></th>
                 <th>Cliente</th><th>Data</th><th>Horário</th><th>Pauta</th><th>Modalidade</th><th>Horas</th><th>Valor</th><th>Status</th><th>Ação</th>
               </tr></thead>
               <tbody id="tbody-plan"></tbody>
@@ -1672,6 +1672,15 @@
         </div>
 
         <div id="plan-view-board" style="display:none">
+          <div id="plan-massa-toolbar-board" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#f0f4ff;border-bottom:1px solid #c7d2fe;flex-wrap:wrap;margin-bottom:10px;border-radius:8px">
+            <span class="plan-massa-count" style="font-size:13px;font-weight:600;color:#3730a3;min-width:120px"></span>
+            <label style="display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:400;cursor:pointer"><input type="checkbox" class="plan-chk-todos" onchange="selecionarTodosPlan(this.checked)"> Selecionar todos visíveis</label>
+            <button class="btn btn-success btn-sm" onclick="confirmarSelecionados()"><i class="ti ti-checks"></i> Confirmar Selecionados</button>
+            <button class="btn btn-primary btn-sm" onclick="cobrarSelecionados()"><i class="ti ti-receipt"></i> Gerar Cobrança em Massa</button>
+            <button class="btn btn-danger btn-sm" onclick="excluirSelecionadosPlan()"><i class="ti ti-trash"></i> Excluir Selecionados</button>
+            <button class="btn btn-secondary btn-sm" onclick="desmarcarTodosPlan()"><i class="ti ti-x"></i> Desmarcar</button>
+          </div>
+          <p style="font-size:11.5px;color:var(--text-secondary);margin:0 0 8px">Seleção em massa disponível para as colunas A Fazer, Atrasada e Em Andamento (cartões com checkbox no canto). A coluna Concluído já corresponde a horas registradas — use Cobrança para essas.</p>
           <div class="board-cols">
             <div class="board-col">
               <div class="board-col-header">A Fazer <span class="board-col-count" id="board-count-afazer">0</span></div>
@@ -2107,15 +2116,26 @@
         <p style="font-size:13px;color:var(--text-secondary);margin-bottom:1rem">Registro simples do que foi vendido ao cliente — sem formalidade de proposta. Para propostas formais, use Orçamentos.</p>
         <div class="form-row">
           <div class="form-group"><label>Cliente <span style="color:red">*</span></label><select id="venda-cliente"><option value="">-- Selecione --</option></select></div>
-          <div class="form-group"><label>Data <span style="color:red">*</span></label><input type="date" id="venda-data"></div>
-          <div class="form-group"><label>Valor vendido (R$) <span style="color:red">*</span></label><input type="number" id="venda-valor" step="0.01" min="0" placeholder="0,00"></div>
+          <div class="form-group"><label>Data da venda <span style="color:red">*</span></label><input type="date" id="venda-data" onchange="vendaGerarParcelas()"></div>
+          <div class="form-group"><label>Valor total (R$) <span style="color:red">*</span></label><input type="number" id="venda-valor" step="0.01" min="0" placeholder="0,00" onchange="vendaGerarParcelas()"></div>
         </div>
         <div class="form-group"><label>Descrição da solução <span style="color:red">*</span></label>
           <textarea id="venda-descricao" placeholder="Ex: Painel de indicadores personalizado, Pacote de documentos SGQ prontos para uso..." style="min-height:80px;resize:vertical"></textarea>
         </div>
-        <div class="form-group" style="max-width:220px"><label>Status</label>
-          <select id="venda-status"><option value="0">A receber</option><option value="1">Recebido</option></select>
+        <div class="form-group" style="max-width:220px"><label>Nº de parcelas</label>
+          <input type="number" id="venda-num-parcelas" value="1" min="1" max="12" onchange="vendaGerarParcelas()">
         </div>
+
+        <div id="venda-parcelas-wrap" style="margin:10px 0">
+          <label style="font-weight:600;font-size:12.5px;color:var(--navy)">Parcelas <span style="font-weight:400;color:var(--text-secondary)">— ajuste valor e vencimento de cada uma se precisar</span></label>
+          <div style="overflow-x:auto;margin-top:6px">
+            <table class="table">
+              <thead><tr><th style="width:70px">Parcela</th><th>Vencimento</th><th>Valor (R$)</th><th style="width:110px">Status</th></tr></thead>
+              <tbody id="venda-parcelas-body"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <button class="btn btn-primary" id="venda-btn-salvar" onclick="salvarVenda()"><i class="ti ti-plus"></i> Registrar Venda</button>
           <button class="btn btn-sm" id="venda-btn-cancelar" onclick="cancelarEdicaoVenda()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
@@ -2131,7 +2151,7 @@
         </div>
         <div style="overflow-x:auto">
           <table class="table">
-            <thead><tr><th>Cliente</th><th>Data</th><th>Solução</th><th>Valor</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th style="width:24px"></th><th>Cliente</th><th>Data</th><th>Solução</th><th>Valor</th><th>Parcelas</th><th>Ações</th></tr></thead>
             <tbody id="tbody-vendas"></tbody>
           </table>
         </div>
@@ -2514,7 +2534,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [], vendasParcelas: [] };
   window.__SRV_ERRO__ = false;
 
   function carregarDadosServidor() {
@@ -2530,19 +2550,20 @@
     var buscas = [
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado,projetoId:projeto_id'],
-      ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,planejamentoId:planejamento_id,projetoId:projeto_id'],
+      ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,dataRecebimento:data_recebimento,planejamentoId:planejamento_id,projetoId:projeto_id'],
       ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo,taxa'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
-      ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id,pago'],
+      ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id,pago,dataPagamento:data_pagamento'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
       ['orcamentosConsult', 'gh_orcamentos_consult?select=id,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
-      ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido']
+      ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
+      ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento']
     ];
 
     return pronto.then(function() {
@@ -2587,6 +2608,7 @@
   let anotacaoItens = [];
   let orcamentosConsult = [];
   let vendas      = [];
+  let vendasParcelas = [];
   let _finSub = 'cobranca';
   let _ocIniciado = false;
   let ocEditandoId = null;
@@ -3590,6 +3612,7 @@ let clienteEditandoId = null;
     atualizarSelectsClientes();
     const dt = document.getElementById('venda-data');
     if (dt && !dt.value) dt.value = hojeISO();
+    if (!document.getElementById('venda-parcelas-body').children.length) vendaGerarParcelas();
   }
 
   function aplicarFiltroAtv() {
@@ -3919,32 +3942,42 @@ let clienteEditandoId = null;
     );
   }
 
+  // Retorna o container da visão de Planejamento atualmente visível (Lista ou Board), para que
+  // seleção em massa não misture checkboxes de uma visão escondida com a outra.
+  function containerAtivoPlan() {
+    const board = document.getElementById('plan-view-board');
+    const ativo = board && board.style.display !== 'none' ? board : document.getElementById('plan-view-lista');
+    return ativo || document;
+  }
+
   function atualizarToolbarPlan() {
-    const chks = [...document.querySelectorAll('.plan-chk:checked')];
-    const toolbar = document.getElementById('plan-massa-toolbar');
-    const count = document.getElementById('plan-massa-count');
-    const todos = document.getElementById('plan-chk-todos');
-    const total = document.querySelectorAll('.plan-chk').length;
-    toolbar.style.display = chks.length ? 'flex' : 'none';
+    const cont = containerAtivoPlan();
+    const chks = [...cont.querySelectorAll('.plan-chk:checked')];
+    const toolbar = document.getElementById(cont.id === 'plan-view-board' ? 'plan-massa-toolbar-board' : 'plan-massa-toolbar');
+    const outroToolbar = document.getElementById(cont.id === 'plan-view-board' ? 'plan-massa-toolbar' : 'plan-massa-toolbar-board');
+    if (outroToolbar) outroToolbar.style.display = 'none';
+    const count = toolbar ? toolbar.querySelector('.plan-massa-count') : null;
+    const todos = cont.querySelector('.plan-chk-todos');
+    const total = cont.querySelectorAll('.plan-chk').length;
+    if (toolbar) toolbar.style.display = chks.length ? 'flex' : 'none';
     if (count) count.textContent = `${chks.length} selecionado${chks.length !== 1 ? 's' : ''}`;
     if (todos) todos.indeterminate = chks.length > 0 && chks.length < total;
     if (todos) todos.checked = chks.length === total && total > 0;
   }
 
   function selecionarTodosPlan(marcado) {
-    document.querySelectorAll('.plan-chk').forEach(c => c.checked = marcado);
+    containerAtivoPlan().querySelectorAll('.plan-chk').forEach(c => c.checked = marcado);
     atualizarToolbarPlan();
   }
 
   function desmarcarTodosPlan() {
     document.querySelectorAll('.plan-chk').forEach(c => c.checked = false);
-    const todos = document.getElementById('plan-chk-todos');
-    if (todos) { todos.checked = false; todos.indeterminate = false; }
+    document.querySelectorAll('.plan-chk-todos').forEach(t => { t.checked = false; t.indeterminate = false; });
     atualizarToolbarPlan();
   }
 
   function confirmarSelecionados() {
-    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => c.value);
+    const ids = [...containerAtivoPlan().querySelectorAll('.plan-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const naoConf = ids.filter(id => { const p = planejamento.find(p => p.id === id); return p && !p.confirmado; });
     if (!naoConf.length) { alert('Todos os itens selecionados já estão confirmados.'); return; }
@@ -3961,7 +3994,7 @@ let clienteEditandoId = null;
   }
 
   function excluirSelecionadosPlan() {
-    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => c.value);
+    const ids = [...containerAtivoPlan().querySelectorAll('.plan-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const itens = ids.map(id => planejamento.find(p => p.id === id)).filter(Boolean);
     if (!itens.length) return;
@@ -3978,7 +4011,7 @@ let clienteEditandoId = null;
   }
 
   function cobrarSelecionados() {
-    const ids = [...document.querySelectorAll('.plan-chk:checked')].map(c => c.value);
+    const ids = [...containerAtivoPlan().querySelectorAll('.plan-chk:checked')].map(c => c.value);
     if (!ids.length) return;
     const itens = ids.map(id => planejamento.find(p => p.id === id)).filter(Boolean);
     if (!itens.length) return;
@@ -4378,8 +4411,8 @@ let clienteEditandoId = null;
         </td>
       </tr>`;
     }).join('');
-    atualizarToolbarPlan();
     renderizarBoardAtividades();
+    atualizarToolbarPlan();
   }
 
   /* Alterna entre a visão de Lista e a visão de Board (Kanban) da aba Atividades */
@@ -4397,6 +4430,7 @@ let clienteEditandoId = null;
       btnLista.classList.add('active'); btnBoard.classList.remove('active');
       elLista.style.display = ''; elBoard.style.display = 'none';
     }
+    atualizarToolbarPlan();
   }
 
   /* Renderiza o board (kanban) da aba Atividades, respeitando os mesmos filtros da lista */
@@ -4462,7 +4496,7 @@ let clienteEditandoId = null;
       }
       return `
       <div class="board-card ${tipo}">
-        <div class="board-card-cliente">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</div>
+        <label class="board-card-chk" style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><input type="checkbox" class="plan-chk" value="${p.id}" onchange="atualizarToolbarPlan()"> <span class="board-card-cliente" style="margin:0">${modIcon(p.modalidade)} ${p.clienteNome || '—'}</span></label>
         <div class="board-card-pauta">${pauta}</div>
         <div class="board-card-meta">${fmtData(p.inicio)}${p.entrada && p.saida ? ' · '+p.entrada+'–'+p.saida : ''}</div>
         <div class="board-card-actions">${acoes}</div>
@@ -4789,11 +4823,15 @@ let clienteEditandoId = null;
   function toggleCobrado(id) {
     const t = tarefas.find(t => t.id === id);
     if (!t) return;
+    const anterior = { cobrado: t.cobrado, recebido: t.recebido, dataRecebimento: t.dataRecebimento };
     t.cobrado = !t.cobrado;
+    // Desfazer o "Cobrado" também desfaz o "Recebido" — não faz sentido receber algo que não está mais faturado
+    var patch = { cobrado: t.cobrado };
+    if (!t.cobrado && t.recebido) { t.recebido = false; t.dataRecebimento = null; patch.recebido = false; patch.data_recebimento = null; }
     renderizarTarefas();
     persistir(
-      sbTable('gh_tarefas').update(id, { cobrado: t.cobrado }),
-      function() { t.cobrado = !t.cobrado; renderizarTarefas(); }
+      sbTable('gh_tarefas').update(id, patch),
+      function() { Object.assign(t, anterior); renderizarTarefas(); }
     );
   }
 
@@ -6606,29 +6644,41 @@ ${faturas}
     const vDespesasRecorrentesPrevistas = valorRecorrentesNoMes(anoAtual, mesAtual);
     const vDespesasMes = vDespesasLancadasMes + vDespesasRecorrentesPrevistas;
 
-    // Vendas de produtos/soluções do mês corrente
-    const vendasMes           = vendas.filter(v => v.data && v.data.startsWith(chaveMesAtual));
-    const vVendasMesTotal     = vendasMes.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
-    const vVendasMesRecebido  = vendasMes.filter(v=>v.recebido).reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
-    const vVendasMesAReceber  = vVendasMesTotal - vVendasMesRecebido;
+    // Produtos: usamos o VENCIMENTO DA PARCELA (não a data da venda) para saber o que cai em cada mês —
+    // uma venda parcelada em 2x aparece com o valor certo em cada um dos dois meses de vencimento.
+    const parcelasMes        = vendasParcelas.filter(p => p.dataPrevista && p.dataPrevista.startsWith(chaveMesAtual));
+    const vProdutosMesTotal    = parcelasMes.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const vProdutosMesRecebido = parcelasMes.filter(p=>p.recebido).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const vProdutosMesAReceber = vProdutosMesTotal - vProdutosMesRecebido;
 
-    // Horas do mês efetivamente recebidas (distinto de "cobrado" = fatura gerada, aguardando pagamento)
+    // Horas faturadas neste mês (por data do serviço) e quanto delas já foi recebido
     const mesHorasRecebido = _tMes.filter(t=>t.recebido).reduce((s,t)=>s+_nvMes(t.valor),0);
 
-    // Total recebido no mês (caixa) = horas efetivamente recebidas + produtos recebidos + assinaturas STRATEGYA ativas (recorrência mensal)
-    const vTotalRecebidoMes = mesHorasRecebido + vVendasMesRecebido + mrrStrategya;
-    const vLucroMes = vTotalRecebidoMes - vDespesasMes;
+    // ── Total PREVISTO para o mês (a previsão que você pediu): tudo que está programado
+    // para este mês — consultoria faturada (registrada no mês) + parcelas de produtos com
+    // vencimento no mês (recebidas ou não) + assinaturas STRATEGYA ativas.
+    const vTotalPrevistoMes = mesFat + vProdutosMesTotal + mrrStrategya;
+
+    // ── Total efetivamente RECEBIDO NO CAIXA do mês: pela DATA EM QUE O DINHEIRO DE FATO ENTROU,
+    // não pela data do serviço/venda. Um serviço de julho recebido em setembro conta em setembro aqui.
+    const vRecebidoCaixaMes = tarefas.filter(t => t.dataRecebimento && t.dataRecebimento.startsWith(chaveMesAtual)).reduce((s,t)=>s+(parseFloat(t.valor)||0),0)
+                             + vendasParcelas.filter(p => p.dataRecebimento && p.dataRecebimento.startsWith(chaveMesAtual)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0)
+                             + mrrStrategya; // aproximação — assinaturas não têm registro de pagamento por mês
+
+    // Lucro do mês = valor faturado (previsto) do mês − despesas do mês, como você pediu
+    const vLucroMes = vTotalPrevistoMes - vDespesasMes;
 
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
       { label:'Planejado do Mês — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub:`<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px"><span style="color:#E8B84B;font-size:12.5px">Confirmado <b>R$ ${fmtVal(mesConf)}</b> · ${fmtVal(mesHConf)}h</span><span style="color:#10b981;font-size:12.5px">Faturado <b>R$ ${fmtVal(mesFat)}</b> · ${fmtVal(mesHFat)}h</span></div>`, cor:'#93c5fd' },
-      { label:'Ticket Médio / Hora',           value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
-      { label:'Horas de Consultoria (mês)',    value:'R$ '+fmtVal(mesFat),         sub: `Faturado ${fmtVal(mesHFat)}h · Recebido R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
-      { label:'Produtos/Soluções Vendidas (mês)', value:'R$ '+fmtVal(vVendasMesTotal), sub: `Recebido <b>R$ ${fmtVal(vVendasMesRecebido)}</b> · A receber R$ ${fmtVal(vVendasMesAReceber)}`, cor:'#2563eb' },
+      { label:'Ticket Médio / Hora (mês)',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
+      { label:'Consultoria (mês)',             value:'R$ '+fmtVal(mesFat),         sub: `Faturado ${fmtVal(mesHFat)}h · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
+      { label:'Produtos/Soluções (mês)',       value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
       { label:'Assinaturas STRATEGYA (mês)',   value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#E8B84B' },
-      { label:'Total Recebido no Mês',         value:'R$ '+fmtVal(vTotalRecebidoMes), sub: 'Horas + produtos efetivamente recebidos + assinaturas STRATEGYA', cor:'#059669' },
+      { label:'Total Previsto no Mês',         value:'R$ '+fmtVal(vTotalPrevistoMes), sub: 'Consultoria faturada + produtos com vencimento no mês + assinaturas', cor:'#0891b2' },
+      { label:'Total Recebido no Caixa (mês)', value:'R$ '+fmtVal(vRecebidoCaixaMes), sub: 'Pelo dia em que o dinheiro entrou de fato', cor:'#059669' },
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
-      { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Total recebido − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
+      { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Total previsto (faturado) − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
@@ -7655,10 +7705,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function togglePagoDespesa(id) {
     const d = despesas.find(d => d.id === id);
     if (!d) return;
+    const anterior = { pago: d.pago, dataPagamento: d.dataPagamento };
     d.pago = !d.pago;
+    d.dataPagamento = d.pago ? hojeISO() : null;
     renderizarDespesas();
     if (document.getElementById('fin-subtab-pagar')?.classList.contains('active')) renderizarContasPagar();
-    persistir(sbTable('gh_despesas').update(id, { pago: d.pago }), function() { d.pago = !d.pago; renderizarDespesas(); });
+    persistir(sbTable('gh_despesas').update(id, { pago: d.pago, data_pagamento: d.dataPagamento }), function() { Object.assign(d, anterior); renderizarDespesas(); });
   }
 
 // ===== DESPESAS RECORRENTES =====
@@ -8464,14 +8516,16 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       </tr>`).join('');
   }
 
-  // ===== VENDAS (produtos e soluções digitais vendidos avulsos) =====
+  // ===== VENDAS (produtos e soluções digitais vendidos avulsos, com parcelamento) =====
   let vendaEditandoId = null;
+  let vendaExpandidaId = null;
 
   function vendaParaLinha(v) {
-    return {
-      id: v.id, cliente_id: v.clienteId || null, cliente_nome: v.clienteNome,
-      data: v.data, descricao: v.descricao, valor: v.valor, recebido: !!v.recebido
-    };
+    return { id: v.id, cliente_id: v.clienteId || null, cliente_nome: v.clienteNome, data: v.data, descricao: v.descricao, valor: v.valor };
+  }
+
+  function parcelaParaLinha(p) {
+    return { id: p.id, venda_id: p.vendaId, numero: p.numero, valor: p.valor, data_prevista: p.dataPrevista, recebido: !!p.recebido, data_recebimento: p.dataRecebimento || null };
   }
 
   function limparFormVenda() {
@@ -8479,7 +8533,44 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('venda-data').value = hojeISO();
     document.getElementById('venda-valor').value = '';
     document.getElementById('venda-descricao').value = '';
-    document.getElementById('venda-status').value = '0';
+    document.getElementById('venda-num-parcelas').value = '1';
+    vendaGerarParcelas();
+  }
+
+  // Gera (ou regenera) a tabela de parcelas editável a partir de Nº de parcelas / valor total / data da venda.
+  // Vencimentos default: mensal a partir da data da venda. Ela pode ajustar valor e data de cada parcela antes de salvar.
+  function vendaGerarParcelas() {
+    const n = Math.max(1, parseInt(document.getElementById('venda-num-parcelas').value) || 1);
+    const valorTotal = parseFloat(document.getElementById('venda-valor').value) || 0;
+    const dataBase = document.getElementById('venda-data').value || hojeISO();
+    const [ano, mes, dia] = dataBase.split('-').map(Number);
+    const valorParcela = n > 0 ? Math.round((valorTotal / n) * 100) / 100 : 0;
+    const body = document.getElementById('venda-parcelas-body');
+    let linhas = '';
+    let somaAcumulada = 0;
+    for (let i = 0; i < n; i++) {
+      const d = new Date(ano, (mes - 1) + i, dia);
+      const dataISO = isoData(d);
+      // Última parcela absorve a diferença de arredondamento
+      const valor = (i === n - 1) ? Math.round((valorTotal - somaAcumulada) * 100) / 100 : valorParcela;
+      somaAcumulada += valor;
+      linhas += `
+        <tr data-parcela-idx="${i}">
+          <td>${i + 1}/${n}</td>
+          <td><input type="date" class="parcela-data" value="${dataISO}" style="padding:5px 8px"></td>
+          <td><input type="number" class="parcela-valor" step="0.01" min="0" value="${valor.toFixed(2)}" style="padding:5px 8px;width:110px"></td>
+          <td><span class="badge badge-warning">A receber</span></td>
+        </tr>`;
+    }
+    body.innerHTML = linhas;
+  }
+
+  function lerParcelasDoFormulario() {
+    return [...document.querySelectorAll('#venda-parcelas-body tr')].map((tr, i) => ({
+      numero: i + 1,
+      dataPrevista: tr.querySelector('.parcela-data').value,
+      valor: parseFloat(tr.querySelector('.parcela-valor').value) || 0
+    }));
   }
 
   function salvarVenda() {
@@ -8487,28 +8578,37 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const cliente = clientes.find(c => c.id == clienteId);
     if (!cliente) { alert('Selecione um cliente'); return; }
     const data = document.getElementById('venda-data').value || hojeISO();
-    const valor = parseFloat(document.getElementById('venda-valor').value) || 0;
     const descricao = document.getElementById('venda-descricao').value.trim();
-    const recebido = document.getElementById('venda-status').value === '1';
+    const parcelasForm = lerParcelasDoFormulario();
+    const valor = parcelasForm.reduce((s,p)=>s+p.valor, 0);
     if (!descricao) { alert('Descreva a solução vendida'); return; }
     if (valor <= 0) { alert('Informe o valor vendido'); return; }
+    if (parcelasForm.some(p => !p.dataPrevista)) { alert('Preencha a data de vencimento de todas as parcelas'); return; }
 
     if (vendaEditandoId) {
+      // Edição: atualiza os dados da venda; parcelas em si não são reeditadas aqui (gerencie pelo expandir da lista)
       const v = vendas.find(v => v.id === vendaEditandoId);
       if (!v) return;
       const anterior = Object.assign({}, v);
-      Object.assign(v, { clienteId: cliente.id, clienteNome: cliente.nome, data, descricao, valor, recebido });
+      Object.assign(v, { clienteId: cliente.id, clienteNome: cliente.nome, data, descricao, valor });
       persistir(
         sbTable('gh_vendas').update(v.id, vendaParaLinha(v)),
         function() { Object.assign(v, anterior); renderizarVendas(); }
       );
       cancelarEdicaoVenda();
     } else {
-      const nova = { id: crypto.randomUUID(), clienteId: cliente.id, clienteNome: cliente.nome, data, descricao, valor, recebido };
+      const vendaId = crypto.randomUUID();
+      const nova = { id: vendaId, clienteId: cliente.id, clienteNome: cliente.nome, data, descricao, valor };
+      const novasParcelas = parcelasForm.map(p => ({ id: crypto.randomUUID(), vendaId, numero: p.numero, valor: p.valor, dataPrevista: p.dataPrevista, recebido: false, dataRecebimento: null }));
       vendas.push(nova);
+      novasParcelas.forEach(p => vendasParcelas.push(p));
       persistir(
         sbTable('gh_vendas').insert(vendaParaLinha(nova)),
-        function() { vendas = vendas.filter(v => v.id !== nova.id); renderizarVendas(); }
+        function() { vendas = vendas.filter(v => v.id !== vendaId); vendasParcelas = vendasParcelas.filter(p => p.vendaId !== vendaId); renderizarVendas(); }
+      );
+      persistir(
+        sbTable('gh_vendas_parcelas').insertMany(novasParcelas.map(parcelaParaLinha)),
+        function() { vendasParcelas = vendasParcelas.filter(p => p.vendaId !== vendaId); renderizarVendas(); }
       );
       limparFormVenda();
     }
@@ -8523,7 +8623,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('venda-data').value = v.data;
     document.getElementById('venda-valor').value = v.valor;
     document.getElementById('venda-descricao').value = v.descricao;
-    document.getElementById('venda-status').value = v.recebido ? '1' : '0';
+    const qtdParcelas = vendasParcelas.filter(p => p.vendaId === id).length || 1;
+    document.getElementById('venda-num-parcelas').value = qtdParcelas;
+    vendaGerarParcelas();
     const btn = document.getElementById('venda-btn-salvar');
     btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Alterações';
     document.getElementById('venda-btn-cancelar').style.display = '';
@@ -8538,56 +8640,97 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('venda-btn-cancelar').style.display = 'none';
   }
 
-  function toggleRecebidoVenda(id) {
-    const v = vendas.find(v => v.id === id);
-    if (!v) return;
-    v.recebido = !v.recebido;
+  function toggleRecebidoParcela(id) {
+    const p = vendasParcelas.find(p => p.id === id);
+    if (!p) return;
+    const anterior = { recebido: p.recebido, dataRecebimento: p.dataRecebimento };
+    p.recebido = !p.recebido;
+    p.dataRecebimento = p.recebido ? hojeISO() : null;
     renderizarVendas();
-    persistir(sbTable('gh_vendas').update(id, { recebido: v.recebido }), function() { v.recebido = !v.recebido; renderizarVendas(); });
+    if (document.getElementById('fin-subtab-receber')?.classList.contains('active')) renderizarContasReceber();
+    persistir(sbTable('gh_vendas_parcelas').update(id, { recebido: p.recebido, data_recebimento: p.dataRecebimento }), function() { Object.assign(p, anterior); renderizarVendas(); });
   }
 
   function deletarVenda(id) {
-    if (!confirm('Excluir esta venda?')) return;
+    if (!confirm('Excluir esta venda e todas as suas parcelas?')) return;
     const removida = vendas.find(v => v.id === id);
+    const parcelasRemovidas = vendasParcelas.filter(p => p.vendaId === id);
     vendas = vendas.filter(v => v.id !== id);
+    vendasParcelas = vendasParcelas.filter(p => p.vendaId !== id);
     renderizarVendas();
-    persistir(sbTable('gh_vendas').remove(id), function() { if (removida) vendas.push(removida); renderizarVendas(); });
+    // gh_vendas_parcelas tem ON DELETE CASCADE em venda_id — apagar a venda já remove as parcelas no banco
+    persistir(sbTable('gh_vendas').remove(id), function() {
+      if (removida) vendas.push(removida);
+      parcelasRemovidas.forEach(p => vendasParcelas.push(p));
+      renderizarVendas();
+    });
+  }
+
+  function toggleExpandirVenda(id) {
+    vendaExpandidaId = vendaExpandidaId === id ? null : id;
+    renderizarVendas();
   }
 
   function renderizarVendas() {
     const fCliente = document.getElementById('venda-filtro-cliente')?.value || '';
     let dados = fCliente ? vendas.filter(v => v.clienteId == fCliente) : vendas.slice();
     dados.sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-    document.getElementById('tbody-vendas').innerHTML = dados.map(v => `
+    document.getElementById('tbody-vendas').innerHTML = dados.map(v => {
+      const parcelas = vendasParcelas.filter(p => p.vendaId === v.id).sort((a,b)=>a.numero-b.numero);
+      const qtdRecebidas = parcelas.filter(p=>p.recebido).length;
+      const resumoParcelas = parcelas.length <= 1 ? '<span style="color:var(--text-secondary)">à vista</span>' : `${qtdRecebidas}/${parcelas.length} recebidas`;
+      const linhaPrincipal = `
       <tr>
+        <td>${parcelas.length > 1 ? `<button class="btn btn-icon" style="background:transparent;color:var(--navy)" onclick="toggleExpandirVenda('${v.id}')" title="Ver parcelas"><i class="ti ti-chevron-${vendaExpandidaId===v.id?'down':'right'}"></i></button>` : ''}</td>
         <td>${v.clienteNome || '—'}</td>
         <td>${fmtData(v.data)}</td>
-        <td style="max-width:340px;white-space:normal">${v.descricao}</td>
+        <td style="max-width:300px;white-space:normal">${v.descricao}</td>
         <td>R$ ${fmtVal(parseFloat(v.valor) || 0)}</td>
-        <td><span class="badge ${v.recebido ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="toggleRecebidoVenda('${v.id}')" title="Clique para alternar">${v.recebido ? 'Recebido' : 'A receber'}</span></td>
+        <td>${resumoParcelas}</td>
         <td>
           <div class="btn-acao-row">
             <button class="btn btn-icon" onclick="editarVenda('${v.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarVenda('${v.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
         </td>
-      </tr>`).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary)">Nenhuma venda registrada</td></tr>';
+      </tr>`;
+      const linhaParcelas = (vendaExpandidaId === v.id && parcelas.length > 1) ? `
+      <tr>
+        <td></td>
+        <td colspan="6" style="background:var(--surface-1);padding:0">
+          <table class="table" style="margin:0">
+            <tbody>
+              ${parcelas.map(p => `
+                <tr>
+                  <td style="width:80px;color:var(--text-secondary)">Parcela ${p.numero}/${parcelas.length}</td>
+                  <td>Vence ${fmtData(p.dataPrevista)}</td>
+                  <td>R$ ${fmtVal(parseFloat(p.valor)||0)}</td>
+                  <td><span class="badge ${p.recebido ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="toggleRecebidoParcela('${p.id}')" title="Clique para alternar">${p.recebido ? 'Recebida '+fmtData(p.dataRecebimento) : 'A receber'}</span></td>
+                </tr>`).join('')}
+            </tbody>
+          </table>
+        </td>
+      </tr>` : '';
+      return linhaPrincipal + linhaParcelas;
+    }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary)">Nenhuma venda registrada</td></tr>';
   }
 
   // ===== CONTAS A RECEBER / CONTAS A PAGAR =====
   function toggleRecebidoTarefa(id) {
     const t = tarefas.find(t => t.id === id);
     if (!t) return;
+    const anterior = { recebido: t.recebido, dataRecebimento: t.dataRecebimento };
     t.recebido = !t.recebido;
+    t.dataRecebimento = t.recebido ? hojeISO() : null;
     renderizarContasReceber();
-    persistir(sbTable('gh_tarefas').update(id, { recebido: t.recebido }), function() { t.recebido = !t.recebido; renderizarContasReceber(); });
+    persistir(sbTable('gh_tarefas').update(id, { recebido: t.recebido, data_recebimento: t.dataRecebimento }), function() { Object.assign(t, anterior); renderizarContasReceber(); });
   }
 
   function renderizarContasReceber() {
     const horasReceber = tarefas.filter(t => t.cobrado && !t.recebido);
-    const vendasReceber = vendas.filter(v => !v.recebido);
+    const parcelasReceber = vendasParcelas.filter(p => !p.recebido);
     const totHoras  = horasReceber.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const totVendas = vendasReceber.reduce((s,v)=>s+(parseFloat(v.valor)||0),0);
+    const totVendas = parcelasReceber.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
     const resumoEl = document.getElementById('receber-resumo');
     if (resumoEl) {
       resumoEl.innerHTML = `
@@ -8604,34 +8747,38 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td>R$ ${fmtVal(parseFloat(t.valor)||0)}</td>
         <td><button class="btn btn-icon btn-success" onclick="toggleRecebidoTarefa('${t.id}')" title="Marcar recebido"><i class="ti ti-check"></i></button></td>
       </tr>`);
-    const linhasVendas = vendasReceber.map(v => `
+    const linhasVendas = parcelasReceber.map(p => {
+      const v = vendas.find(v => v.id === p.vendaId) || {};
+      const totalParcelas = vendasParcelas.filter(x => x.vendaId === p.vendaId).length;
+      return `
       <tr>
         <td><span class="badge" style="background:#eff6ff;color:#2563eb">Produto</span></td>
         <td>${v.clienteNome || '—'}</td>
-        <td>${fmtData(v.data)}</td>
-        <td>${v.descricao}</td>
-        <td>R$ ${fmtVal(parseFloat(v.valor)||0)}</td>
-        <td><button class="btn btn-icon btn-success" onclick="toggleRecebidoVenda('${v.id}');renderizarContasReceber()" title="Marcar recebido"><i class="ti ti-check"></i></button></td>
-      </tr>`);
+        <td>${fmtData(p.dataPrevista)}</td>
+        <td>${v.descricao || ''}${totalParcelas > 1 ? ` <span style="color:var(--text-secondary);font-size:11px">(parcela ${p.numero}/${totalParcelas})</span>` : ''}</td>
+        <td>R$ ${fmtVal(parseFloat(p.valor)||0)}</td>
+        <td><button class="btn btn-icon btn-success" onclick="toggleRecebidoParcela('${p.id}');renderizarContasReceber()" title="Marcar recebido"><i class="ti ti-check"></i></button></td>
+      </tr>`;
+    });
     const linhas = [...linhasHoras, ...linhasVendas];
     document.getElementById('tbody-receber').innerHTML = linhas.join('') || '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:2rem">Nada a receber no momento</td></tr>';
   }
 
   function marcarTodosRecebidos() {
     const horasIds = tarefas.filter(t => t.cobrado && !t.recebido).map(t => t.id);
-    const vendasIds = vendas.filter(v => !v.recebido).map(v => v.id);
-    const total = horasIds.length + vendasIds.length;
+    const parcelasIds = vendasParcelas.filter(p => !p.recebido).map(p => p.id);
+    const total = horasIds.length + parcelasIds.length;
     if (!total) { alert('Nada pendente de recebimento.'); return; }
-    if (!confirm(`Marcar ${total} registro(s) (${horasIds.length} de horas + ${vendasIds.length} de vendas) como Recebido? Use isto só para limpar retroativamente o que você já recebeu antes deste controle existir.`)) return;
+    if (!confirm(`Marcar ${total} registro(s) (${horasIds.length} de horas + ${parcelasIds.length} parcela(s) de vendas) como Recebido? Use isto só para limpar retroativamente o que você já recebeu antes deste controle existir.`)) return;
     horasIds.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.recebido = true; });
-    vendasIds.forEach(id => { const v = vendas.find(v => v.id === id); if (v) v.recebido = true; });
+    parcelasIds.forEach(id => { const p = vendasParcelas.find(p => p.id === id); if (p) p.recebido = true; });
     renderizarContasReceber();
     persistir(sbTable('gh_tarefas').updateMany(horasIds, { recebido: true }), function() {
       horasIds.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.recebido = false; });
       renderizarContasReceber();
     });
-    persistir(sbTable('gh_vendas').updateMany(vendasIds, { recebido: true }), function() {
-      vendasIds.forEach(id => { const v = vendas.find(v => v.id === id); if (v) v.recebido = false; });
+    persistir(sbTable('gh_vendas_parcelas').updateMany(parcelasIds, { recebido: true }), function() {
+      parcelasIds.forEach(id => { const p = vendasParcelas.find(p => p.id === id); if (p) p.recebido = false; });
       renderizarContasReceber();
     });
   }
@@ -8961,16 +9108,18 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   
   // ===== LIMPAR TODOS OS DADOS =====
   function limparTodosDados() {
-    if (!confirm('⚠️ Isso vai apagar TODOS os dados (planejamento, horas, clientes, anotações e histórico) do banco de dados no Supabase.\n\nDeseja continuar?')) return;
-    Promise.all([
-      sbTable('gh_clientes').replaceAll([]),
-      sbTable('gh_planejamento').replaceAll([]),
-      sbTable('gh_tarefas').replaceAll([]),
-      sbTable('gh_anotacoes').replaceAll([]),
-      sbTable('gh_historico').replaceAll([]),
-      sbTable('gh_despesas').replaceAll([]),
-      fetch(SUPABASE_URL + '/rest/v1/gh_diario?data=not.is.null', { method: 'DELETE', headers: sbAuthHeaders() }).then(checarResposta)
-    ]).then(() => location.reload())
+    if (!confirm('⚠️ Isso vai apagar TODOS os dados (clientes, projetos, planejamento, horas, anotações, entregáveis, histórico, despesas, despesas recorrentes, vendas, orçamentos e assinaturas STRATEGYA) do banco de dados no Supabase.\n\nDeseja continuar?')) return;
+    // Ordem respeita as dependências (chave estrangeira): tabelas "filhas" primeiro, gh_clientes por último.
+    var tabelasEmOrdem = [
+      'gh_anotacao_itens', 'gh_entregaveis', 'gh_tarefas', 'gh_anotacoes', 'gh_planejamento',
+      'gh_vendas_parcelas', 'gh_vendas', 'gh_despesas', 'gh_despesas_recorrentes', 'gh_projetos',
+      'gh_orcamentos', 'gh_orcamentos_consult', 'gh_strategya_assinaturas', 'gh_historico', 'gh_clientes'
+    ];
+    tabelasEmOrdem.reduce(function(p, nome) {
+      return p.then(function() { return sbTable(nome).replaceAll([]); });
+    }, Promise.resolve())
+      .then(function() { return fetch(SUPABASE_URL + '/rest/v1/gh_diario?data=not.is.null', { method: 'DELETE', headers: sbAuthHeaders() }).then(checarResposta); })
+      .then(() => location.reload())
       .catch(() => alert('Erro ao limpar dados no servidor.'));
   }
 
@@ -9031,10 +9180,70 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       'Horas':     t.horas,
       'Taxa R$/h': t.taxa,
       'Valor R$':  t.valor,
-      'Cobrado':   t.cobrado ? 'Sim' : 'Não'
+      'Cobrado':   t.cobrado ? 'Sim' : 'Não',
+      'Recebido':  t.recebido ? 'Sim' : 'Não',
+      'Data Recebimento': fmtData(t.dataRecebimento || '')
     })));
-    estilizarCabecalho(wsHoras, 11);
+    estilizarCabecalho(wsHoras, 13);
     XLSX.utils.book_append_sheet(wb, wsHoras, 'Horas Registradas');
+
+    // --- Aba: Despesas ---
+    const wsDespesas = XLSX.utils.json_to_sheet(despesas.map(d => ({
+      'ID':        d.id,
+      'Data':      fmtData(d.data),
+      'Categoria': d.categoria,
+      'Descrição': d.descricao || '',
+      'Cliente':   d.clienteNome || '',
+      'Valor R$':  d.valor,
+      'Pago':      d.pago ? 'Sim' : 'Não',
+      'Data Pagamento': fmtData(d.dataPagamento || '')
+    })));
+    ajustarColunas(wsDespesas);
+    XLSX.utils.book_append_sheet(wb, wsDespesas, 'Despesas');
+
+    // --- Aba: Vendas (uma linha por parcela) ---
+    const wsVendas = XLSX.utils.json_to_sheet(vendasParcelas.map(p => {
+      const v = vendas.find(v => v.id === p.vendaId) || {};
+      return {
+        'ID Venda':   v.id || '',
+        'Cliente':    v.clienteNome || '',
+        'Data Venda': fmtData(v.data || ''),
+        'Descrição':  v.descricao || '',
+        'Valor Total Venda R$': v.valor || 0,
+        'Parcela':    p.numero,
+        'Valor Parcela R$': p.valor,
+        'Vencimento': fmtData(p.dataPrevista),
+        'Recebido':   p.recebido ? 'Sim' : 'Não',
+        'Data Recebimento': fmtData(p.dataRecebimento || '')
+      };
+    }));
+    ajustarColunas(wsVendas);
+    XLSX.utils.book_append_sheet(wb, wsVendas, 'Vendas');
+
+    // --- Aba: Orçamentos de Consultoria ---
+    const wsOrcConsult = XLSX.utils.json_to_sheet(orcamentosConsult.map(o => ({
+      'ID':        o.id,
+      'Cliente':   o.clienteNome || '',
+      'Data':      fmtData(o.data || ''),
+      'Objeto':    o.objeto || '',
+      'Total R$':  o.total,
+      'Status':    o.status || ''
+    })));
+    ajustarColunas(wsOrcConsult);
+    XLSX.utils.book_append_sheet(wb, wsOrcConsult, 'Orçamentos Consultoria');
+
+    // --- Aba: Assinaturas STRATEGYA ---
+    const wsAssin = XLSX.utils.json_to_sheet(strategyaAssinaturas.map(a => ({
+      'ID':          a.id,
+      'Cliente':     a.clienteNome || '',
+      'Plano':       a.plano || '',
+      'Valor Mensal R$': a.valorMensal,
+      'Status':      a.status || '',
+      'Início':      fmtData(a.dataInicio || ''),
+      'Observações': a.observacoes || ''
+    })));
+    ajustarColunas(wsAssin);
+    XLSX.utils.book_append_sheet(wb, wsAssin, 'Assinaturas STRATEGYA');
 
     // --- Aba: Resumo ---
     const hoje = new Date();
@@ -9576,6 +9785,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     anotacaoItens = lsGet('anotacaoItens');
     orcamentosConsult = lsGet('orcamentosConsult');
     vendas       = lsGet('vendas');
+    vendasParcelas = lsGet('vendasParcelas');
     try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
   });
