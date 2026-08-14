@@ -364,6 +364,43 @@
     }
     .card-item:hover { border-color: var(--gold); box-shadow: 0 4px 12px rgba(232,184,75,0.18); background: var(--gold-bg); }
 
+    /* ── Cartão de cliente (aba Clientes) ──────────────────────── */
+    .cliente-card {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.1rem 1.15rem; cursor: pointer;
+      border-left: 4px solid var(--stat-cor, var(--gold));
+      display: flex; flex-direction: column; gap: 10px;
+      transition: transform .16s, box-shadow .16s;
+    }
+    .cliente-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-lg); }
+    .cliente-card-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .cliente-card-avatar {
+      width: 38px; height: 38px; border-radius: 11px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 15px; color: #fff; background: var(--stat-cor, var(--gold));
+    }
+    .cliente-card-nome { font-weight: 700; font-size: 14.5px; color: var(--navy); line-height: 1.25; }
+    .cliente-card-projeto { font-size: 11.5px; color: var(--text-secondary); margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .cliente-card-taxa {
+      display: inline-flex; align-items: center; gap: 7px; align-self: flex-start;
+      background: var(--surface-1); border: 1px solid var(--border); border-radius: 999px;
+      padding: 4px 10px 4px 12px; font-size: 12.5px; font-weight: 700; color: var(--navy);
+    }
+    .cliente-card-taxa i { color: var(--text-secondary); cursor: pointer; font-size: 14px; }
+    .cliente-card-obs {
+      font-size: 11.5px; color: var(--text-secondary); line-height: 1.4;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+      background: var(--surface-1); border-radius: 8px; padding: 6px 9px;
+    }
+    .cliente-card-acoes { display: flex; gap: 2px; margin-top: auto; padding-top: 8px; border-top: 1px solid var(--border); }
+    .cliente-card-acoes button {
+      flex: 1; height: 30px; display: flex; align-items: center; justify-content: center;
+      border-radius: 8px; background: transparent; color: var(--text-secondary);
+      transition: background .15s, color .15s; font-size: 14px; border: none; cursor: pointer;
+    }
+    .cliente-card-acoes button:hover { background: var(--surface-1); color: var(--navy); }
+    .cliente-card-acoes button.acao-excluir:hover { background: #fef2f2; color: #dc2626; }
+
     input[type="text"]:focus, input[type="number"]:focus,
     input[type="date"]:focus, input[type="time"]:focus,
     select:focus, textarea:focus {
@@ -2932,25 +2969,31 @@ let clienteEditandoId = null;
   }
 
   function renderizarClientes() {
-    document.getElementById('lista-clientes').innerHTML = clientes.map(c => `
-      <div class="card-item" style="border-left:4px solid ${corCliente(c.nome)}">
-        <div style="font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:7px;cursor:pointer" onclick="abrirModalDetalheCliente('${c.id}')" title="Ver orçamentos, valor acordado e detalhes">
-          <span style="width:10px;height:10px;border-radius:50%;background:${corCliente(c.nome)};flex-shrink:0"></span>
-          ${esc(c.nome)}
+    document.getElementById('lista-clientes').innerHTML = clientes.map(c => {
+      const cor = corCliente(c.nome);
+      const inicial = (c.nome || '?').trim().charAt(0).toUpperCase();
+      return `
+      <div class="cliente-card" style="--stat-cor:${cor}" onclick="abrirModalDetalheCliente('${c.id}')" title="Ver projetos, valor acordado e detalhes">
+        <div class="cliente-card-top">
+          <div class="cliente-card-avatar">${inicial}</div>
+          <div style="min-width:0">
+            <div class="cliente-card-nome">${esc(c.nome)}</div>
+            ${c.projeto ? `<div class="cliente-card-projeto">${esc(c.projeto)}</div>` : ''}
+          </div>
         </div>
-        <div style="font-size:12px;color:var(--text-secondary);margin-bottom:6px">${esc(c.projeto)}</div>
-        <div style="font-weight:500;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <div class="cliente-card-taxa" onclick="event.stopPropagation()">
           <span class="taxa-oculta" data-visivel="0" style="filter:blur(5px);user-select:none;transition:filter .15s">R$ ${fmtVal(c.taxa)}/h</span>
-          <i class="ti ti-eye" style="cursor:pointer;color:var(--text-secondary);font-size:15px" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
+          <i class="ti ti-eye" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
         </div>
-        ${c.obs ? `<div style="font-size:11px;color:var(--text-secondary);margin-bottom:8px">${esc(c.obs)}</div>` : ''}
-         <div class="btn-acao-row">
-          <button class="btn btn-icon" onclick="abrirModalProjetos('${c.id}')" title="Projetos e Entregáveis" style="background:#7c3aed;color:#fff"><i class="ti ti-briefcase"></i></button>
-          <button class="btn btn-icon" onclick="abrirModalRelatorioPeriodo('${c.id}')" title="Relatório Consolidado (por período)" style="background:#0c4a6e;color:#fff"><i class="ti ti-chart-line"></i></button>
-          <button class="btn btn-icon" onclick="editarCliente('${c.id}')" title="Editar taxa" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
-          <button class="btn btn-icon btn-danger" onclick="deletarCliente('${c.id}')" title="Remover"><i class="ti ti-trash"></i></button>
+        ${c.obs ? `<div class="cliente-card-obs"><i class="ti ti-note" style="margin-right:4px;color:var(--text-muted)"></i>${esc(c.obs)}</div>` : ''}
+        <div class="cliente-card-acoes" onclick="event.stopPropagation()">
+          <button onclick="abrirModalProjetos('${c.id}')" title="Projetos e Entregáveis"><i class="ti ti-briefcase"></i></button>
+          <button onclick="abrirModalRelatorioPeriodo('${c.id}')" title="Relatório Consolidado (por período)"><i class="ti ti-chart-line"></i></button>
+          <button onclick="editarCliente('${c.id}')" title="Editar taxa"><i class="ti ti-pencil"></i></button>
+          <button class="acao-excluir" onclick="deletarCliente('${c.id}')" title="Remover"><i class="ti ti-trash"></i></button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 }
   function deletarCliente(id) {
     if (!confirm('Remover este cliente?')) return;
