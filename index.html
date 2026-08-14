@@ -8152,7 +8152,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // ================= ORÇAMENTOS DE CONSULTORIA =================
   // Dados do prestador que aparecem no cabeçalho da proposta impressa.
   // Ajuste livremente (razão social, CNPJ, contato). Campos vazios são omitidos.
-  var OC_PRESTADOR = { nome: 'ORBEEX', subtitulo: 'Consultoria em Sistemas de Gestão', cnpj: '', contato: '', local: 'Bento Gonçalves – RS', endereco: '', representanteLegal: '' };
+  var OC_PRESTADOR = {
+    nome: 'ORBEEX', subtitulo: 'Consultoria em Sistemas de Gestão', local: 'Bento Gonçalves – RS',
+    cnpj: '49.759.143/0001-70',
+    endereco: 'Rua Antônio Fornazier, 394, Apto 102, Bairro Santa Rita, Bento Gonçalves/RS, CEP 95.700-680',
+    representanteLegal: 'Luana Civardi',
+    contato: 'luana.civardi@orbeex.com.br'
+  };
   var OC_NORMAS = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 50001', 'ISO 27001', 'Compliance', 'ISO 26000'];
   var OC_UNIDADES = ['hora', 'diária', 'visita', 'mês', 'verba', 'pacote'];
 
@@ -8305,26 +8311,69 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
   }
 
+  // Nome empresarial usado no corpo do contrato pela advogada (Cláusula CONTRATADA) — mantido
+  // como está no texto jurídico, mesmo que difira do nome fantasia usado no resto do app.
+  var CONTRATO_NOME_CONTRATADA = 'ORBEEX CONSULTORIA EM GESTÃO DA QUALIDADE';
+
+  // Gera o HTML do contrato com folha timbrada. Layout feito com tabelas (em vez de flex/grid)
+  // de propósito: é o que o Word consegue abrir e editar corretamente quando salvo como .doc —
+  // o mesmo HTML serve tanto para a impressão/PDF quanto para o download em Word.
   function gerarHtmlContrato(dados) {
     var paragrafos = preencherContrato(dados);
-    var corpo = paragrafos.map(function(p) {
-      var ehTitulo = /^CLÁUSULA/.test(p) || p === paragrafos[0];
-      var estilo = ehTitulo ? 'font-weight:700;margin-top:16px;text-transform:uppercase;font-size:12.5px' : 'text-align:justify;margin-top:6px;font-size:12px';
+    var corpo = paragrafos.map(function(p, i) {
+      if (i === 0) return '<p style="text-align:center;font-weight:800;font-size:14px;text-transform:uppercase;letter-spacing:.4px;color:#252538;margin:0 0 18px">' + esc(p) + '</p>';
+      if (/^CLÁUSULA/.test(p)) return '<p style="font-weight:700;text-transform:uppercase;font-size:11.5px;letter-spacing:.3px;color:#252538;margin:20px 0 8px;padding-bottom:3px;border-bottom:1.5px solid #E8B84B">' + esc(p) + '</p>';
+      var ehItem = /^[IVX]+\s*–/.test(p);
+      var estilo = 'text-align:justify;margin:0 0 8px;font-size:11px;line-height:1.55;color:#1a1a2e' + (ehItem ? ';margin-left:20px' : '');
       return '<p style="' + estilo + '">' + esc(p) + '</p>';
     }).join('');
-    var dataAssinatura = dados.dataAssinatura ? fmtData(dados.dataAssinatura) : '____/____/______';
+    var dataAssinatura = dados.dataAssinatura ? fmtData(dados.dataAssinatura) : '____ de ____________ de ______';
+    var repCliente = dados.representanteLegal ? ('<br>' + esc(dados.representanteLegal)) : '';
+    var repContratada = OC_PRESTADOR.representanteLegal ? ('<br>' + esc(OC_PRESTADOR.representanteLegal)) : '';
+
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato - ' + esc(dados.razaoSocial || '') + '</title>' +
-      '<style>body{font-family:Calibri,Arial,sans-serif;color:#111;line-height:1.5;margin:2.5cm}</style></head><body>' +
+      '<style>body{font-family:Calibri,Arial,sans-serif;color:#1a1a2e;margin:0;padding:0}' +
+      '.folha{max-width:760px;margin:0 auto;padding:0 8mm 16mm}' +
+      '@media print{@page{size:A4;margin:14mm 12mm}body{background:#fff}}' +
+      '</style></head><body><div class="folha">' +
+
+      // ── Cabeçalho timbrado ──────────────────────────────────────
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:0"><tr>' +
+      '<td style="vertical-align:top;padding:6mm 0 3mm">' +
+      '<div style="font-size:24px;font-weight:900;letter-spacing:1px;color:#252538">ORB<span style="color:#E8B84B">EEX</span></div>' +
+      '<div style="font-size:8px;letter-spacing:1.3px;text-transform:uppercase;color:#6b6b8a;margin-top:2px">Assessoria em Sistemas de Gestão</div>' +
+      '<div style="font-size:9.5px;color:#9999aa;margin-top:8px;line-height:1.6">' + esc(OC_PRESTADOR.contato || 'luana.civardi@orbeex.com.br') + '<br>' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + '<br>CNPJ ' + esc(OC_PRESTADOR.cnpj || '[●]') + '</div>' +
+      '</td>' +
+      '<td style="vertical-align:top;text-align:right;padding:6mm 0 3mm">' +
+      '<div style="font-size:13px;font-weight:800;color:#252538;letter-spacing:.4px">CONTRATO DE PRESTAÇÃO<br>DE SERVIÇOS</div>' +
+      '<div style="font-size:9.5px;color:#6b6b8a;margin-top:8px">CONTRATANTE<br><strong style="color:#252538">' + esc(dados.razaoSocial || '') + '</strong></div>' +
+      '</td></tr></table>' +
+      '<table style="width:100%;border-collapse:collapse;margin-bottom:8mm"><tr><td style="height:3px;line-height:3px;font-size:1px;background:#E8B84B">&nbsp;</td></tr></table>' +
+
+      // ── Corpo do contrato ───────────────────────────────────────
       corpo +
-      '<p style="margin-top:28px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
-      '<table style="width:100%;margin-top:40px"><tr>' +
-      '<td style="width:50%;text-align:center;border-top:1px solid #000;padding-top:6px">CONTRATANTE<br>' + esc(dados.razaoSocial || '') + '</td>' +
-      '<td style="width:50%;text-align:center;border-top:1px solid #000;padding-top:6px">CONTRATADA<br>' + esc(OC_PRESTADOR.nome || 'ORBEEX') + '</td>' +
+
+      // ── Assinaturas ─────────────────────────────────────────────
+      '<p style="text-align:center;margin:14mm 0 10mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
+      '<table style="width:100%;border-collapse:collapse"><tr>' +
+      '<td style="width:50%;text-align:center;padding:0 8mm 0 0;vertical-align:top">' +
+      '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
+      '<strong>CONTRATANTE</strong><br>' + esc(dados.razaoSocial || '') + '<br>CNPJ ' + esc(dados.cnpj || '[●]') + repCliente +
+      '</div></td>' +
+      '<td style="width:50%;text-align:center;padding:0 0 0 8mm;vertical-align:top">' +
+      '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
+      '<strong>CONTRATADA</strong><br>' + esc(CONTRATO_NOME_CONTRATADA) + '<br>CNPJ ' + esc(OC_PRESTADOR.cnpj || '[●]') + repContratada +
+      '</div></td>' +
       '</tr></table>' +
-      '<p style="margin-top:30px">TESTEMUNHAS:</p>' +
-      '<p style="margin-top:24px">_____________________________________</p>' +
-      '<p style="margin-top:24px">_____________________________________</p>' +
-      '</body></html>';
+      '<p style="margin:12mm 0 6mm;font-size:10px;font-weight:700;color:#252538;letter-spacing:.3px">TESTEMUNHAS:</p>' +
+      '<table style="width:100%;border-collapse:collapse"><tr>' +
+      '<td style="width:50%;padding:0 8mm 0 0;vertical-align:top">' +
+      '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
+      '<td style="width:50%;padding:0 0 0 8mm;vertical-align:top">' +
+      '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
+      '</tr></table>' +
+
+      '</div></body></html>';
   }
 
   // Dispara o download de um HTML como .doc (Word abre normalmente e permite editar/salvar como .docx)
@@ -8392,10 +8441,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     contratoEditandoClienteId = null;
   }
 
-  function gerarEBaixarContrato() {
+  // Lê o formulário, salva o registro do contrato (rascunho/atualização) e devolve os dados
+  // preenchidos — usado tanto pela impressão/PDF quanto pelo download em Word.
+  function salvarFormContrato() {
     var clienteId = contratoEditandoClienteId;
     var cliente = clientes.find(function(c) { return c.id === clienteId; });
-    if (!cliente) return;
+    if (!cliente) return null;
     var dados = {
       razaoSocial: document.getElementById('ctr-razao-social').value.trim() || cliente.nome,
       cnpj: document.getElementById('ctr-cnpj').value.trim(),
@@ -8426,9 +8477,30 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         function() { contratos = contratos.filter(function(c) { return c.id !== novo.id; }); renderizarContratoCliente(clienteId); });
     }
 
-    baixarComoDoc(gerarHtmlContrato(dados), 'Contrato - ' + (dados.razaoSocial || cliente.nome) + '.doc');
     fecharModalContrato();
     renderizarContratoCliente(clienteId);
+    return { dados: dados, cliente: cliente };
+  }
+
+  // Abre uma janela de impressão (o usuário escolhe "Salvar como PDF" ou imprimir de fato)
+  function imprimirContrato(html) {
+    var janela = window.open('', '_blank');
+    if (!janela) { alert('Permita pop-ups para gerar o contrato.'); return; }
+    janela.document.write(html);
+    janela.document.close();
+    setTimeout(function() { janela.print(); }, 400);
+  }
+
+  function gerarEImprimirContrato() {
+    var r = salvarFormContrato();
+    if (!r) return;
+    imprimirContrato(gerarHtmlContrato(r.dados));
+  }
+
+  function gerarEBaixarContratoWord() {
+    var r = salvarFormContrato();
+    if (!r) return;
+    baixarComoDoc(gerarHtmlContrato(r.dados), 'Contrato - ' + (r.dados.razaoSocial || r.cliente.nome) + '.doc');
   }
 
   function marcarContratoEnviado(id) {
@@ -10699,9 +10771,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       </div>
       <div class="form-group"><label>Observações</label><textarea id="ctr-observacoes" rows="2" placeholder="Opcional"></textarea></div>
     </div>
-    <div class="modal-footer" style="justify-content:space-between">
+    <div class="modal-footer" style="justify-content:space-between;flex-wrap:wrap;gap:8px">
       <button class="btn btn-sm" onclick="fecharModalContrato()" style="background:#6b7280;color:#fff">Cancelar</button>
-      <button class="btn btn-primary btn-sm" onclick="gerarEBaixarContrato()"><i class="ti ti-file-download"></i> Salvar e Gerar Contrato (.doc)</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn btn-sm btn-secondary" onclick="gerarEBaixarContratoWord()"><i class="ti ti-file-type-doc"></i> Baixar Word (.doc)</button>
+        <button class="btn btn-primary btn-sm" onclick="gerarEImprimirContrato()"><i class="ti ti-printer"></i> Imprimir / PDF</button>
+      </div>
     </div>
   </div>
 </div>
