@@ -989,9 +989,18 @@
       border-radius: var(--radius); padding: 1rem 1.1rem; text-align: left;
       box-shadow: var(--shadow-md); min-width: 0;
       display: flex; flex-direction: column-reverse; gap: 4px;
-      transition: transform .16s, box-shadow .16s;
+      transition: transform .16s, box-shadow .16s, border-color .16s;
+      position: relative; overflow: hidden;
     }
+    .home-stat::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--stat-cor, var(--gold)); }
     .home-stat:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .home-stat-top { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .home-stat-icon {
+      width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: color-mix(in srgb, var(--stat-cor, var(--gold)) 16%, transparent);
+      color: var(--stat-cor, var(--gold)); font-size: 16px;
+    }
     .home-stat-val { font-family: var(--font-display); font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.1; }
     .home-stat-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: .5px; margin: 0; }
 
@@ -1354,7 +1363,7 @@
     </div>
     </div>
     <div class="apphead-greet">
-      <h2>Bem-vinda, Luana</h2>
+      <h2 id="home-saudacao">Bem-vinda, Luana</h2>
       <p id="home-data-hora"></p>
     </div>
    </div>
@@ -2849,13 +2858,27 @@ let clienteEditandoId = null;
     iconEl.className = visivel ? 'ti ti-eye' : 'ti ti-eye-off';
   }
 
+  let modalDetalheClienteId = null;
+
   function abrirModalDetalheCliente(id) {
     const c = clientes.find(c => c.id === id);
     if (!c) return;
+    modalDetalheClienteId = id;
     document.getElementById('modal-cliente-nome').textContent = c.nome;
     document.getElementById('modal-cliente-projeto').textContent = c.projeto || '—';
     document.getElementById('modal-cliente-taxa').textContent = 'R$ ' + fmtVal(c.taxa) + '/h';
-    document.getElementById('modal-cliente-obs').textContent = c.obs || '—';
+    document.getElementById('modal-cliente-obs').value = c.obs || '';
+
+    const projetosCliente = projetos.filter(p => p.clienteId === id)
+      .sort((a,b) => (b.ativo === false ? 0 : 1) - (a.ativo === false ? 0 : 1) || a.nome.localeCompare(b.nome, 'pt-BR'));
+    const listaProj = document.getElementById('modal-cliente-projetos-lista');
+    listaProj.innerHTML = projetosCliente.length ? projetosCliente.map(p => {
+      const pendentes = entregaveis.filter(e => e.projetoId === p.id && !e.dataEntrega).length;
+      return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12.5px">
+        <span style="color:var(--navy);font-weight:600${p.ativo === false ? ';text-decoration:line-through;color:var(--text-secondary)' : ''}">${esc(p.nome)}</span>
+        ${pendentes ? `<span style="font-size:11px;color:#7a5c00;background:var(--gold-bg);padding:1px 8px;border-radius:999px;flex-shrink:0">${pendentes} entregável(is) pendente(s)</span>` : ''}
+      </div>`;
+    }).join('') : '<p style="font-size:12px;color:var(--text-secondary);padding:4px 0">Nenhum projeto cadastrado ainda.</p>';
 
     const ocsCliente = orcamentosConsult
       .filter(o => o.clienteId === id || o.clienteNome === c.nome)
@@ -2891,6 +2914,21 @@ let clienteEditandoId = null;
 
   function fecharModalDetalheCliente() {
     document.getElementById('modal-detalhe-cliente').style.display = 'none';
+    modalDetalheClienteId = null;
+  }
+
+  function salvarObsClienteDetalhe() {
+    if (!modalDetalheClienteId) return;
+    const c = clientes.find(c => c.id === modalDetalheClienteId);
+    if (!c) return;
+    const novoObs = document.getElementById('modal-cliente-obs').value.trim();
+    const anterior = c.obs;
+    c.obs = novoObs;
+    renderizarClientes();
+    persistir(
+      sbTable('gh_clientes').update(c.id, { obs: novoObs }),
+      function() { c.obs = anterior; renderizarClientes(); }
+    );
   }
 
   function renderizarClientes() {
@@ -4202,6 +4240,10 @@ let clienteEditandoId = null;
     const dataHora = `${diasSemana[agora.getDay()]}, ${agora.getDate()} de ${meses[agora.getMonth()]} de ${agora.getFullYear()} · ${String(agora.getHours()).padStart(2,'0')}:${String(agora.getMinutes()).padStart(2,'0')}`;
     const el = document.getElementById('home-data-hora');
     if (el) el.textContent = dataHora;
+    const h = agora.getHours();
+    const saudacao = h < 12 ? 'Bom dia, Luana' : h < 18 ? 'Boa tarde, Luana' : 'Boa noite, Luana';
+    const elSaud = document.getElementById('home-saudacao');
+    if (elSaud) elSaud.textContent = saudacao;
 
    const hoje = agora.toISOString().split('T')[0];
 
@@ -4218,14 +4260,17 @@ let clienteEditandoId = null;
 
     const stats = document.getElementById('home-stats');
     if (stats) stats.innerHTML = [
-      { val: planPend,               label: 'Tarefas p/ registrar', cor: planPend > 0 ? '#E8B84B' : '#10b981', tab: 'horas' },
-      { val: anotHoje,               label: 'Anotações para hoje',  cor: anotHoje > 0 ? '#f59e0b' : '#10b981', tab: 'anotacoes' },
-      { val: anotPend,               label: 'Pendências abertas',   cor: anotPend > 0 ? '#6d28d9' : '#10b981', tab: 'anotacoes' },
-      { val: `${hMes.toFixed(1)}h`,  label: 'Horas este mês',       cor: '#252538',                            tab: 'dashboard' },
+      { val: planPend,               label: 'Tarefas p/ registrar', cor: planPend > 0 ? '#E8B84B' : '#10b981', tab: 'horas', icon:'ti-calendar-time' },
+      { val: anotHoje,               label: 'Anotações para hoje',  cor: anotHoje > 0 ? '#f59e0b' : '#10b981', tab: 'anotacoes', icon:'ti-notebook' },
+      { val: anotPend,               label: 'Pendências abertas',   cor: anotPend > 0 ? '#6d28d9' : '#10b981', tab: 'anotacoes', icon:'ti-list-check' },
+      { val: `${hMes.toFixed(1)}h`,  label: 'Horas este mês',       cor: '#252538',                            tab: 'dashboard', icon:'ti-clock-hour-4' },
     ].map(s => `
-          <div class="home-stat" onclick="irPara('${s.tab}')" style="cursor:pointer;transition:box-shadow .15s,border-color .15s" onmouseenter="this.style.borderColor='var(--gold)';this.style.boxShadow='0 4px 14px rgba(232,184,75,.22)'" onmouseleave="this.style.borderColor='';this.style.boxShadow=''">
-        <div class="home-stat-val" style="color:${s.cor}">${s.val}</div>
+          <div class="home-stat" style="--stat-cor:${s.cor};cursor:pointer" onclick="irPara('${s.tab}')">
         <div class="home-stat-label">${s.label}</div>
+        <div class="home-stat-top">
+          <div class="home-stat-val" style="color:${s.cor}">${s.val}</div>
+          <div class="home-stat-icon"><i class="ti ${s.icon}"></i></div>
+        </div>
       </div>`).join('');
 
     renderizarHomeAgendaDia(hoje);
@@ -6632,11 +6677,6 @@ ${faturas}
     // (indicadores em barras removidos a pedido — os totais do ANO seguem no Resumo Mensal)
 
   // ── KPIs principais ─────────────────────────────────────
-    // Valor a faturar = tudo que já foi CONFIRMADO (planejado e ainda não registrado, ou já registrado em horas) e ainda não foi marcado como cobrado
-    const idsRegGeral = new Set(tarefas.map(t => t.planejamentoId).filter(Boolean));
-    const vConfNaoRegGeral = planejamento.filter(p => p.confirmado && !idsRegGeral.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
-    const vRegNaoCobradoGeral = tarefas.filter(t => !t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-    const totalPendGeral = vConfNaoRegGeral + vRegNaoCobradoGeral;
     const mrrStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').reduce((s,a)=>s+(a.valorMensal||0),0);
     const qtdAssinStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').length;
     const chaveMesAtual = anoAtual + '-' + String(mesAtual + 1).padStart(2,'0');
@@ -6659,26 +6699,18 @@ ${faturas}
     // vencimento no mês (recebidas ou não) + assinaturas STRATEGYA ativas.
     const vTotalPrevistoMes = mesFat + vProdutosMesTotal + mrrStrategya;
 
-    // ── Total efetivamente RECEBIDO NO CAIXA do mês: pela DATA EM QUE O DINHEIRO DE FATO ENTROU,
-    // não pela data do serviço/venda. Um serviço de julho recebido em setembro conta em setembro aqui.
-    const vRecebidoCaixaMes = tarefas.filter(t => t.dataRecebimento && t.dataRecebimento.startsWith(chaveMesAtual)).reduce((s,t)=>s+(parseFloat(t.valor)||0),0)
-                             + vendasParcelas.filter(p => p.dataRecebimento && p.dataRecebimento.startsWith(chaveMesAtual)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0)
-                             + mrrStrategya; // aproximação — assinaturas não têm registro de pagamento por mês
-
     // Lucro do mês = valor faturado (previsto) do mês − despesas do mês, como você pediu
     const vLucroMes = vTotalPrevistoMes - vDespesasMes;
 
     document.getElementById('dash-kpis').innerHTML = [
-      { label:'Valor a Faturar até o momento', value:'R$ '+fmtVal(totalPendGeral), sub: 'Confirmado (planejado ou registrado) ainda não cobrado', cor:'#ef4444' },
-      { label:'Planejado do Mês — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub:`<div style="display:flex;flex-direction:column;gap:3px;margin-top:5px"><span style="color:#E8B84B;font-size:12.5px">Confirmado <b>R$ ${fmtVal(mesConf)}</b> · ${fmtVal(mesHConf)}h</span><span style="color:#10b981;font-size:12.5px">Faturado <b>R$ ${fmtVal(mesFat)}</b> · ${fmtVal(mesHFat)}h</span></div>`, cor:'#93c5fd' },
-      { label:'Ticket Médio / Hora (mês)',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
-      { label:'Consultoria (mês)',             value:'R$ '+fmtVal(mesFat),         sub: `Faturado ${fmtVal(mesHFat)}h · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
-      { label:'Produtos/Soluções (mês)',       value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
-      { label:'Assinaturas STRATEGYA (mês)',   value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#E8B84B' },
-      { label:'Total Previsto no Mês',         value:'R$ '+fmtVal(vTotalPrevistoMes), sub: 'Consultoria faturada + produtos com vencimento no mês + assinaturas', cor:'#0891b2' },
-      { label:'Total Recebido no Caixa (mês)', value:'R$ '+fmtVal(vRecebidoCaixaMes), sub: 'Pelo dia em que o dinheiro entrou de fato', cor:'#059669' },
+      { label:'Valor Planejado — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub: 'Tudo que está programado para o mês (planejamento + registrado + histórico)', cor:'#93c5fd' },
+      { label:'Valor Confirmado até o Momento', value:'R$ '+fmtVal(mesConf), sub: fmtVal(mesHConf)+'h confirmadas no mês', cor:'#E8B84B' },
+      { label:'Valor Faturado até o Dia',      value:'R$ '+fmtVal(mesFat),         sub: `${fmtVal(mesHFat)}h faturadas · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
+      { label:'Ticket Médio Geral / Hora',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
+      { label:'Valor em Venda de Produtos',    value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
+      { label:'Valor Assinaturas',             value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s) — STRATEGYA', cor:'#0891b2' },
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
-      { label:'Lucro do Mês',                  value:'R$ '+fmtVal(vLucroMes),      sub: 'Total previsto (faturado) − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
+      { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Total previsto (faturado + produtos + assinaturas) − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
@@ -7367,6 +7399,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       sbTable('gh_anotacao_itens').insert({ id: novo.id, anotacao_id: novo.anotacaoId, titulo, concluido: false, ordem }),
       function() { anotacaoItens = anotacaoItens.filter(i => i.id !== novo.id); renderizarChecklistDetalhe(); }
     );
+    // Uma sub-ação nova (não concluída) reabre a anotação se ela já estava marcada como Concluída
+    atualizarStatusPorChecklist(anotEditandoId);
   }
 
   function alternarSubacao(id) {
@@ -7377,8 +7411,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     renderizarChecklistDetalhe();
     persistir(
       sbTable('gh_anotacao_itens').update(id, { concluido: item.concluido }),
-      function() { item.concluido = anterior; renderizarChecklistDetalhe(); }
+      function() { item.concluido = anterior; renderizarChecklistDetalhe(); atualizarStatusPorChecklist(item.anotacaoId); }
     );
+    atualizarStatusPorChecklist(item.anotacaoId);
   }
 
   function editarSubacao(id) {
@@ -7401,8 +7436,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     renderizarChecklistDetalhe();
     persistir(
       sbTable('gh_anotacao_itens').remove(id),
-      function() { if (removido) anotacaoItens.push(removido); renderizarChecklistDetalhe(); }
+      function() { if (removido) anotacaoItens.push(removido); renderizarChecklistDetalhe(); atualizarStatusPorChecklist(removido && removido.anotacaoId); }
     );
+    if (removido) atualizarStatusPorChecklist(removido.anotacaoId);
   }
 
   function moverAnotacao(id, novoStatus) {
@@ -7412,10 +7448,31 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     a.status = novoStatus;
     a.concluida = novoStatus === 'concluida';
     renderizarAnotacoes();
+    if (anotEditandoId === id) {
+      const sel = document.getElementById('anot-status');
+      if (sel) sel.value = novoStatus;
+    }
     persistir(
       sbTable('gh_anotacoes').update(id, { status: novoStatus, concluida: a.concluida }),
-      function() { a.status = statusAnterior; a.concluida = concluidaAnterior; renderizarAnotacoes(); }
+      function() { a.status = statusAnterior; a.concluida = concluidaAnterior; renderizarAnotacoes(); if (anotEditandoId === id) { const sel = document.getElementById('anot-status'); if (sel) sel.value = statusAnterior; } }
     );
+  }
+
+  // Mantém a anotação (ação macro) sincronizada com o checklist: só fica/aparece como Concluída
+  // no board quando TODAS as sub-ações estiverem marcadas; se alguma for desmarcada, reabre para Em Andamento.
+  function atualizarStatusPorChecklist(anotacaoId) {
+    if (!anotacaoId) return;
+    const a = anotacoes.find(a => a.id === anotacaoId);
+    if (!a) return;
+    const itens = subacoesDe(anotacaoId);
+    if (!itens.length) return;
+    const todasFeitas = itens.every(i => i.concluido);
+    const statusAtual = statusAnot(a);
+    if (todasFeitas && statusAtual !== 'concluida') {
+      moverAnotacao(anotacaoId, 'concluida');
+    } else if (!todasFeitas && statusAtual === 'concluida') {
+      moverAnotacao(anotacaoId, 'andamento');
+    }
   }
 
   function deletarAnotacao(id) {
@@ -10065,13 +10122,23 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           <div id="modal-cliente-taxa" style="font-size:13px;font-weight:600;color:var(--navy)"></div>
         </div>
       </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">Observações</div>
-        <div id="modal-cliente-obs" style="font-size:12.5px;color:var(--text-primary)"></div>
-      </div>
       <div style="background:var(--gold-bg);border-radius:10px;padding:12px 14px;margin-bottom:14px">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:#7a5c00;margin-bottom:4px">Valor Acordado</div>
         <div id="modal-cliente-valor-acordado" style="font-size:19px;font-weight:700;color:var(--navy)"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary)">Projetos Atrelados</div>
+          <button class="btn-icon-sm" onclick="const cid=modalDetalheClienteId; fecharModalDetalheCliente(); abrirModalProjetos(cid)" title="Gerenciar projetos e entregáveis"><i class="ti ti-briefcase"></i></button>
+        </div>
+        <div id="modal-cliente-projetos-lista"></div>
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">Informações Importantes</div>
+        <textarea id="modal-cliente-obs" rows="3" placeholder="Anote aqui informações importantes sobre este cliente..." style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:var(--font-sans);resize:vertical"></textarea>
+        <div style="display:flex;justify-content:flex-end;margin-top:6px">
+          <button class="btn btn-primary btn-sm" onclick="salvarObsClienteDetalhe()"><i class="ti ti-device-floppy"></i> Salvar</button>
+        </div>
       </div>
       <div>
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:6px">Orçamentos</div>
