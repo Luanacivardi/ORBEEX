@@ -854,7 +854,21 @@
     .anot-badge-alta      { background: #fef3c7; color: #92400e; }
     .anot-badge-normal    { background: var(--surface-1); color: var(--text-secondary); }
     .anot-badge-concluida { background: #d1fae5; color: #065f46; }
-    .anot-badge-vencida   { background: #fee2e2; color: #991b1b; }
+    .anot-badge-vencida   { background: #fee2e2; color: #991b1b; display:inline-flex; align-items:center; gap:3px; }
+
+    .table tr.anot-row-vencida td { background: #fef2f2; box-shadow: inset 3px 0 0 #dc2626; }
+    .table tr.anot-row-vencida:hover td { background: #fde8e8; }
+    .table tr.anot-row-concluida td { opacity: .6; }
+
+    .alerta-vencidas {
+      display: flex; align-items: center; gap: 10px; background: #fef2f2; border: 1px solid #fecaca;
+      color: #991b1b; border-radius: var(--radius); padding: .8rem 1rem; margin-bottom: 1rem;
+      cursor: pointer; transition: background .15s;
+    }
+    .alerta-vencidas:hover { background: #fee2e2; }
+    .alerta-vencidas i.ti-alert-triangle-filled { font-size: 20px; flex-shrink: 0; color: #dc2626; }
+    .alerta-vencidas .alerta-vencidas-texto { font-size: 13px; font-weight: 700; flex: 1; }
+    .alerta-vencidas .alerta-vencidas-link { font-size: 12px; font-weight: 600; color: #991b1b; text-decoration: underline; flex-shrink: 0; white-space: nowrap; }
 
     /* ===== SUB-ABAS (dentro de Atividades) ===== */
     .subtabs {
@@ -1419,6 +1433,11 @@
   <!-- ABA HOME -->
  <div id="home" class="tab-content active">
     <div class="home-page">
+      <div class="alerta-vencidas" id="home-alerta-vencidas" style="display:none" onclick="irPara('anotacoes')">
+        <i class="ti ti-alert-triangle-filled"></i>
+        <span class="alerta-vencidas-texto"></span>
+        <span class="alerta-vencidas-link">Ver anotações <i class="ti ti-arrow-right"></i></span>
+      </div>
       <div class="home-stats" id="home-stats"></div>
 
       <div class="home-split-row">
@@ -2352,6 +2371,11 @@
 
   <!-- ABA ANOTAÇÕES -->
   <div id="anotacoes" class="tab-content">
+    <div class="alerta-vencidas" id="anot-alerta-vencidas" style="display:none" onclick="document.getElementById('filtro-anot-status').querySelectorAll('input').forEach(c=>c.checked=true);renderizarAnotacoes()">
+      <i class="ti ti-alert-triangle-filled"></i>
+      <span class="alerta-vencidas-texto"></span>
+      <span class="alerta-vencidas-link">Mostrar todas <i class="ti ti-arrow-right"></i></span>
+    </div>
     <div class="card card-compact">
       <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span><i class="ti ti-filter"></i> Anotações</span>
@@ -2370,7 +2394,7 @@
             <input type="checkbox" value="andamento" checked onchange="renderizarAnotacoes()"> Andamento
           </label>
           <label style="display:flex;align-items:center;gap:4px;padding:3px 9px;border:1px solid var(--border);border-radius:5px;cursor:pointer;font-size:11px;font-weight:600;user-select:none">
-            <input type="checkbox" value="concluida" checked onchange="renderizarAnotacoes()"> Concluído
+            <input type="checkbox" value="concluida" onchange="renderizarAnotacoes()"> Concluído
           </label>
         </div>
         <button class="btn-icon-sm" onclick="limparFiltroAnotacoes()" title="Limpar filtros"><i class="ti ti-x"></i></button>
@@ -4319,6 +4343,7 @@ let clienteEditandoId = null;
     renderizarHomeAgendaDia(hoje);
     inicializarDiario(hoje);
     renderizarAnotacoesHoje();
+    atualizarAlertaAnotacoesVencidas();
   }
 
   // ===== DIÁRIO DO DIA (rascunho pessoal, sem virar registro de horas) =====
@@ -7563,7 +7588,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('filtro-anot-inicio').value = '';
     document.getElementById('filtro-anot-fim').value = '';
     document.getElementById('filtro-anot-busca').value = '';
-    document.querySelectorAll('#filtro-anot-status input[type="checkbox"]').forEach(c => c.checked = true);
+    document.querySelectorAll('#filtro-anot-status input[type="checkbox"]').forEach(c => c.checked = c.value !== 'concluida');
     renderizarAnotacoes();
   }
 
@@ -7605,6 +7630,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     const CORES_STATUS  = { pendente: '#fff', andamento: '#E8B84B', concluida: '#10b981' };
     const BORDAS_STATUS = { pendente: 'var(--border)', andamento: '#E8B84B', concluida: '#10b981' };
+    const ICONES_STATUS = { pendente: 'ti-circle', andamento: 'ti-player-play-filled', concluida: 'ti-check' };
     const PROXIMO_STATUS = { pendente: 'andamento', andamento: 'concluida', concluida: 'pendente' };
     const TITULO_STATUS  = { pendente: 'Marcar como Em Andamento', andamento: 'Marcar como Concluído', concluida: 'Reabrir (voltar para A Fazer)' };
 
@@ -7614,18 +7640,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const badgePrio  = a.prioridade === 'Crítica' ? 'anot-badge-urgente' : a.prioridade === 'Alta' ? 'anot-badge-alta' : 'anot-badge-normal';
       const subs = subacoesDe(a.id);
       const subsFeitas = subs.filter(i => i.concluido).length;
+      const linhaClasse = vencida ? 'anot-row-vencida' : status === 'concluida' ? 'anot-row-concluida' : '';
 
-      return `<tr>
+      return `<tr class="${linhaClasse}">
         <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
-        <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida">Vencida</span>' : ''}</td>
+        <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle-filled" style="font-size:10px"></i> Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
         <td style="font-size:12px;color:var(--text-primary);white-space:normal;word-break:break-word">${a.descricao || '—'}</td>
         <td style="white-space:nowrap">
           <div class="btn-acao-row" style="justify-content:flex-end;flex-wrap:nowrap">
             <button class="btn-icon" onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
               style="border-radius:7px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
-              ${status === 'concluida' ? '<i class="ti ti-check" style="color:#fff;font-size:15px;font-weight:700"></i>' : ''}
+              <i class="ti ${ICONES_STATUS[status]}" style="color:${status === 'pendente' ? 'var(--text-secondary)' : '#fff'};font-size:${status === 'andamento' ? '12px' : '14px'};font-weight:700"></i>
             </button>
             <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Detalhes / Editar / Sub-ações" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
@@ -7635,6 +7662,38 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       </tr>`;
     }).join('');
     renderizarBoardAnotacoes();
+    atualizarAlertaAnotacoesVencidas();
+  }
+
+  // Alerta visível de anotações vencidas (não concluídas com data no passado) — mostrado no topo da
+  // aba Anotações e na Home, independente dos filtros ativos na lista/board.
+  function anotacoesVencidas() {
+    const hoje = new Date().toISOString().split('T')[0];
+    return anotacoes.filter(a => statusAnot(a) !== 'concluida' && a.data && a.data < hoje);
+  }
+
+  function atualizarAlertaAnotacoesVencidas() {
+    const vencidas = anotacoesVencidas();
+    const alertaAnot = document.getElementById('anot-alerta-vencidas');
+    if (alertaAnot) {
+      if (vencidas.length) {
+        alertaAnot.style.display = '';
+        alertaAnot.querySelector('.alerta-vencidas-texto').textContent =
+          vencidas.length === 1 ? '1 anotação vencida precisa de atenção.' : `${vencidas.length} anotações vencidas precisam de atenção.`;
+      } else {
+        alertaAnot.style.display = 'none';
+      }
+    }
+    const alertaHome = document.getElementById('home-alerta-vencidas');
+    if (alertaHome) {
+      if (vencidas.length) {
+        alertaHome.style.display = '';
+        alertaHome.querySelector('.alerta-vencidas-texto').textContent =
+          vencidas.length === 1 ? '1 anotação vencida precisa de atenção.' : `${vencidas.length} anotações vencidas precisam de atenção.`;
+      } else {
+        alertaHome.style.display = 'none';
+      }
+    }
   }
 // ===== DESPESAS =====
   let despesaEditandoId = null;
@@ -10603,7 +10662,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       clearTimeout(pendente);
       pendente = setTimeout(function () {
         rotular(); rotularTabelas(); marcarAgendaSemana();
-        var novos = document.querySelectorAll('textarea:not([spellcheck]), input[type="text"]:not([spellcheck])');
+        var novos = document.querySelectorAll('textarea:not([spellcheck]), input[type="text"]:not([spellcheck]), input:not([type]):not([spellcheck])');
         for (var i = 0; i < novos.length; i++) {
           novos[i].setAttribute('spellcheck', 'true');
           novos[i].setAttribute('lang', 'pt-BR');
