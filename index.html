@@ -866,7 +866,7 @@
       cursor: pointer; transition: background .15s;
     }
     .alerta-vencidas:hover { background: #fee2e2; }
-    .alerta-vencidas i.ti-alert-triangle-filled { font-size: 20px; flex-shrink: 0; color: #dc2626; }
+    .alerta-vencidas i.ti-alert-triangle { font-size: 20px; flex-shrink: 0; color: #dc2626; }
     .alerta-vencidas .alerta-vencidas-texto { font-size: 13px; font-weight: 700; flex: 1; }
     .alerta-vencidas .alerta-vencidas-link { font-size: 12px; font-weight: 600; color: #991b1b; text-decoration: underline; flex-shrink: 0; white-space: nowrap; }
 
@@ -1434,9 +1434,14 @@
  <div id="home" class="tab-content active">
     <div class="home-page">
       <div class="alerta-vencidas" id="home-alerta-vencidas" style="display:none" onclick="irPara('anotacoes')">
-        <i class="ti ti-alert-triangle-filled"></i>
+        <i class="ti ti-alert-triangle"></i>
         <span class="alerta-vencidas-texto"></span>
         <span class="alerta-vencidas-link">Ver anotações <i class="ti ti-arrow-right"></i></span>
+      </div>
+      <div class="alerta-vencidas" id="home-alerta-contratos" style="display:none" onclick="irPara('clientes')">
+        <i class="ti ti-file-alert"></i>
+        <span class="alerta-vencidas-texto"></span>
+        <span class="alerta-vencidas-link">Ver clientes <i class="ti ti-arrow-right"></i></span>
       </div>
       <div class="home-stats" id="home-stats"></div>
 
@@ -1832,7 +1837,7 @@
         </div>
         <div id="ics-preview" style="display:none;margin-bottom:12px;padding:10px 14px;background:var(--surface-1);border-radius:8px;font-size:13px"></div>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-inline" style="background:#0078d4;color:#fff;font-weight:600" onclick="importarICS()"><i class="ti ti-calendar-import"></i> Importar Eventos do Outlook</button>
+          <button class="btn btn-inline" style="background:#0078d4;color:#fff;font-weight:600" onclick="importarICS()"><i class="ti ti-file-import"></i> Importar Eventos do Outlook</button>
         </div>
       </div>
 
@@ -2142,6 +2147,7 @@
           <div class="form-group"><label>Desconto (%)</label><input type="number" id="oc-desconto" value="0" min="0" step="0.5" oninput="ocCalcular()"></div>
           <div class="form-group"><label>Impostos / tributos (%)</label><input type="number" id="oc-impostos" value="0" min="0" step="0.5" oninput="ocCalcular()"></div>
           <div class="form-group"><label>Prazo de execução</label><input type="text" id="oc-prazo" placeholder="Ex: 4 meses"></div>
+          <div class="form-group"><label>Vigência do contrato</label><input type="text" id="oc-vigencia" placeholder="Ex: 12 meses, Indeterminado" title="Cláusula 13.1 do contrato: a vigência é definida aqui, na Proposta Comercial"></div>
           <div class="form-group"><label>Status</label>
             <select id="oc-status"><option value="rascunho">Rascunho</option><option value="enviado">Enviado</option><option value="aprovado">Aprovado</option><option value="recusado">Recusado</option></select>
           </div>
@@ -2372,7 +2378,7 @@
   <!-- ABA ANOTAÇÕES -->
   <div id="anotacoes" class="tab-content">
     <div class="alerta-vencidas" id="anot-alerta-vencidas" style="display:none" onclick="document.getElementById('filtro-anot-status').querySelectorAll('input').forEach(c=>c.checked=true);renderizarAnotacoes()">
-      <i class="ti ti-alert-triangle-filled"></i>
+      <i class="ti ti-alert-triangle"></i>
       <span class="alerta-vencidas-texto"></span>
       <span class="alerta-vencidas-link">Mostrar todas <i class="ti ti-arrow-right"></i></span>
     </div>
@@ -2604,7 +2610,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [], vendasParcelas: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [], vendasParcelas: [], contratos: [], config: [] };
   window.__SRV_ERRO__ = false;
 
   function carregarDadosServidor() {
@@ -2631,9 +2637,11 @@
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
-      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
+      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
-      ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento']
+      ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento'],
+      ['contratos',    'gh_contratos?select=id,clienteId:cliente_id,orcamentoId:orcamento_id,razaoSocial:razao_social,cnpj,endereco,representanteLegal:representante_legal,vigencia,horasMultaRescisao:horas_multa_rescisao,status,dataGeracao:data_geracao,dataEnvio:data_envio,dataAssinatura:data_assinatura,dataVencimento:data_vencimento,arquivoPath:arquivo_path,arquivoNome:arquivo_nome,observacoes'],
+      ['config',       'gh_config?select=chave,valor']
     ];
 
     return pronto.then(function() {
@@ -2679,6 +2687,8 @@
   let orcamentosConsult = [];
   let vendas      = [];
   let vendasParcelas = [];
+  let contratos   = [];
+  let configApp   = [];
   let _finSub = 'cobranca';
   let _ocIniciado = false;
   let ocEditandoId = null;
@@ -2966,11 +2976,13 @@ let clienteEditandoId = null;
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           ${badge(o.status)}
           <span style="font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap">R$ ${fmtVal(o.total || 0)}</span>
+          ${o.status === 'aprovado' ? `<button onclick="const cid=modalDetalheClienteId;fecharModalDetalheCliente();abrirModalContrato(cid)" title="Gerar Contrato a partir desta proposta aprovada" style="border:none;background:none;cursor:pointer;color:#059669;font-size:15px"><i class="ti ti-file-text"></i></button>` : ''}
           <button onclick="imprimirOrcamentoConsultoria('${o.id}')" title="Imprimir / PDF" style="border:none;background:none;cursor:pointer;color:var(--navy);font-size:15px"><i class="ti ti-printer"></i></button>
         </div>
       </div>`).join('') : '<p style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0">Nenhuma proposta cadastrada para este cliente ainda.</p>';
 
     document.getElementById('modal-detalhe-cliente').style.display = 'flex';
+    renderizarContratoCliente(id);
   }
 
   function fecharModalDetalheCliente() {
@@ -3005,10 +3017,7 @@ let clienteEditandoId = null;
             ${c.projeto ? `<div class="cliente-card-projeto">${esc(c.projeto)}</div>` : ''}
           </div>
         </div>
-        <div class="cliente-card-taxa" onclick="event.stopPropagation()">
-          <span class="taxa-oculta" data-visivel="0" style="filter:blur(5px);user-select:none;transition:filter .15s">R$ ${fmtVal(c.taxa)}/h</span>
-          <i class="ti ti-eye" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
-        </div>
+        ${contratoVencido(contratoDoCliente(c.id)) ? `<span class="anot-badge anot-badge-vencida" style="align-self:flex-start"><i class="ti ti-file-alert" style="font-size:10px"></i> Contrato vencido</span>` : ''}
         ${c.obs ? `<div class="cliente-card-obs"><i class="ti ti-note" style="margin-right:4px;color:var(--text-muted)"></i>${esc(c.obs)}</div>` : ''}
         <div class="cliente-card-acoes" onclick="event.stopPropagation()">
           <button onclick="abrirModalProjetos('${c.id}')" title="Projetos e Entregáveis"><i class="ti ti-briefcase"></i></button>
@@ -4344,6 +4353,7 @@ let clienteEditandoId = null;
     inicializarDiario(hoje);
     renderizarAnotacoesHoje();
     atualizarAlertaAnotacoesVencidas();
+    atualizarAlertaContratosVencidos();
   }
 
   // ===== DIÁRIO DO DIA (rascunho pessoal, sem virar registro de horas) =====
@@ -7630,7 +7640,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     const CORES_STATUS  = { pendente: '#fff', andamento: '#E8B84B', concluida: '#10b981' };
     const BORDAS_STATUS = { pendente: 'var(--border)', andamento: '#E8B84B', concluida: '#10b981' };
-    const ICONES_STATUS = { pendente: 'ti-circle', andamento: 'ti-player-play-filled', concluida: 'ti-check' };
+    const ICONES_STATUS = { pendente: 'ti-circle', andamento: 'ti-player-play', concluida: 'ti-check' };
     const PROXIMO_STATUS = { pendente: 'andamento', andamento: 'concluida', concluida: 'pendente' };
     const TITULO_STATUS  = { pendente: 'Marcar como Em Andamento', andamento: 'Marcar como Concluído', concluida: 'Reabrir (voltar para A Fazer)' };
 
@@ -7645,7 +7655,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       return `<tr class="${linhaClasse}">
         <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
-        <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle-filled" style="font-size:10px"></i> Vencida</span>' : ''}</td>
+        <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle" style="font-size:10px"></i> Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
         <td style="font-size:12px;color:var(--text-primary);white-space:normal;word-break:break-word">${a.descricao || '—'}</td>
         <td style="white-space:nowrap">
@@ -8138,9 +8148,386 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // ================= ORÇAMENTOS DE CONSULTORIA =================
   // Dados do prestador que aparecem no cabeçalho da proposta impressa.
   // Ajuste livremente (razão social, CNPJ, contato). Campos vazios são omitidos.
-  var OC_PRESTADOR = { nome: 'ORBEEX', subtitulo: 'Consultoria em Sistemas de Gestão', cnpj: '', contato: '', local: 'Bento Gonçalves – RS' };
+  var OC_PRESTADOR = { nome: 'ORBEEX', subtitulo: 'Consultoria em Sistemas de Gestão', cnpj: '', contato: '', local: 'Bento Gonçalves – RS', endereco: '', representanteLegal: '' };
   var OC_NORMAS = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 50001', 'ISO 27001', 'Compliance', 'ISO 26000'];
   var OC_UNIDADES = ['hora', 'diária', 'visita', 'mês', 'verba', 'pacote'];
+
+  // Aplica os dados persistidos da CONTRATADA (ORBEEX) sobre OC_PRESTADOR, usados na proposta e no contrato
+  function aplicarConfigContratada() {
+    var cfg = configApp.find(function(c) { return c.chave === 'dados_contratada'; });
+    if (cfg && cfg.valor) Object.assign(OC_PRESTADOR, cfg.valor);
+  }
+
+  function abrirModalDadosContratada() {
+    document.getElementById('dc-cnpj').value = OC_PRESTADOR.cnpj || '';
+    document.getElementById('dc-endereco').value = OC_PRESTADOR.endereco || '';
+    document.getElementById('dc-representante').value = OC_PRESTADOR.representanteLegal || '';
+    document.getElementById('dc-contato').value = OC_PRESTADOR.contato || '';
+    document.getElementById('modal-dados-contratada').style.display = 'flex';
+  }
+  function fecharModalDadosContratada() {
+    document.getElementById('modal-dados-contratada').style.display = 'none';
+  }
+  function salvarDadosContratada() {
+    var novoValor = {
+      nome: OC_PRESTADOR.nome, subtitulo: OC_PRESTADOR.subtitulo, local: OC_PRESTADOR.local,
+      cnpj: document.getElementById('dc-cnpj').value.trim(),
+      endereco: document.getElementById('dc-endereco').value.trim(),
+      representanteLegal: document.getElementById('dc-representante').value.trim(),
+      contato: document.getElementById('dc-contato').value.trim()
+    };
+    var anterior = Object.assign({}, OC_PRESTADOR);
+    Object.assign(OC_PRESTADOR, novoValor);
+    fecharModalDadosContratada();
+    persistir(
+      fetch(SUPABASE_URL + '/rest/v1/gh_config', { method: 'POST', headers: sbAuthHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ chave: 'dados_contratada', valor: novoValor }) }).then(checarResposta),
+      function() { Object.assign(OC_PRESTADOR, anterior); }
+    );
+  }
+
+  // ================= GESTÃO DE CONTRATOS (modelo Dalmass Advogados) =================
+  // Texto integral do contrato-padrão, parágrafo por parágrafo, exatamente como redigido pela
+  // advogada. Os únicos pontos alterados são os campos entre colchetes [●]/[RAZÃO SOCIAL], que
+  // viram tokens {{...}} preenchidos por preencherContrato(). Nenhuma cláusula é reescrita.
+  var CONTRATO_PARAGRAFOS = [
+    'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE CONSULTORIA E ASSESSORIA EM SISTEMAS DE GESTÃO, QUALIDADE E MELHORIA DE PROCESSOS',
+    'CONTRATANTE: {{RAZAO_SOCIAL}}, pessoa jurídica de direito privado, inscrita no CNPJ sob nº {{CNPJ_CLIENTE}}, com sede em {{ENDERECO_CLIENTE}}, neste ato representada por seu representante legal{{REP_CLIENTE}}, doravante denominada CONTRATANTE.',
+    'CONTRATADA: ORBEEX CONSULTORIA EM GESTÃO DA QUALIDADE, pessoa jurídica de direito privado, inscrita no CNPJ sob nº {{CNPJ_CONTRATADA}}, optante pelo Simples Nacional, com sede em {{ENDERECO_CONTRATADA}}, neste ato representada por sua representante legal{{REP_CONTRATADA}}, doravante denominada CONTRATADA.',
+    'As partes acima identificadas resolvem celebrar o presente Contrato de Prestação de Serviços de Consultoria e Assessoria em Sistemas de Gestão, Qualidade e Melhoria de Processos, que será regido pelas cláusulas e condições seguintes.',
+    'CLÁUSULA 1ª – DO OBJETO',
+    '1.1. A CONTRATADA prestará à CONTRATANTE serviços de consultoria e assessoria em Sistemas de Gestão, Qualidade e melhoria de processos, incluindo diagnóstico, elaboração e revisão de documentos, apoio à implementação de normas, auditorias internas, preparação para certificações, treinamentos e demais atividades correlatas relacionadas ao objeto contratado.',
+    'O escopo, cronograma, entregáveis, prazos, valores e demais condições específicas de cada contratação serão definidas em Proposta Comercial, Anexo de Projeto, Ordem de Serviço ou documento equivalente, que, uma vez aprovado pela CONTRATANTE, passará a integrar o presente contrato para todos os fins de direito.',
+    '1.2. Para fins deste contrato, entende-se por Sistema de Gestão todo sistema estruturado destinado à organização, padronização, melhoria contínua e aperfeiçoamento dos processos da CONTRATANTE, abrangendo, quando aplicável, normas técnicas, auditorias internas e externas, certificações, indicadores, gestão documental e demais atividades relacionadas à melhoria dos processos organizacionais.',
+    'CLÁUSULA 2ª – DOS DOCUMENTOS CONTRATUAIS',
+    '2.1. Integram o presente contrato, quando existentes, a Proposta Comercial, Ordem de Serviço, Anexo de Projeto, cronograma, termo de aceite e eventuais aditivos, os quais estabelecerão as condições específicas de cada contratação.',
+    '2.2. A aprovação da Proposta Comercial ou de qualquer documento complementar poderá ocorrer mediante assinatura física, assinatura eletrônica, troca de e-mails, aceite em plataforma eletrônica ou qualquer outro meio capaz de comprovar a manifestação inequívoca de vontade da CONTRATANTE.',
+    '2.3. Em caso de divergência entre os documentos, prevalecerão as disposições deste contrato geral, salvo previsão expressa em sentido diverso constante do documento específico.',
+    'CLÁUSULA 3ª – DAS OBRIGAÇÕES DAS PARTES',
+    '3.1. Constituem obrigações da CONTRATADA:',
+    'I – prestar os serviços com diligência, ética, boa-fé e qualidade técnica;',
+    'II – observar o escopo contratado e manter a CONTRATANTE informada sobre o andamento dos trabalhos;',
+    'III – preservar o sigilo das informações obtidas durante a execução dos serviços;',
+    'IV – observar a legislação aplicável, especialmente quanto à proteção de dados pessoais;',
+    'V – emitir a respectiva Nota Fiscal pelos serviços prestados;',
+    'VI – comunicar eventual circunstância que possa impactar significativamente a execução do projeto.',
+    '3.2. Constituem obrigações da CONTRATANTE:',
+    'I – fornecer as informações, documentos e acessos necessários ao desenvolvimento dos serviços;',
+    'II – indicar representante para acompanhamento do projeto;',
+    'III – analisar e validar os materiais apresentados em prazo compatível com o cronograma;',
+    'IV – efetuar os pagamentos na forma contratada;',
+    'V – cumprir as obrigações legais relacionadas às suas atividades e disponibilizar ambiente adequado para execução dos serviços presenciais.',
+    '3.3. A CONTRATADA exercerá suas atividades com autonomia técnica e administrativa, inexistindo vínculo empregatício, societário ou de representação entre as Partes, sendo responsável exclusivamente pelos encargos trabalhistas, previdenciários, fiscais e tributários decorrentes de sua atividade.',
+    'CLÁUSULA 4ª – DA REMUNERAÇÃO',
+    '4.1. Os serviços serão contratados, preferencialmente, mediante cobrança por hora técnica, cujo valor será definido na respectiva Proposta Comercial.',
+    '4.2. Excepcionalmente, mediante ajuste entre as partes, a contratação poderá ocorrer por projeto, mensalidade, pacote de horas ou outra modalidade prevista na Proposta Comercial.',
+    '4.3. O faturamento observará as condições estabelecidas na Proposta Comercial, mediante emissão da respectiva Nota Fiscal.',
+    '4.4. O atraso no pagamento sujeitará a CONTRATANTE à incidência de multa de 2% (dois por cento), juros de mora de 1% (um por cento) ao mês e atualização monetária, sem prejuízo da suspensão dos serviços até a regularização do débito.',
+    '4.5. Os valores serão reajustados anualmente pela variação acumulada do IPCA ou outro índice oficial que venha a substituí-lo.',
+    '4.6. As despesas ordinárias de deslocamento, hospedagem e alimentação estão compreendidas na remuneração ajustada para o atendimento regular da CONTRATANTE. Havendo deslocamentos extraordinários, viagens, visitas a outras unidades ou participação em eventos solicitados pela CONTRATANTE, as despesas correspondentes serão previamente aprovadas e reembolsadas mediante apresentação dos respectivos comprovantes.',
+    'CLÁUSULA 5ª – DAS HORAS TÉCNICAS',
+    '5.1. Considera-se hora técnica todo o tempo efetivamente dedicado pela CONTRATADA à execução dos serviços contratados, compreendendo atividades presenciais ou remotas, reuniões, análises, elaboração e revisão de documentos, treinamentos, auditorias, planejamento, estudos e demais atividades necessárias ao desenvolvimento do projeto.',
+    '5.2. As atividades poderão ser realizadas de forma síncrona ou assíncrona, sendo ambas passíveis de remuneração quando a contratação ocorrer por hora técnica.',
+    'CLÁUSULA 6ª – DA ALTERAÇÃO DO ESCOPO',
+    '6.1. Os serviços serão executados de acordo com o escopo definido na respectiva Proposta Comercial ou documento equivalente.',
+    '6.2. Solicitações que impliquem ampliação do objeto contratado, aumento de horas, inclusão de novas atividades ou alteração significativa dos entregáveis poderão ensejar revisão do cronograma, readequação dos valores ou emissão de nova Proposta Comercial.',
+    '6.3. A CONTRATADA somente ficará obrigada à execução dos serviços adicionais após a concordância das Partes, dispensada a celebração de novo contrato, podendo o ajuste ser formalizado por aditivo contratual, Proposta Comercial, Ordem de Serviço, e-mail, aplicativo de mensagens ou qualquer outro meio idôneo que comprove a manifestação de vontade das Partes.',
+    'CLÁUSULA 7ª – DA CONFIDENCIALIDADE E PROTEÇÃO DE DADOS (LGPD)',
+    '7.1. As Partes comprometem-se a manter sigilo sobre todas as informações técnicas, comerciais, financeiras, estratégicas, operacionais ou de qualquer outra natureza a que tiverem acesso em razão da execução deste contrato, utilizando-as exclusivamente para o cumprimento de seu objeto.',
+    '7.2. A CONTRATADA compromete-se a tratar os dados pessoais eventualmente acessados em conformidade com a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados – LGPD), limitando-se ao tratamento das informações estritamente necessárias à prestação dos serviços.',
+    '7.3. Para os fins da LGPD, a CONTRATANTE atuará como Controladora dos dados pessoais eventualmente tratados e a CONTRATADA como Operadora, realizando o tratamento conforme as instruções da CONTRATANTE e para as finalidades decorrentes deste contrato.',
+    '7.4. A obrigação de confidencialidade permanecerá vigente durante a execução do contrato e por 05 (cinco) anos após seu encerramento, ressalvadas as hipóteses de guarda obrigatória previstas em lei.',
+    '7.5. As disposições desta cláusula aplicam-se igualmente aos registros técnicos, documentos, fotografias, vídeos, relatórios e demais materiais produzidos ou obtidos durante a execução dos serviços, observadas as disposições das cláusulas seguintes.',
+    'CLÁUSULA 8ª – DOS REGISTROS TÉCNICOS E DIREITO DE IMAGEM',
+    '8.1. Para a adequada execução dos serviços, a CONTRATADA poderá realizar registros fotográficos e audiovisuais dos processos, equipamentos, documentos, instalações e demais atividades relacionadas ao objeto contratado, utilizando equipamentos próprios, inclusive telefone celular.',
+    '8.2. Os registros terão finalidade exclusivamente técnica, destinando-se à documentação dos serviços, elaboração de relatórios, acompanhamento da evolução do projeto, auditorias, treinamentos e comprovação das atividades desenvolvidas.',
+    '8.3. Eventuais imagens de colaboradores captadas de forma incidental não terão finalidade comercial ou publicitária, sendo utilizadas apenas para execução deste contrato.',
+    '8.4. A divulgação pública de imagens, vídeos ou informações que permitam identificar a CONTRATANTE dependerá de autorização prévia e expressa, ressalvadas as hipóteses previstas em lei.',
+    '8.5. Compete à CONTRATANTE orientar seus colaboradores acerca da realização dos registros necessários à execução dos serviços, bem como obter, quando exigido pela legislação ou por suas normas internas, as autorizações pertinentes.',
+    '8.6. Os registros técnicos permanecerão protegidos pelas obrigações de confidencialidade previstas na Cláusula 7ª e pelas regras de propriedade intelectual previstas na Cláusula 9ª.',
+    '8.7. A CONTRATANTE autoriza a CONTRATADA a mencionar seu nome empresarial, logomarca e a condição de cliente atendido em portfólio, apresentações institucionais, website e materiais de divulgação, vedada a divulgação de informações confidenciais. A autorização poderá ser revogada a qualquer tempo mediante comunicação escrita, produzindo efeitos apenas para divulgações futuras.',
+    'CLÁUSULA 9ª – DA PROPRIEDADE INTELECTUAL',
+    '9.1. Permanecem de exclusiva propriedade da CONTRATADA as metodologias, processos, know-how, modelos, formulários, checklists, fluxogramas, relatórios, planilhas, treinamentos, documentos, materiais técnicos e demais conteúdos intelectuais utilizados ou desenvolvidos na execução dos serviços.',
+    '9.2. Os documentos elaborados especificamente para a CONTRATANTE destinam-se ao seu uso interno, não implicando cessão da propriedade intelectual, da metodologia ou dos direitos da CONTRATADA.',
+    '9.3. Caso a CONTRATADA desenvolva ou disponibilize software, plataforma, sistema, aplicativo ou qualquer ferramenta tecnológica destinada à execução ou apoio dos serviços, sua propriedade intelectual permanecerá exclusivamente com a CONTRATADA, não sendo conferido à CONTRATANTE qualquer direito de propriedade, cessão ou uso independente da consultoria, salvo contratação específica de licença ou instrumento próprio.',
+    '9.4. É vedada à CONTRATANTE a reprodução, adaptação, compartilhamento, comercialização ou utilização, por terceiros, dos materiais, metodologias ou ferramentas de propriedade da CONTRATADA, sem sua autorização expressa.',
+    '9.5. As disposições desta cláusula aplicam-se em conjunto com as regras de confidencialidade, proteção de dados e registros técnicos previstas neste contrato, sem prejuízo das medidas legais cabíveis em caso de violação.',
+    '9.6. A utilização, reprodução, compartilhamento, adaptação ou disponibilização não autorizada dos materiais, metodologias, formulários, templates, ferramentas ou demais conteúdos protegidos por esta cláusula sujeitará a CONTRATANTE ao pagamento de multa correspondente a 03 (três) vezes a média do faturamento mensal dos últimos 06 (seis) meses do contrato, sem prejuízo da apuração de perdas e danos eventualmente comprovados.',
+    'CLÁUSULA 10ª – DA RESPONSABILIDADE DAS PARTES',
+    '10.1. Os serviços prestados possuem natureza de obrigação de meio, comprometendo-se a CONTRATADA a empregar conhecimento técnico, diligência e boas práticas profissionais, sem garantir resultados específicos, certificações, aprovações em auditorias ou desempenho empresarial.',
+    '10.2. Os pareceres, diagnósticos, relatórios e recomendações elaborados pela CONTRATADA possuem caráter exclusivamente técnico e consultivo, competindo exclusivamente à CONTRATANTE decidir sobre sua implementação.',
+    '10.3. A CONTRATADA desenvolverá seus trabalhos com base nas informações e documentos fornecidos pela CONTRATANTE, presumindo-se sua veracidade, integridade e atualização, não respondendo por prejuízos decorrentes de informações incorretas, incompletas ou omitidas.',
+    '10.4. A CONTRATADA não responderá por decisões administrativas, comerciais, financeiras, tributárias, trabalhistas, operacionais ou estratégicas adotadas pela CONTRATANTE, nem pelos resultados decorrentes da implementação, implementação parcial ou não implementação das recomendações apresentadas.',
+    '10.5. A responsabilidade da CONTRATADA limita-se aos danos diretos comprovadamente decorrentes de dolo ou culpa na execução dos serviços, não abrangendo lucros cessantes, danos indiretos, perda de oportunidade ou prejuízos decorrentes de atos de terceiros ou da própria CONTRATANTE.',
+    'CLÁUSULA 11ª – DO ACEITE DOS SERVIÇOS',
+    '11.1. Os documentos, relatórios, procedimentos, treinamentos, apresentações e demais entregáveis serão considerados aceitos caso a CONTRATANTE não apresente manifestação fundamentada no prazo de 10 (dez) dias úteis contados de seu recebimento.',
+    '11.2. Eventuais ajustes solicitados serão realizados quando relacionados ao escopo originalmente contratado, não abrangendo alterações que caracterizem ampliação do objeto.',
+    '11.3. O aceite dos serviços não implica cessão da propriedade intelectual da CONTRATADA nem afasta as obrigações de confidencialidade e proteção de dados previstas neste contrato.',
+    'CLÁUSULA 12ª – DA SUSPENSÃO DOS SERVIÇOS',
+    '12.1. A CONTRATADA poderá suspender a execução dos serviços, mediante comunicação à CONTRATANTE, sempre que o inadimplemento, a ausência de informações, documentos, acessos ou qualquer fato imputável à CONTRATANTE impedir ou comprometer a adequada execução do objeto contratado.',
+    '12.2. A suspensão não caracterizará inadimplemento da CONTRATADA, ficando automaticamente prorrogados os prazos de execução pelo período correspondente à paralisação.',
+    '12.3. Persistindo a causa da suspensão por mais de 30 (trinta) dias, poderá a CONTRATADA rescindir o contrato, permanecendo devidos os valores relativos aos serviços efetivamente prestados.',
+    'CLÁUSULA 13ª – DA VIGÊNCIA E RESCISÃO',
+    '13.1. O presente contrato vigorará pelo prazo estabelecido na Proposta Comercial ou, na ausência de estipulação, por prazo indeterminado, iniciando-se na data de sua assinatura.',
+    '13.2. Qualquer das Partes poderá rescindir o contrato mediante comunicação escrita com antecedência mínima de 30 (trinta) dias, permanecendo devidos os valores relativos aos serviços efetivamente prestados até a data do encerramento.',
+    '13.3. O descumprimento de obrigação contratual não sanado no prazo de 10 (dez) dias após notificação escrita autorizará a rescisão imediata, sem prejuízo das medidas legais cabíveis.',
+    '13.4. Permanecerão vigentes após o encerramento do contrato as obrigações relativas à confidencialidade, proteção de dados, propriedade intelectual, responsabilidade e demais disposições que, por sua natureza, produzam efeitos posteriores.',
+    '13.5. Nos contratos celebrados por prazo determinado, a rescisão imotivada antes do término da vigência, ou sem observância do aviso prévio previsto neste contrato, sujeitará a Parte que lhe der causa ao pagamento de indenização correspondente a {{HORAS_MULTA}} horas técnicas, calculadas pelo valor vigente à época da rescisão, ressalvada a hipótese de rescisão motivada por inadimplemento contratual.',
+    'CLÁUSULA 14ª – DAS DISPOSIÇÕES GERAIS',
+    '14.1. O presente contrato não estabelece exclusividade entre as Partes, podendo a CONTRATADA prestar serviços a outros clientes, inclusive do mesmo segmento econômico da CONTRATANTE, preservado o dever de confidencialidade.',
+    '14.2. A CONTRATADA poderá contar com profissionais ou empresas parceiras para execução parcial dos serviços, permanecendo responsável perante a CONTRATANTE pela qualidade dos serviços prestados e pelo cumprimento das obrigações de confidencialidade e proteção de dados.',
+    '14.3. As aprovações, autorizações, solicitações e demais comunicações realizadas por e-mail, aplicativos de mensagens ou plataformas eletrônicas terão plena validade entre as Partes, desde que permitam identificar sua origem.',
+    '14.4. A eventual tolerância quanto ao descumprimento de qualquer obrigação contratual não implicará renúncia de direitos ou alteração das condições pactuadas.',
+    '14.5. O presente contrato poderá ser assinado física ou eletronicamente, produzindo os mesmos efeitos legais.',
+    '14.6. A nulidade ou inexigibilidade de qualquer disposição não prejudicará a validade das demais cláusulas.',
+    '14.7. As cláusulas deste contrato deverão ser interpretadas de forma complementar e sistemática, observando-se a boa-fé objetiva, a finalidade da contratação e a autonomia técnica da CONTRATADA.',
+    '14.8. Fica eleito o foro da Comarca de Bento Gonçalves/RS, com renúncia de qualquer outro, por mais privilegiado que seja, para dirimir quaisquer controvérsias oriundas deste contrato.'
+  ];
+
+  function preencherContrato(dados) {
+    var repCliente = dados.representanteLegal ? (', ' + dados.representanteLegal) : '';
+    var repContratada = OC_PRESTADOR.representanteLegal ? (', ' + OC_PRESTADOR.representanteLegal) : '';
+    var mapa = {
+      '{{RAZAO_SOCIAL}}': dados.razaoSocial || '[RAZÃO SOCIAL]',
+      '{{CNPJ_CLIENTE}}': dados.cnpj || '[●]',
+      '{{ENDERECO_CLIENTE}}': dados.endereco || '[●]',
+      '{{REP_CLIENTE}}': repCliente,
+      '{{CNPJ_CONTRATADA}}': OC_PRESTADOR.cnpj || '[●]',
+      '{{ENDERECO_CONTRATADA}}': OC_PRESTADOR.endereco || '[●]',
+      '{{REP_CONTRATADA}}': repContratada,
+      '{{HORAS_MULTA}}': (dados.horasMultaRescisao ? dados.horasMultaRescisao : '[●]')
+    };
+    return CONTRATO_PARAGRAFOS.map(function(p) {
+      return p.replace(/\{\{\w+\}\}/g, function(token) { return mapa[token] != null ? mapa[token] : token; });
+    });
+  }
+
+  function gerarHtmlContrato(dados) {
+    var paragrafos = preencherContrato(dados);
+    var corpo = paragrafos.map(function(p) {
+      var ehTitulo = /^CLÁUSULA/.test(p) || p === paragrafos[0];
+      var estilo = ehTitulo ? 'font-weight:700;margin-top:16px;text-transform:uppercase;font-size:12.5px' : 'text-align:justify;margin-top:6px;font-size:12px';
+      return '<p style="' + estilo + '">' + esc(p) + '</p>';
+    }).join('');
+    var dataAssinatura = dados.dataAssinatura ? fmtData(dados.dataAssinatura) : '____/____/______';
+    return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato - ' + esc(dados.razaoSocial || '') + '</title>' +
+      '<style>body{font-family:Calibri,Arial,sans-serif;color:#111;line-height:1.5;margin:2.5cm}</style></head><body>' +
+      corpo +
+      '<p style="margin-top:28px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
+      '<table style="width:100%;margin-top:40px"><tr>' +
+      '<td style="width:50%;text-align:center;border-top:1px solid #000;padding-top:6px">CONTRATANTE<br>' + esc(dados.razaoSocial || '') + '</td>' +
+      '<td style="width:50%;text-align:center;border-top:1px solid #000;padding-top:6px">CONTRATADA<br>' + esc(OC_PRESTADOR.nome || 'ORBEEX') + '</td>' +
+      '</tr></table>' +
+      '<p style="margin-top:30px">TESTEMUNHAS:</p>' +
+      '<p style="margin-top:24px">_____________________________________</p>' +
+      '<p style="margin-top:24px">_____________________________________</p>' +
+      '</body></html>';
+  }
+
+  // Dispara o download de um HTML como .doc (Word abre normalmente e permite editar/salvar como .docx)
+  function baixarComoDoc(html, nomeArquivo) {
+    var blob = new Blob(['﻿' + html], { type: 'application/msword' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = nomeArquivo;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  }
+
+  let contratoEditandoClienteId = null;
+
+  function contratoDoCliente(clienteId) {
+    return contratos.filter(function(c) { return c.clienteId === clienteId; })
+      .sort(function(a, b) { return (b.dataGeracao || '').localeCompare(a.dataGeracao || ''); })[0] || null;
+  }
+
+  function contratoVencido(c) {
+    if (!c || !c.dataVencimento || c.status !== 'assinado') return false;
+    return c.dataVencimento < hojeISO();
+  }
+
+  // Contratos vencidos: pega, por cliente, apenas o contrato mais recente (contratoDoCliente) — evita
+  // contar contratos antigos já substituídos por um mais novo.
+  function contratosVencidos() {
+    var maisRecentePorCliente = [...new Set(contratos.map(function(c) { return c.clienteId; }))]
+      .map(function(cid) { return contratoDoCliente(cid); });
+    return maisRecentePorCliente.filter(contratoVencido);
+  }
+
+  function atualizarAlertaContratosVencidos() {
+    var vencidos = contratosVencidos();
+    var alerta = document.getElementById('home-alerta-contratos');
+    if (!alerta) return;
+    if (vencidos.length) {
+      alerta.style.display = '';
+      alerta.querySelector('.alerta-vencidas-texto').textContent =
+        vencidos.length === 1 ? '1 contrato vencido precisa de atenção.' : `${vencidos.length} contratos vencidos precisam de atenção.`;
+    } else {
+      alerta.style.display = 'none';
+    }
+  }
+
+  function abrirModalContrato(clienteId) {
+    var cliente = clientes.find(function(c) { return c.id === clienteId; });
+    if (!cliente) return;
+    contratoEditandoClienteId = clienteId;
+    var existente = contratoDoCliente(clienteId);
+    var aprovado = orcamentosConsult.filter(function(o) { return (o.clienteId === clienteId || o.clienteNome === cliente.nome) && o.status === 'aprovado'; })
+      .sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); })[0];
+    document.getElementById('ctr-cliente-nome').textContent = cliente.nome;
+    document.getElementById('ctr-razao-social').value = existente ? existente.razaoSocial : cliente.nome;
+    document.getElementById('ctr-cnpj').value = existente ? existente.cnpj : '';
+    document.getElementById('ctr-representante').value = existente ? existente.representanteLegal : '';
+    document.getElementById('ctr-endereco').value = existente ? existente.endereco : '';
+    document.getElementById('ctr-vigencia').value = existente ? existente.vigencia : (aprovado ? (aprovado.vigenciaContrato || '') : '');
+    document.getElementById('ctr-horas-multa').value = existente ? (existente.horasMultaRescisao || '') : '';
+    document.getElementById('ctr-observacoes').value = existente ? (existente.observacoes || '') : '';
+    document.getElementById('modal-contrato').style.display = 'flex';
+  }
+  function fecharModalContrato() {
+    document.getElementById('modal-contrato').style.display = 'none';
+    contratoEditandoClienteId = null;
+  }
+
+  function gerarEBaixarContrato() {
+    var clienteId = contratoEditandoClienteId;
+    var cliente = clientes.find(function(c) { return c.id === clienteId; });
+    if (!cliente) return;
+    var dados = {
+      razaoSocial: document.getElementById('ctr-razao-social').value.trim() || cliente.nome,
+      cnpj: document.getElementById('ctr-cnpj').value.trim(),
+      representanteLegal: document.getElementById('ctr-representante').value.trim(),
+      endereco: document.getElementById('ctr-endereco').value.trim(),
+      vigencia: document.getElementById('ctr-vigencia').value.trim(),
+      horasMultaRescisao: parseFloat(document.getElementById('ctr-horas-multa').value) || 0,
+      observacoes: document.getElementById('ctr-observacoes').value.trim()
+    };
+    var aprovado = orcamentosConsult.filter(function(o) { return (o.clienteId === clienteId || o.clienteNome === cliente.nome) && o.status === 'aprovado'; })
+      .sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); })[0];
+
+    var existente = contratoDoCliente(clienteId);
+    var payload = {
+      cliente_id: clienteId, orcamento_id: aprovado ? aprovado.id : null,
+      razao_social: dados.razaoSocial, cnpj: dados.cnpj, endereco: dados.endereco,
+      representante_legal: dados.representanteLegal, vigencia: dados.vigencia,
+      horas_multa_rescisao: dados.horasMultaRescisao, observacoes: dados.observacoes
+    };
+    if (existente) {
+      var anterior = Object.assign({}, existente);
+      Object.assign(existente, dados, { orcamentoId: payload.orcamento_id });
+      persistir(sbTable('gh_contratos').update(existente.id, payload), function() { Object.assign(existente, anterior); renderizarContratoCliente(clienteId); });
+    } else {
+      var novo = Object.assign({ id: crypto.randomUUID(), clienteId: clienteId, status: 'rascunho', dataGeracao: hojeISO() }, dados, { orcamentoId: payload.orcamento_id });
+      contratos.push(novo);
+      persistir(sbTable('gh_contratos').insert(Object.assign({ id: novo.id, status: 'rascunho' }, payload)),
+        function() { contratos = contratos.filter(function(c) { return c.id !== novo.id; }); renderizarContratoCliente(clienteId); });
+    }
+
+    baixarComoDoc(gerarHtmlContrato(dados), 'Contrato - ' + (dados.razaoSocial || cliente.nome) + '.doc');
+    fecharModalContrato();
+    renderizarContratoCliente(clienteId);
+  }
+
+  function marcarContratoEnviado(id) {
+    var c = contratos.find(function(x) { return x.id === id; });
+    if (!c) return;
+    var anterior = c.status, dataAnterior = c.dataEnvio;
+    c.status = 'enviado'; c.dataEnvio = hojeISO();
+    renderizarContratoCliente(c.clienteId);
+    persistir(sbTable('gh_contratos').update(id, { status: 'enviado', data_envio: c.dataEnvio }),
+      function() { c.status = anterior; c.dataEnvio = dataAnterior; renderizarContratoCliente(c.clienteId); });
+  }
+
+  let contratoAssinandoId = null;
+  function abrirModalContratoAssinatura(id) {
+    contratoAssinandoId = id;
+    document.getElementById('ctr-data-assinatura').value = hojeISO();
+    document.getElementById('ctr-data-vencimento').value = '';
+    document.getElementById('ctr-arquivo-assinado').value = '';
+    document.getElementById('modal-contrato-assinatura').style.display = 'flex';
+  }
+  function fecharModalContratoAssinatura() {
+    document.getElementById('modal-contrato-assinatura').style.display = 'none';
+    contratoAssinandoId = null;
+  }
+
+  function confirmarContratoAssinado() {
+    var c = contratos.find(function(x) { return x.id === contratoAssinandoId; });
+    if (!c) return;
+    var dataAssinatura = document.getElementById('ctr-data-assinatura').value;
+    var dataVencimento = document.getElementById('ctr-data-vencimento').value;
+    if (!dataAssinatura) { alert('Informe a data da assinatura'); return; }
+    var arquivo = document.getElementById('ctr-arquivo-assinado').files[0];
+    var clienteId = c.clienteId;
+
+    function salvarStatusAssinado(arquivoPath, arquivoNome) {
+      var anterior = Object.assign({}, c);
+      Object.assign(c, { status: 'assinado', dataAssinatura: dataAssinatura, dataVencimento: dataVencimento || null, arquivoPath: arquivoPath || c.arquivoPath, arquivoNome: arquivoNome || c.arquivoNome });
+      renderizarContratoCliente(clienteId);
+      renderizarClientes();
+      fecharModalContratoAssinatura();
+      persistir(
+        sbTable('gh_contratos').update(c.id, { status: 'assinado', data_assinatura: dataAssinatura, data_vencimento: dataVencimento || null, arquivo_path: c.arquivoPath, arquivo_nome: c.arquivoNome }),
+        function() { Object.assign(c, anterior); renderizarContratoCliente(clienteId); renderizarClientes(); }
+      );
+    }
+
+    if (arquivo) {
+      var path = clienteId + '/' + c.id + '-' + Date.now() + '.pdf';
+      setStatus('💾 Enviando PDF...');
+      fetch(SUPABASE_URL + '/storage/v1/object/contratos/' + path, {
+        method: 'POST',
+        headers: sbAuthHeaders({ 'Content-Type': arquivo.type || 'application/pdf' }),
+        body: arquivo
+      }).then(checarResposta).then(function() {
+        salvarStatusAssinado(path, arquivo.name);
+      }).catch(function(e) {
+        console.error('Erro ao subir contrato assinado:', e);
+        alert('Não foi possível subir o PDF. Verifique a conexão e tente novamente.');
+      });
+    } else {
+      salvarStatusAssinado(null, null);
+    }
+  }
+
+  function baixarContratoAssinado(id) {
+    var c = contratos.find(function(x) { return x.id === id; });
+    if (!c || !c.arquivoPath) return;
+    fetch(SUPABASE_URL + '/storage/v1/object/contratos/' + c.arquivoPath, { headers: sbAuthHeaders() })
+      .then(checarResposta).then(function(r) { return r.blob(); })
+      .then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = c.arquivoNome || 'contrato-assinado.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+      }).catch(function() { alert('Não foi possível baixar o arquivo.'); });
+  }
+
+  function renderizarContratoCliente(clienteId) {
+    var el = document.getElementById('modal-cliente-contrato');
+    if (!el || modalDetalheClienteId !== clienteId) return;
+    var c = contratoDoCliente(clienteId);
+    if (!c) {
+      el.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px">Nenhum contrato gerado ainda.</p>' +
+        '<button class="btn btn-primary btn-sm" onclick="abrirModalContrato(\'' + clienteId + '\')"><i class="ti ti-file-text"></i> Gerar Contrato</button>';
+      return;
+    }
+    var BADGE = { rascunho: ['#6b7280', '#f3f4f6', 'Rascunho'], enviado: ['#2563eb', '#eff6ff', 'Enviado'], assinado: ['#059669', '#ecfdf5', 'Assinado'] };
+    var b = BADGE[c.status] || BADGE.rascunho;
+    var vencido = contratoVencido(c);
+    el.innerHTML =
+      '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">' +
+      '<span style="font-size:11px;font-weight:700;color:' + b[0] + ';background:' + b[1] + ';padding:3px 9px;border-radius:999px">' + b[2] + '</span>' +
+      (vencido ? '<span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle" style="font-size:10px"></i> Vencido</span>' : '') +
+      (c.vigencia ? '<span style="font-size:11.5px;color:var(--text-secondary)">Vigência: ' + esc(c.vigencia) + '</span>' : '') +
+      '</div>' +
+      (c.dataVencimento ? '<div style="font-size:11.5px;color:' + (vencido ? '#dc2626' : 'var(--text-secondary)') + ';margin-bottom:6px"><i class="ti ti-calendar-due"></i> Vencimento: ' + fmtData(c.dataVencimento) + '</div>' : '') +
+      '<div class="btn-acao-row">' +
+      '<button class="btn btn-sm btn-secondary" onclick="abrirModalContrato(\'' + clienteId + '\')" title="Editar dados e gerar novo arquivo"><i class="ti ti-pencil"></i> Editar</button>' +
+      (c.status === 'rascunho' ? '<button class="btn btn-sm btn-secondary" onclick="marcarContratoEnviado(\'' + c.id + '\')"><i class="ti ti-send"></i> Marcar Enviado</button>' : '') +
+      (c.status !== 'assinado' ? '<button class="btn btn-sm btn-success" onclick="abrirModalContratoAssinatura(\'' + c.id + '\')"><i class="ti ti-signature"></i> Marcar Assinado</button>' : '<button class="btn btn-sm btn-secondary" onclick="abrirModalContratoAssinatura(\'' + c.id + '\')"><i class="ti ti-pencil"></i> Editar assinatura</button>') +
+      (c.arquivoPath ? '<button class="btn btn-sm btn-secondary" onclick="baixarContratoAssinado(\'' + c.id + '\')"><i class="ti ti-download"></i> PDF assinado</button>' : '') +
+      '</div>';
+  }
 
   function ocInit() {
     if (!_ocIniciado) { ocNovo(); _ocIniciado = true; }
@@ -8228,7 +8615,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
   function ocNovo() {
     ocEditandoId = null; ocItens = []; ocNormasSel = [];
-    ['oc-cliente', 'oc-contato', 'oc-prazo', 'oc-pagamento', 'oc-obs', 'oc-objeto'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
+    ['oc-cliente', 'oc-contato', 'oc-prazo', 'oc-vigencia', 'oc-pagamento', 'oc-obs', 'oc-objeto'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
     var d = document.getElementById('oc-data'); if (d) d.value = new Date().toISOString().split('T')[0];
     var v = document.getElementById('oc-validade'); if (v) v.value = 15;
     var de = document.getElementById('oc-desconto'); if (de) de.value = 0;
@@ -8255,6 +8642,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       norma: ocNormasSel.join(', '), objeto: objeto, itens: itensLimpos,
       descontoPct: calc.descPct, impostosPct: calc.impPct,
       prazoExecucao: document.getElementById('oc-prazo').value.trim(),
+      vigenciaContrato: document.getElementById('oc-vigencia').value.trim(),
       condicoesPagamento: document.getElementById('oc-pagamento').value.trim(),
       observacoes: document.getElementById('oc-obs').value.trim(),
       subtotal: calc.subtotal, total: calc.total, status: document.getElementById('oc-status').value
@@ -8280,7 +8668,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       cliente_nome: campoLocal.clienteNome, cliente_id: (campoLocal.clienteId == null ? null : String(campoLocal.clienteId)), contato: campoLocal.contato,
       data: campoLocal.data, validade_dias: campoLocal.validadeDias, norma: campoLocal.norma, objeto: campoLocal.objeto,
       itens: campoLocal.itens, desconto_pct: campoLocal.descontoPct, impostos_pct: campoLocal.impostosPct,
-      prazo_execucao: campoLocal.prazoExecucao, condicoes_pagamento: campoLocal.condicoesPagamento,
+      prazo_execucao: campoLocal.prazoExecucao, vigencia_contrato: campoLocal.vigenciaContrato, condicoes_pagamento: campoLocal.condicoesPagamento,
       observacoes: campoLocal.observacoes, subtotal: campoLocal.subtotal, total: campoLocal.total, status: campoLocal.status
     };
     if (ocEditandoId) {
@@ -8310,6 +8698,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('oc-desconto').value = o.descontoPct || 0;
     document.getElementById('oc-impostos').value = o.impostosPct || 0;
     document.getElementById('oc-prazo').value = o.prazoExecucao || '';
+    document.getElementById('oc-vigencia').value = o.vigenciaContrato || '';
     document.getElementById('oc-pagamento').value = o.condicoesPagamento || '';
     document.getElementById('oc-obs').value = o.observacoes || '';
     document.getElementById('oc-status').value = o.status || 'rascunho';
@@ -8404,6 +8793,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     var condicoes = [];
     if (o.prazoExecucao) condicoes.push('<div><span class="lbl">Prazo de execução:</span> ' + esc(o.prazoExecucao) + '</div>');
+    if (o.vigenciaContrato) condicoes.push('<div><span class="lbl">Vigência do contrato:</span> ' + esc(o.vigenciaContrato) + '</div>');
     condicoes.push('<div><span class="lbl">Validade da proposta:</span> ' + (o.validadeDias || 15) + ' dias a partir de ' + dataFmt + '</div>');
     if (o.condicoesPagamento) condicoes.push('<div><span class="lbl">Condições de pagamento:</span> ' + esc(o.condicoesPagamento) + '</div>');
     if (o.norma) condicoes.push('<div><span class="lbl">Normas / referências:</span> ' + esc(o.norma) + '</div>');
@@ -9945,6 +10335,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     orcamentosConsult = lsGet('orcamentosConsult');
     vendas       = lsGet('vendas');
     vendasParcelas = lsGet('vendasParcelas');
+    contratos    = lsGet('contratos');
+    configApp    = lsGet('config');
+    try { aplicarConfigContratada(); } catch(e) { console.error('Erro ao aplicar dados da contratada:', e); }
     try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
   });
@@ -10221,7 +10614,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         </div>
         <div>
           <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">Valor/hora</div>
-          <div id="modal-cliente-taxa" style="font-size:13px;font-weight:600;color:var(--navy)"></div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <span id="modal-cliente-taxa" class="taxa-oculta" data-visivel="0" style="font-size:13px;font-weight:600;color:var(--navy);filter:blur(5px);user-select:none;transition:filter .15s"></span>
+            <i class="ti ti-eye" style="cursor:pointer;color:var(--text-secondary);font-size:14px" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
+          </div>
         </div>
       </div>
       <div style="background:var(--gold-bg);border-radius:10px;padding:12px 14px;margin-bottom:14px">
@@ -10236,6 +10632,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div id="modal-cliente-projetos-lista"></div>
       </div>
       <div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary)">Contrato</div>
+          <button class="btn-icon-sm" onclick="abrirModalDadosContratada()" title="Dados da ORBEEX usados no contrato"><i class="ti ti-building"></i></button>
+        </div>
+        <div id="modal-cliente-contrato"></div>
+      </div>
+      <div style="margin-bottom:14px">
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">Informações Importantes</div>
         <textarea id="modal-cliente-obs" rows="3" placeholder="Anote aqui informações importantes sobre este cliente..." style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;font-family:var(--font-sans);resize:vertical"></textarea>
         <div style="display:flex;justify-content:flex-end;margin-top:6px">
@@ -10246,6 +10649,74 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:6px">Orçamentos</div>
         <div id="modal-cliente-orcamentos"></div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: dados da CONTRATADA (ORBEEX) usados no preenchimento do contrato -->
+<div id="modal-dados-contratada" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalDadosContratada()">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <h3><i class="ti ti-building" style="color:var(--navy)"></i> Dados da ORBEEX (Contratada)</h3>
+      <button onclick="fecharModalDadosContratada()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Preenchidos uma vez e usados automaticamente em todos os contratos gerados.</p>
+      <div class="form-group"><label>CNPJ</label><input type="text" id="dc-cnpj" placeholder="00.000.000/0000-00"></div>
+      <div class="form-group"><label>Endereço (sede)</label><input type="text" id="dc-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
+      <div class="form-group"><label>Representante legal</label><input type="text" id="dc-representante" placeholder="Nome completo"></div>
+      <div class="form-group"><label>Contato</label><input type="text" id="dc-contato" placeholder="E-mail ou telefone (aparece na proposta)"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="fecharModalDadosContratada()" style="background:#6b7280;color:#fff">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="salvarDadosContratada()"><i class="ti ti-device-floppy"></i> Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: gerar/editar contrato de um cliente -->
+<div id="modal-contrato" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalContrato()">
+  <div class="modal-box" style="max-width:560px">
+    <div class="modal-header">
+      <h3><i class="ti ti-file-text" style="color:var(--navy)"></i> Contrato — <span id="ctr-cliente-nome"></span></h3>
+      <button onclick="fecharModalContrato()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Dados do cliente (CONTRATANTE) para preencher o contrato de prestação de serviços.</p>
+      <div class="form-group"><label>Razão social</label><input type="text" id="ctr-razao-social" placeholder="Nome empresarial completo"></div>
+      <div class="form-row">
+        <div class="form-group"><label>CNPJ</label><input type="text" id="ctr-cnpj" placeholder="00.000.000/0000-00"></div>
+        <div class="form-group"><label>Representante legal</label><input type="text" id="ctr-representante" placeholder="Nome completo"></div>
+      </div>
+      <div class="form-group"><label>Endereço (sede)</label><input type="text" id="ctr-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
+      <div class="form-row">
+        <div class="form-group"><label>Vigência do contrato</label><input type="text" id="ctr-vigencia" placeholder="Ex: 12 meses, Indeterminado"></div>
+        <div class="form-group"><label>Multa rescisória (horas técnicas)</label><input type="number" id="ctr-horas-multa" min="0" step="1" placeholder="0"></div>
+      </div>
+      <div class="form-group"><label>Observações</label><textarea id="ctr-observacoes" rows="2" placeholder="Opcional"></textarea></div>
+    </div>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button class="btn btn-sm" onclick="fecharModalContrato()" style="background:#6b7280;color:#fff">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="gerarEBaixarContrato()"><i class="ti ti-file-download"></i> Salvar e Gerar Contrato (.doc)</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: marcar contrato como assinado (data, vencimento e upload do PDF) -->
+<div id="modal-contrato-assinatura" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalContratoAssinatura()">
+  <div class="modal-box" style="max-width:420px">
+    <div class="modal-header">
+      <h3><i class="ti ti-signature" style="color:#10b981"></i> Marcar Contrato como Assinado</h3>
+      <button onclick="fecharModalContratoAssinatura()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group"><label>Data da assinatura</label><input type="date" id="ctr-data-assinatura"></div>
+      <div class="form-group"><label>Vencimento do contrato</label><input type="date" id="ctr-data-vencimento"></div>
+      <div class="form-group"><label>PDF assinado <span style="font-size:11px;color:var(--text-secondary)">(opcional, pode subir depois)</span></label><input type="file" id="ctr-arquivo-assinado" accept="application/pdf"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-sm" onclick="fecharModalContratoAssinatura()" style="background:#6b7280;color:#fff">Cancelar</button>
+      <button class="btn btn-sm btn-success" onclick="confirmarContratoAssinado()"><i class="ti ti-check"></i> Confirmar Assinatura</button>
     </div>
   </div>
 </div>
