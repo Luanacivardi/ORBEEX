@@ -2173,7 +2173,7 @@
         <div class="card-header"><i class="ti ti-list-details"></i> Propostas Salvas</div>
         <div style="overflow-x:auto">
           <table class="table">
-            <thead><tr><th>Cliente</th><th>Data</th><th>Objeto</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Objeto</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="oc-tbody"></tbody>
           </table>
         </div>
@@ -2637,7 +2637,7 @@
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
-      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
+      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
       ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento'],
       ['contratos',    'gh_contratos?select=id,clienteId:cliente_id,orcamentoId:orcamento_id,razaoSocial:razao_social,cnpj,endereco,representanteLegal:representante_legal,vigencia,horasMultaRescisao:horas_multa_rescisao,status,dataGeracao:data_geracao,dataEnvio:data_envio,dataAssinatura:data_assinatura,dataVencimento:data_vencimento,arquivoPath:arquivo_path,arquivoNome:arquivo_nome,observacoes'],
@@ -2970,13 +2970,13 @@ let clienteEditandoId = null;
     lista.innerHTML = ocsCliente.length ? ocsCliente.map(o => `
       <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px solid var(--border)">
         <div style="min-width:0">
-          <div style="font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${o.objeto || 'Proposta'}</div>
+          <div style="font-size:12px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><span style="font-family:ui-monospace,monospace;font-weight:700;color:var(--text-secondary);margin-right:5px">${ocCodigo(o)}</span>${o.objeto || 'Proposta'}</div>
           <div style="font-size:11px;color:var(--text-secondary)">${o.data ? fmtData(o.data) : '—'}</div>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
           ${badge(o.status)}
           <span style="font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;font-size:13px;white-space:nowrap">R$ ${fmtVal(o.total || 0)}</span>
-          ${o.status === 'aprovado' ? `<button onclick="const cid=modalDetalheClienteId;fecharModalDetalheCliente();abrirModalContrato(cid)" title="Gerar Contrato a partir desta proposta aprovada" style="border:none;background:none;cursor:pointer;color:#059669;font-size:15px"><i class="ti ti-file-text"></i></button>` : ''}
+          ${o.status === 'aprovado' ? `<button onclick="const cid=modalDetalheClienteId;fecharModalDetalheCliente();abrirModalContrato(cid,'${o.id}')" title="Gerar Contrato amarrado a esta proposta (${ocCodigo(o)})" style="border:none;background:none;cursor:pointer;color:#059669;font-size:15px"><i class="ti ti-file-text"></i></button>` : ''}
           <button onclick="imprimirOrcamentoConsultoria('${o.id}')" title="Imprimir / PDF" style="border:none;background:none;cursor:pointer;color:var(--navy);font-size:15px"><i class="ti ti-printer"></i></button>
         </div>
       </div>`).join('') : '<p style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0">Nenhuma proposta cadastrada para este cliente ainda.</p>';
@@ -8154,6 +8154,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   // Ajuste livremente (razão social, CNPJ, contato). Campos vazios são omitidos.
   var OC_PRESTADOR = {
     nome: 'ORBEEX', subtitulo: 'Consultoria em Sistemas de Gestão', local: 'Bento Gonçalves – RS',
+    // Razão social oficial, exatamente como consta no CNPJ (usada no corpo e na assinatura do contrato)
+    razaoSocial: 'ORBEEX Assessoria em Sistemas de Gestão LTDA',
     cnpj: '49.759.143/0001-70',
     endereco: 'Rua Antônio Fornazier, 394, Apto 102, Bairro Santa Rita, Bento Gonçalves/RS, CEP 95.700-680',
     representanteLegal: 'Luana Civardi',
@@ -8162,6 +8164,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   var OC_NORMAS = ['ISO 9001', 'ISO 14001', 'ISO 45001', 'ISO 50001', 'ISO 27001', 'Compliance', 'ISO 26000'];
   var OC_UNIDADES = ['hora', 'diária', 'visita', 'mês', 'verba', 'pacote'];
 
+  // Código sequencial da proposta no formato PROP-AA-NNN (reinicia a cada ano) — usado na listagem,
+  // no PDF da proposta e para amarrar o contrato a uma proposta específica.
+  function ocCodigo(o) {
+    if (!o || !o.numero) return '—';
+    var base = (o.data || '') + '';
+    var yy = base.length >= 4 ? base.slice(2, 4) : '00';
+    return 'PROP-' + yy + '-' + String(o.numero).padStart(3, '0');
+  }
+
   // Aplica os dados persistidos da CONTRATADA (ORBEEX) sobre OC_PRESTADOR, usados na proposta e no contrato
   function aplicarConfigContratada() {
     var cfg = configApp.find(function(c) { return c.chave === 'dados_contratada'; });
@@ -8169,6 +8180,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   function abrirModalDadosContratada() {
+    document.getElementById('dc-razao-social').value = OC_PRESTADOR.razaoSocial || '';
     document.getElementById('dc-cnpj').value = OC_PRESTADOR.cnpj || '';
     document.getElementById('dc-endereco').value = OC_PRESTADOR.endereco || '';
     document.getElementById('dc-representante').value = OC_PRESTADOR.representanteLegal || '';
@@ -8181,6 +8193,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function salvarDadosContratada() {
     var novoValor = {
       nome: OC_PRESTADOR.nome, subtitulo: OC_PRESTADOR.subtitulo, local: OC_PRESTADOR.local,
+      razaoSocial: document.getElementById('dc-razao-social').value.trim(),
       cnpj: document.getElementById('dc-cnpj').value.trim(),
       endereco: document.getElementById('dc-endereco').value.trim(),
       representanteLegal: document.getElementById('dc-representante').value.trim(),
@@ -8202,7 +8215,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   var CONTRATO_PARAGRAFOS = [
     'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE CONSULTORIA E ASSESSORIA EM SISTEMAS DE GESTÃO, QUALIDADE E MELHORIA DE PROCESSOS',
     'CONTRATANTE: {{RAZAO_SOCIAL}}, pessoa jurídica de direito privado, inscrita no CNPJ sob nº {{CNPJ_CLIENTE}}, com sede em {{ENDERECO_CLIENTE}}, neste ato representada por seu representante legal{{REP_CLIENTE}}, doravante denominada CONTRATANTE.',
-    'CONTRATADA: ORBEEX CONSULTORIA EM GESTÃO DA QUALIDADE, pessoa jurídica de direito privado, inscrita no CNPJ sob nº {{CNPJ_CONTRATADA}}, optante pelo Simples Nacional, com sede em {{ENDERECO_CONTRATADA}}, neste ato representada por sua representante legal{{REP_CONTRATADA}}, doravante denominada CONTRATADA.',
+    'CONTRATADA: {{NOME_CONTRATADA}}, pessoa jurídica de direito privado, inscrita no CNPJ sob nº {{CNPJ_CONTRATADA}}, optante pelo Simples Nacional, com sede em {{ENDERECO_CONTRATADA}}, neste ato representada por sua representante legal{{REP_CONTRATADA}}, doravante denominada CONTRATADA.',
     'As partes acima identificadas resolvem celebrar o presente Contrato de Prestação de Serviços de Consultoria e Assessoria em Sistemas de Gestão, Qualidade e Melhoria de Processos, que será regido pelas cláusulas e condições seguintes.',
     'CLÁUSULA 1ª – DO OBJETO',
     '1.1. A CONTRATADA prestará à CONTRATANTE serviços de consultoria e assessoria em Sistemas de Gestão, Qualidade e melhoria de processos, incluindo diagnóstico, elaboração e revisão de documentos, apoio à implementação de normas, auditorias internas, preparação para certificações, treinamentos e demais atividades correlatas relacionadas ao objeto contratado.',
@@ -8301,6 +8314,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '{{CNPJ_CLIENTE}}': dados.cnpj || '[●]',
       '{{ENDERECO_CLIENTE}}': dados.endereco || '[●]',
       '{{REP_CLIENTE}}': repCliente,
+      '{{NOME_CONTRATADA}}': (OC_PRESTADOR.razaoSocial || 'ORBEEX Assessoria em Sistemas de Gestão LTDA').toUpperCase(),
       '{{CNPJ_CONTRATADA}}': OC_PRESTADOR.cnpj || '[●]',
       '{{ENDERECO_CONTRATADA}}': OC_PRESTADOR.endereco || '[●]',
       '{{REP_CONTRATADA}}': repContratada,
@@ -8311,9 +8325,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
   }
 
-  // Nome empresarial usado no corpo do contrato pela advogada (Cláusula CONTRATADA) — mantido
-  // como está no texto jurídico, mesmo que difira do nome fantasia usado no resto do app.
-  var CONTRATO_NOME_CONTRATADA = 'ORBEEX CONSULTORIA EM GESTÃO DA QUALIDADE';
 
   // Gera o HTML do contrato com folha timbrada. Layout feito com tabelas (em vez de flex/grid)
   // de propósito: é o que o Word consegue abrir e editar corretamente quando salvo como .doc —
@@ -8332,9 +8343,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var repContratada = OC_PRESTADOR.representanteLegal ? ('<br>' + esc(OC_PRESTADOR.representanteLegal)) : '';
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato - ' + esc(dados.razaoSocial || '') + '</title>' +
-      '<style>body{font-family:Calibri,Arial,sans-serif;color:#1a1a2e;margin:0;padding:0}' +
-      '.folha{max-width:760px;margin:0 auto;padding:0 8mm 16mm}' +
-      '@media print{@page{size:A4;margin:14mm 12mm}body{background:#fff}}' +
+      '<style>body{font-family:Arial,sans-serif;color:#1a1a2e;margin:0;padding:0}' +
+      '.folha{max-width:780px;margin:0 auto;padding:0 4mm 8mm}' +
+      '@media print{@page{size:A4;margin:9mm 9mm}body{background:#fff}}' +
       '</style></head><body><div class="folha">' +
 
       // ── Cabeçalho timbrado ──────────────────────────────────────
@@ -8347,6 +8358,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '<td style="vertical-align:top;text-align:right;padding:6mm 0 3mm">' +
       '<div style="font-size:13px;font-weight:800;color:#252538;letter-spacing:.4px">CONTRATO DE PRESTAÇÃO<br>DE SERVIÇOS</div>' +
       '<div style="font-size:9.5px;color:#6b6b8a;margin-top:8px">CONTRATANTE<br><strong style="color:#252538">' + esc(dados.razaoSocial || '') + '</strong></div>' +
+      (dados.numeroProposta ? '<div style="font-size:8.5px;color:#9999aa;margin-top:6px">Proposta Comercial ' + esc(dados.numeroProposta) + '</div>' : '') +
       '</td></tr></table>' +
       '<table style="width:100%;border-collapse:collapse;margin-bottom:8mm"><tr><td style="height:3px;line-height:3px;font-size:1px;background:#E8B84B">&nbsp;</td></tr></table>' +
 
@@ -8354,22 +8366,26 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       corpo +
 
       // ── Assinaturas ─────────────────────────────────────────────
-      '<p style="text-align:center;margin:14mm 0 10mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
+      '<p style="text-align:center;margin:12mm 0 6mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
       '<table style="width:100%;border-collapse:collapse"><tr>' +
       '<td style="width:50%;text-align:center;padding:0 8mm 0 0;vertical-align:top">' +
+      '<div style="height:22mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
       '<strong>CONTRATANTE</strong><br>' + esc(dados.razaoSocial || '') + '<br>CNPJ ' + esc(dados.cnpj || '[●]') + repCliente +
       '</div></td>' +
       '<td style="width:50%;text-align:center;padding:0 0 0 8mm;vertical-align:top">' +
+      '<div style="height:22mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
-      '<strong>CONTRATADA</strong><br>' + esc(CONTRATO_NOME_CONTRATADA) + '<br>CNPJ ' + esc(OC_PRESTADOR.cnpj || '[●]') + repContratada +
+      '<strong>CONTRATADA</strong><br>' + esc((OC_PRESTADOR.razaoSocial || 'ORBEEX Assessoria em Sistemas de Gestão LTDA').toUpperCase()) + '<br>CNPJ ' + esc(OC_PRESTADOR.cnpj || '[●]') + repContratada +
       '</div></td>' +
       '</tr></table>' +
-      '<p style="margin:12mm 0 6mm;font-size:10px;font-weight:700;color:#252538;letter-spacing:.3px">TESTEMUNHAS:</p>' +
+      '<p style="margin:16mm 0 6mm;font-size:10px;font-weight:700;color:#252538;letter-spacing:.3px">TESTEMUNHAS:</p>' +
       '<table style="width:100%;border-collapse:collapse"><tr>' +
       '<td style="width:50%;padding:0 8mm 0 0;vertical-align:top">' +
+      '<div style="height:14mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '<td style="width:50%;padding:0 0 0 8mm;vertical-align:top">' +
+      '<div style="height:14mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '</tr></table>' +
 
@@ -8419,13 +8435,34 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     }
   }
 
-  function abrirModalContrato(clienteId) {
+  // Preenche o seletor de proposta do modal de contrato com todas as propostas do cliente
+  function popularSelectOrcamentoContrato(clienteId, cliente, selecionarId) {
+    var propostas = orcamentosConsult.filter(function(o) { return o.clienteId === clienteId || o.clienteNome === cliente.nome; })
+      .sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); });
+    var sel = document.getElementById('ctr-orcamento');
+    sel.innerHTML = '<option value="">— Nenhuma proposta amarrada —</option>' + propostas.map(function(o) {
+      var obj = (o.objeto || '').slice(0, 40);
+      return '<option value="' + o.id + '">' + ocCodigo(o) + ' · ' + (o.data ? fmtData(o.data) : '—') + ' · ' + esc(obj) + (o.status === 'aprovado' ? ' (aprovado)' : '') + '</option>';
+    }).join('');
+    if (selecionarId && propostas.some(function(o) { return o.id === selecionarId; })) sel.value = selecionarId;
+  }
+
+  // Ao trocar a proposta amarrada, sugere a vigência dela se o campo ainda estiver vazio
+  function aoTrocarOrcamentoContrato() {
+    var o = orcamentosConsult.find(function(x) { return x.id === document.getElementById('ctr-orcamento').value; });
+    var campoVigencia = document.getElementById('ctr-vigencia');
+    if (o && o.vigenciaContrato && !campoVigencia.value) campoVigencia.value = o.vigenciaContrato;
+  }
+
+  function abrirModalContrato(clienteId, orcamentoIdForcado) {
     var cliente = clientes.find(function(c) { return c.id === clienteId; });
     if (!cliente) return;
     contratoEditandoClienteId = clienteId;
     var existente = contratoDoCliente(clienteId);
     var aprovado = orcamentosConsult.filter(function(o) { return (o.clienteId === clienteId || o.clienteNome === cliente.nome) && o.status === 'aprovado'; })
       .sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); })[0];
+    var idParaSelecionar = orcamentoIdForcado || (existente ? existente.orcamentoId : null) || (aprovado ? aprovado.id : null);
+    popularSelectOrcamentoContrato(clienteId, cliente, idParaSelecionar);
     document.getElementById('ctr-cliente-nome').textContent = cliente.nome;
     document.getElementById('ctr-razao-social').value = existente ? existente.razaoSocial : cliente.nome;
     document.getElementById('ctr-cnpj').value = existente ? existente.cnpj : '';
@@ -8456,12 +8493,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       horasMultaRescisao: parseFloat(document.getElementById('ctr-horas-multa').value) || 0,
       observacoes: document.getElementById('ctr-observacoes').value.trim()
     };
-    var aprovado = orcamentosConsult.filter(function(o) { return (o.clienteId === clienteId || o.clienteNome === cliente.nome) && o.status === 'aprovado'; })
-      .sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); })[0];
+    var orcamentoIdSelecionado = document.getElementById('ctr-orcamento').value || null;
+    var propostaAmarrada = orcamentoIdSelecionado ? orcamentosConsult.find(function(o) { return o.id === orcamentoIdSelecionado; }) : null;
+    dados.numeroProposta = propostaAmarrada ? ocCodigo(propostaAmarrada) : '';
 
     var existente = contratoDoCliente(clienteId);
     var payload = {
-      cliente_id: clienteId, orcamento_id: aprovado ? aprovado.id : null,
+      cliente_id: clienteId, orcamento_id: orcamentoIdSelecionado,
       razao_social: dados.razaoSocial, cnpj: dados.cnpj, endereco: dados.endereco,
       representante_legal: dados.representanteLegal, vigencia: dados.vigencia,
       horas_multa_rescisao: dados.horasMultaRescisao, observacoes: dados.observacoes
@@ -8488,7 +8526,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!janela) { alert('Permita pop-ups para gerar o contrato.'); return; }
     janela.document.write(html);
     janela.document.close();
-    setTimeout(function() { janela.print(); }, 400);
+    // Título vazio: o Chrome usa <title> no cabeçalho de impressão — sem isso, "Contrato - Cliente X"
+    // apareceria em toda página impressa/PDF. A data/hora do cabeçalho é config do navegador
+    // (checkbox "Cabeçalhos e rodapés" na tela de impressão) e não dá pra remover por código.
+    setTimeout(function() { janela.document.title = ''; janela.print(); }, 400);
   }
 
   function gerarEImprimirContrato() {
@@ -8590,12 +8631,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var BADGE = { rascunho: ['#6b7280', '#f3f4f6', 'Rascunho'], enviado: ['#2563eb', '#eff6ff', 'Enviado'], assinado: ['#059669', '#ecfdf5', 'Assinado'] };
     var b = BADGE[c.status] || BADGE.rascunho;
     var vencido = contratoVencido(c);
+    var propostaAmarrada = c.orcamentoId ? orcamentosConsult.find(function(o) { return o.id === c.orcamentoId; }) : null;
     el.innerHTML =
       '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px">' +
       '<span style="font-size:11px;font-weight:700;color:' + b[0] + ';background:' + b[1] + ';padding:3px 9px;border-radius:999px">' + b[2] + '</span>' +
       (vencido ? '<span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle" style="font-size:10px"></i> Vencido</span>' : '') +
       (c.vigencia ? '<span style="font-size:11.5px;color:var(--text-secondary)">Vigência: ' + esc(c.vigencia) + '</span>' : '') +
       '</div>' +
+      (propostaAmarrada ? '<div style="font-size:11.5px;color:var(--text-secondary);margin-bottom:6px"><i class="ti ti-link"></i> Amarrado à proposta <strong style="color:var(--navy)">' + ocCodigo(propostaAmarrada) + '</strong></div>' : '') +
       (c.dataVencimento ? '<div style="font-size:11.5px;color:' + (vencido ? '#dc2626' : 'var(--text-secondary)') + ';margin-bottom:6px"><i class="ti ti-calendar-due"></i> Vencimento: ' + fmtData(c.dataVencimento) + '</div>' : '') +
       '<div class="btn-acao-row">' +
       '<button class="btn btn-sm btn-secondary" onclick="abrirModalContrato(\'' + clienteId + '\')" title="Editar dados e gerar novo arquivo"><i class="ti ti-pencil"></i> Editar</button>' +
@@ -8754,9 +8797,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         persistir(sbTable('gh_orcamentos_consult').update(o.id, payload), function() { Object.assign(o, anterior); renderizarOrcamentosConsultoria(); });
       }
     } else {
-      var novo = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      var anoNovo = parseInt((campoLocal.data || '').slice(0, 4)) || new Date().getFullYear();
+      var numeroNovo = orcamentosConsult.filter(function(o) { return parseInt((o.data || '').slice(0, 4)) === anoNovo; })
+        .reduce(function(m, o) { return Math.max(m, o.numero || 0); }, 0) + 1;
+      var novo = Object.assign({ id: crypto.randomUUID(), numero: numeroNovo }, campoLocal);
       orcamentosConsult.push(novo);
-      persistir(sbTable('gh_orcamentos_consult').insert(Object.assign({ id: novo.id }, payload)),
+      persistir(sbTable('gh_orcamentos_consult').insert(Object.assign({ id: novo.id, numero: numeroNovo }, payload)),
         function() { orcamentosConsult = orcamentosConsult.filter(function(x) { return x.id !== novo.id; }); renderizarOrcamentosConsultoria(); });
     }
     ocNovo();
@@ -8805,7 +8851,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     popularDatalistClientesOC();
     var tb = document.getElementById('oc-tbody'); if (!tb) return;
     if (!orcamentosConsult.length) {
-      tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:16px">Nenhuma proposta salva ainda.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:16px">Nenhuma proposta salva ainda.</td></tr>';
       return;
     }
     var statuses = ['rascunho', 'enviado', 'aprovado', 'recusado'];
@@ -8822,6 +8868,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       var selStatus = '<select onchange="mudarStatusOC(\'' + o.id + '\',this.value)" style="border:1px solid var(--border);border-radius:6px;padding:3px 6px;font-size:11px">' +
         statuses.map(function(s) { return '<option value="' + s + '"' + (o.status === s ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>';
       return '<tr>' +
+        '<td style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);white-space:nowrap">' + ocCodigo(o) + '</td>' +
         '<td style="font-weight:600">' + (o.clienteNome || '—') + '</td>' +
         '<td style="white-space:nowrap">' + dataFmt + '</td>' +
         '<td style="font-size:12px;color:var(--text-secondary)">' + obj + '</td>' +
@@ -8904,7 +8951,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '</style></head><body><div class="doc">' +
       '<div class="head"><div><div class="logo">' + esc(OC_PRESTADOR.nome) + (OC_PRESTADOR.subtitulo ? '' : '') + '</div>' +
       '<div class="sub">' + esc(OC_PRESTADOR.subtitulo) + '</div>' + (pInfo.length ? '<div class="pinfo">' + pInfo.join('<br>') + '</div>' : '') + '</div>' +
-      '<div class="htitle"><div class="t">PROPOSTA COMERCIAL</div><div class="d">Data: ' + dataFmt + '</div></div></div>' +
+      '<div class="htitle"><div class="t">PROPOSTA COMERCIAL</div><div class="d">' + esc(ocCodigo(o)) + ' · Data: ' + dataFmt + '</div></div></div>' +
       '<div class="parties">' +
       '<div class="party"><div class="cap">Cliente</div><div class="nm">' + esc(o.clienteNome) + '</div>' + (o.contato ? '<div class="ln">A/C: ' + esc(o.contato) + '</div>' : '') + '</div>' +
       '<div class="party"><div class="cap">Status</div><div class="nm" style="text-transform:capitalize">' + esc(o.status || 'rascunho') + '</div><div class="ln">Validade: ' + (o.validadeDias || 15) + ' dias</div></div>' +
@@ -10738,6 +10785,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     </div>
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text-secondary);margin-bottom:12px">Preenchidos uma vez e usados automaticamente em todos os contratos gerados.</p>
+      <div class="form-group"><label>Razão social (como está no CNPJ)</label><input type="text" id="dc-razao-social" placeholder="Nome empresarial completo"></div>
       <div class="form-group"><label>CNPJ</label><input type="text" id="dc-cnpj" placeholder="00.000.000/0000-00"></div>
       <div class="form-group"><label>Endereço (sede)</label><input type="text" id="dc-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
       <div class="form-group"><label>Representante legal</label><input type="text" id="dc-representante" placeholder="Nome completo"></div>
@@ -10759,6 +10807,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     </div>
     <div class="modal-body">
       <p style="font-size:12px;color:var(--text-secondary);margin-bottom:10px">Dados do cliente (CONTRATANTE) para preencher o contrato de prestação de serviços.</p>
+      <div class="form-group"><label>Proposta Comercial amarrada a este contrato</label><select id="ctr-orcamento" onchange="aoTrocarOrcamentoContrato()"></select></div>
       <div class="form-group"><label>Razão social</label><input type="text" id="ctr-razao-social" placeholder="Nome empresarial completo"></div>
       <div class="form-row">
         <div class="form-group"><label>CNPJ</label><input type="text" id="ctr-cnpj" placeholder="00.000.000/0000-00"></div>
