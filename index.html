@@ -2130,18 +2130,39 @@
           <textarea id="oc-objeto" rows="2" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical" placeholder="Ex: Implantação do Sistema de Gestão da Qualidade conforme ISO 9001:2015 — diagnóstico, documentação, treinamentos e auditoria interna."></textarea>
         </div>
 
-        <label style="font-weight:600;font-size:12.5px;color:var(--navy)">Itens da proposta</label>
-        <div style="overflow-x:auto;margin:.4rem 0 .6rem">
-          <table class="table" id="oc-itens-tabela">
-            <thead><tr>
-              <th style="min-width:200px">Descrição</th><th style="width:80px">Qtd</th>
-              <th style="width:110px">Unidade</th><th style="width:130px">Valor unit. (R$)</th>
-              <th style="width:120px">Subtotal</th><th style="width:36px"></th>
-            </tr></thead>
-            <tbody id="oc-itens-body"></tbody>
-          </table>
+        <div class="form-group">
+          <label>Formato da proposta</label>
+          <div style="display:flex;gap:8px;margin-top:5px">
+            <button type="button" class="filter-btn active" id="oc-tipo-btn-fechado" onclick="ocSetTipo('fechado')" style="width:auto"><i class="ti ti-list-details" style="margin-right:4px"></i>Escopo Fechado (itens)</button>
+            <button type="button" class="filter-btn" id="oc-tipo-btn-sob_demanda" onclick="ocSetTipo('sob_demanda')" style="width:auto"><i class="ti ti-calendar-time" style="margin-right:4px"></i>Sob Demanda (horas semanais)</button>
+          </div>
         </div>
-        <button class="btn btn-sm" onclick="ocAddItem()" style="background:var(--navy);color:#fff;width:auto"><i class="ti ti-plus"></i> Adicionar item</button>
+
+        <div id="oc-bloco-fechado">
+          <label style="font-weight:600;font-size:12.5px;color:var(--navy)">Itens da proposta</label>
+          <div style="overflow-x:auto;margin:.4rem 0 .6rem">
+            <table class="table" id="oc-itens-tabela">
+              <thead><tr>
+                <th style="min-width:200px">Descrição</th><th style="width:80px">Qtd</th>
+                <th style="width:110px">Unidade</th><th style="width:130px">Valor unit. (R$)</th>
+                <th style="width:120px">Subtotal</th><th style="width:36px"></th>
+              </tr></thead>
+              <tbody id="oc-itens-body"></tbody>
+            </table>
+          </div>
+          <button class="btn btn-sm" onclick="ocAddItem()" style="background:var(--navy);color:#fff;width:auto"><i class="ti ti-plus"></i> Adicionar item</button>
+        </div>
+
+        <div id="oc-bloco-sob-demanda" style="display:none">
+          <label style="font-weight:600;font-size:12.5px;color:var(--navy)">Dedicação sob demanda</label>
+          <p style="font-size:11.5px;color:var(--text-secondary);margin:2px 0 8px">Para propostas de suporte/consultoria recorrente: informe o valor da hora e a dedicação semanal, separada por modalidade.</p>
+          <div class="form-row">
+            <div class="form-group"><label>Valor da hora (R$) <span style="color:red">*</span></label><input type="number" id="oc-sd-valorhora" min="0" step="0.01" placeholder="0,00" oninput="ocCalcular()"></div>
+            <div class="form-group"><label><i class="ti ti-building" style="margin-right:3px"></i>Horas/semana — Presencial</label><input type="number" id="oc-sd-horas-presencial" min="0" step="0.5" placeholder="0" oninput="ocCalcular()"></div>
+            <div class="form-group"><label><i class="ti ti-home" style="margin-right:3px"></i>Horas/semana — Home Office</label><input type="number" id="oc-sd-horas-homeoffice" min="0" step="0.5" placeholder="0" oninput="ocCalcular()"></div>
+          </div>
+          <div id="oc-sd-resumo" style="font-size:12.5px;color:var(--text-secondary);background:var(--surface-1);border-radius:8px;padding:9px 12px;margin-top:2px"></div>
+        </div>
 
         <div class="form-row" style="margin-top:1rem">
           <div class="form-group"><label>Desconto (%)</label><input type="number" id="oc-desconto" value="0" min="0" step="0.5" oninput="ocCalcular()"></div>
@@ -2173,7 +2194,7 @@
         <div class="card-header"><i class="ti ti-list-details"></i> Propostas Salvas</div>
         <div style="overflow-x:auto">
           <table class="table">
-            <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Objeto</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
+            <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Formato</th><th>Objeto</th><th>Total</th><th>Status</th><th>Ações</th></tr></thead>
             <tbody id="oc-tbody"></tbody>
           </table>
         </div>
@@ -2637,7 +2658,7 @@
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
-      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status'],
+      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status,tipo,valorHora:valor_hora,horasSemanaPresencial:horas_semana_presencial,horasSemanaHomeOffice:horas_semana_home_office'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
       ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento'],
       ['contratos',    'gh_contratos?select=id,clienteId:cliente_id,orcamentoId:orcamento_id,razaoSocial:razao_social,cnpj,endereco,representanteLegal:representante_legal,vigencia,horasMultaRescisao:horas_multa_rescisao,status,dataGeracao:data_geracao,dataEnvio:data_envio,dataAssinatura:data_assinatura,dataVencimento:data_vencimento,arquivoPath:arquivo_path,arquivoNome:arquivo_nome,observacoes'],
@@ -2694,6 +2715,8 @@
   let ocEditandoId = null;
   let ocItens = [];
   let ocNormasSel = [];
+  let ocTipo = 'fechado';
+  var SEMANAS_POR_MES = 4.345;
 
   let filtroPlanoAtual = 'Todas';
   let tarefaSelecionadaId = null;
@@ -8700,8 +8723,44 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     ocCalcular();
   }
 
+  function ocSetTipo(tipo) {
+    ocTipo = tipo;
+    var btnFechado = document.getElementById('oc-tipo-btn-fechado');
+    var btnSD = document.getElementById('oc-tipo-btn-sob_demanda');
+    if (btnFechado) btnFechado.classList.toggle('active', tipo === 'fechado');
+    if (btnSD) btnSD.classList.toggle('active', tipo === 'sob_demanda');
+    var blocoFechado = document.getElementById('oc-bloco-fechado');
+    var blocoSD = document.getElementById('oc-bloco-sob-demanda');
+    if (blocoFechado) blocoFechado.style.display = tipo === 'fechado' ? '' : 'none';
+    if (blocoSD) blocoSD.style.display = tipo === 'sob_demanda' ? '' : 'none';
+    ocCalcular();
+  }
+
+  function ocValorHoraCampos() {
+    return {
+      valorHora: parseFloat((document.getElementById('oc-sd-valorhora') || {}).value) || 0,
+      horasPresencial: parseFloat((document.getElementById('oc-sd-horas-presencial') || {}).value) || 0,
+      horasHomeOffice: parseFloat((document.getElementById('oc-sd-horas-homeoffice') || {}).value) || 0
+    };
+  }
+
   function ocCalcular() {
-    var subtotal = ocItens.reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
+    var subtotal, sd;
+    if (ocTipo === 'sob_demanda') {
+      sd = ocValorHoraCampos();
+      var horasSemana = sd.horasPresencial + sd.horasHomeOffice;
+      var valorSemana = horasSemana * sd.valorHora;
+      subtotal = valorSemana * SEMANAS_POR_MES;
+      var resumoSd = document.getElementById('oc-sd-resumo');
+      if (resumoSd) {
+        resumoSd.innerHTML = '<strong style="color:var(--navy)">' + horasSemana + 'h/semana</strong> (' +
+          sd.horasPresencial + 'h presencial + ' + sd.horasHomeOffice + 'h home office) × R$ ' + fmtVal(sd.valorHora) + '/h' +
+          ' = <strong style="color:var(--navy)">R$ ' + fmtVal(valorSemana) + '/semana</strong>' +
+          ' &nbsp;·&nbsp; estimativa <strong style="color:var(--navy)">R$ ' + fmtVal(subtotal) + '/mês</strong> (' + SEMANAS_POR_MES + ' semanas/mês)';
+      }
+    } else {
+      subtotal = ocItens.reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
+    }
     var descPct = parseFloat((document.getElementById('oc-desconto') || {}).value) || 0;
     var impPct = parseFloat((document.getElementById('oc-impostos') || {}).value) || 0;
     var desconto = subtotal * (descPct / 100);
@@ -8716,11 +8775,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           '<span style="color:' + (dest ? 'var(--navy)' : 'var(--text-secondary)') + ';font-weight:' + (dest ? '700' : '400') + '">' + l + '</span>' +
           '<span style="color:var(--navy);font-weight:' + (dest ? '800' : '600') + ';font-variant-numeric:tabular-nums">' + v + '</span></div>';
       };
+      var rotuloSubtotal = ocTipo === 'sob_demanda' ? 'Subtotal (estimativa mensal)' : 'Subtotal';
+      var rotuloTotal = ocTipo === 'sob_demanda' ? 'TOTAL ESTIMADO / MÊS' : 'TOTAL DA PROPOSTA';
       box.innerHTML = [
-        linha('Subtotal', 'R$ ' + fmtVal(subtotal)),
+        linha(rotuloSubtotal, 'R$ ' + fmtVal(subtotal)),
         descPct > 0 ? linha('Desconto (' + descPct + '%)', '– R$ ' + fmtVal(desconto)) : '',
         impPct > 0 ? linha('Impostos (' + impPct + '%)', '+ R$ ' + fmtVal(impostos)) : '',
-        linha('TOTAL DA PROPOSTA', 'R$ ' + fmtVal(total), true)
+        linha(rotuloTotal, 'R$ ' + fmtVal(total), true)
       ].join('');
     }
     return { subtotal: subtotal, descPct: descPct, impPct: impPct, desconto: desconto, impostos: impostos, total: total };
@@ -8741,8 +8802,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var im = document.getElementById('oc-impostos'); if (im) im.value = 0;
     var st = document.getElementById('oc-status'); if (st) st.value = 'rascunho';
     var bc = document.getElementById('oc-btn-cancelar'); if (bc) bc.style.display = 'none';
+    var vh = document.getElementById('oc-sd-valorhora'); if (vh) vh.value = '';
+    var hp = document.getElementById('oc-sd-horas-presencial'); if (hp) hp.value = '';
+    var hh = document.getElementById('oc-sd-horas-homeoffice'); if (hh) hh.value = '';
     ocAddItem('', 1, 'hora', 0);
     ocRenderNormasChips();
+    ocSetTipo('fechado');
   }
   function ocCancelarEdicao() { ocNovo(); }
 
@@ -8752,6 +8817,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var objeto = document.getElementById('oc-objeto').value.trim();
     var itensLimpos = ocItens.filter(function(it) { return (it.descricao || '').trim() || (parseFloat(it.valorUnit) || 0) > 0; });
     var calc = ocCalcular();
+    var sd = ocValorHoraCampos();
     var clienteObj = clientes.find(function(c) { return c.nome === cliente; });
     var hoje = document.getElementById('oc-data').value || new Date().toISOString().split('T')[0];
     var obj = {
@@ -8759,6 +8825,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       contato: document.getElementById('oc-contato').value.trim(),
       data: hoje, validadeDias: parseInt(document.getElementById('oc-validade').value) || 15,
       norma: ocNormasSel.join(', '), objeto: objeto, itens: itensLimpos,
+      tipo: ocTipo, valorHora: sd.valorHora, horasSemanaPresencial: sd.horasPresencial, horasSemanaHomeOffice: sd.horasHomeOffice,
       descontoPct: calc.descPct, impostosPct: calc.impPct,
       prazoExecucao: document.getElementById('oc-prazo').value.trim(),
       vigenciaContrato: document.getElementById('oc-vigencia').value.trim(),
@@ -8766,14 +8833,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       observacoes: document.getElementById('oc-obs').value.trim(),
       subtotal: calc.subtotal, total: calc.total, status: document.getElementById('oc-status').value
     };
-    return { cliente: cliente, objeto: objeto, itensLimpos: itensLimpos, obj: obj };
+    var valido = ocTipo === 'sob_demanda'
+      ? (sd.valorHora > 0 && (sd.horasPresencial + sd.horasHomeOffice) > 0)
+      : itensLimpos.length > 0;
+    return { cliente: cliente, objeto: objeto, itensLimpos: itensLimpos, valido: valido, obj: obj };
   }
 
   // Gera a proposta a partir do formulário atual, sem precisar salvar
   function imprimirOrcamentoConsultoriaForm() {
     var f = _ocColetarForm();
     if (!f.cliente) { alert('Informe o cliente para gerar a proposta'); document.getElementById('oc-cliente').focus(); return; }
-    if (!f.itensLimpos.length) { alert('Adicione ao menos um item para gerar a proposta'); return; }
+    if (!f.valido) { alert(ocTipo === 'sob_demanda' ? 'Informe o valor da hora e ao menos uma hora semanal (presencial ou home office)' : 'Adicione ao menos um item para gerar a proposta'); return; }
     _ocGerarDocumentoOC(f.obj);
   }
 
@@ -8781,12 +8851,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var f = _ocColetarForm();
     if (!f.cliente) { alert('Informe o cliente'); document.getElementById('oc-cliente').focus(); return; }
     if (!f.objeto) { alert('Descreva o objeto/escopo do serviço'); document.getElementById('oc-objeto').focus(); return; }
-    if (!f.itensLimpos.length) { alert('Adicione ao menos um item com descrição ou valor'); return; }
+    if (!f.valido) { alert(ocTipo === 'sob_demanda' ? 'Informe o valor da hora e ao menos uma hora semanal (presencial ou home office)' : 'Adicione ao menos um item com descrição ou valor'); return; }
     var campoLocal = f.obj;
     var payload = {
       cliente_nome: campoLocal.clienteNome, cliente_id: (campoLocal.clienteId == null ? null : String(campoLocal.clienteId)), contato: campoLocal.contato,
       data: campoLocal.data, validade_dias: campoLocal.validadeDias, norma: campoLocal.norma, objeto: campoLocal.objeto,
-      itens: campoLocal.itens, desconto_pct: campoLocal.descontoPct, impostos_pct: campoLocal.impostosPct,
+      itens: campoLocal.itens, tipo: campoLocal.tipo, valor_hora: campoLocal.valorHora,
+      horas_semana_presencial: campoLocal.horasSemanaPresencial, horas_semana_home_office: campoLocal.horasSemanaHomeOffice,
+      desconto_pct: campoLocal.descontoPct, impostos_pct: campoLocal.impostosPct,
       prazo_execucao: campoLocal.prazoExecucao, vigencia_contrato: campoLocal.vigenciaContrato, condicoes_pagamento: campoLocal.condicoesPagamento,
       observacoes: campoLocal.observacoes, subtotal: campoLocal.subtotal, total: campoLocal.total, status: campoLocal.status
     };
@@ -8824,10 +8896,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('oc-pagamento').value = o.condicoesPagamento || '';
     document.getElementById('oc-obs').value = o.observacoes || '';
     document.getElementById('oc-status').value = o.status || 'rascunho';
+    document.getElementById('oc-sd-valorhora').value = o.valorHora || '';
+    document.getElementById('oc-sd-horas-presencial').value = o.horasSemanaPresencial || '';
+    document.getElementById('oc-sd-horas-homeoffice').value = o.horasSemanaHomeOffice || '';
     ocNormasSel = (o.norma || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
     ocItens = (o.itens || []).map(function(it) { return { descricao: it.descricao || '', qtd: it.qtd != null ? it.qtd : 1, unidade: it.unidade || 'hora', valorUnit: it.valorUnit != null ? it.valorUnit : 0 }; });
     if (!ocItens.length) ocItens = [{ descricao: '', qtd: 1, unidade: 'hora', valorUnit: 0 }];
     ocRenderNormasChips(); ocRenderItens();
+    ocSetTipo(o.tipo === 'sob_demanda' ? 'sob_demanda' : 'fechado');
     var bc = document.getElementById('oc-btn-cancelar'); if (bc) bc.style.display = '';
     var fin = document.getElementById('financeiro'); if (fin) fin.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -8851,7 +8927,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     popularDatalistClientesOC();
     var tb = document.getElementById('oc-tbody'); if (!tb) return;
     if (!orcamentosConsult.length) {
-      tb.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:16px">Nenhuma proposta salva ainda.</td></tr>';
+      tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:16px">Nenhuma proposta salva ainda.</td></tr>';
       return;
     }
     var statuses = ['rascunho', 'enviado', 'aprovado', 'recusado'];
@@ -8859,6 +8935,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       var m = { rascunho: ['#6b7280', '#f3f4f6'], enviado: ['#2563eb', '#eff6ff'], aprovado: ['#059669', '#ecfdf5'], recusado: ['#dc2626', '#fef2f2'] };
       var c = m[s] || m.rascunho;
       return '<span style="font-size:11px;font-weight:700;color:' + c[0] + ';background:' + c[1] + ';padding:3px 9px;border-radius:999px;text-transform:capitalize">' + s + '</span>';
+    };
+    var badgeTipo = function(t) {
+      return t === 'sob_demanda'
+        ? '<span style="font-size:11px;font-weight:700;color:#7c3aed;background:#f3ebfe;padding:3px 9px;border-radius:999px;white-space:nowrap"><i class="ti ti-calendar-time"></i> Sob Demanda</span>'
+        : '<span style="font-size:11px;font-weight:700;color:#0369a1;background:#eff8ff;padding:3px 9px;border-radius:999px;white-space:nowrap"><i class="ti ti-list-details"></i> Escopo Fechado</span>';
     };
     var ordenados = orcamentosConsult.slice().sort(function(a, b) { return (b.data || '').localeCompare(a.data || ''); });
     tb.innerHTML = ordenados.map(function(o) {
@@ -8871,8 +8952,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         '<td style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);white-space:nowrap">' + ocCodigo(o) + '</td>' +
         '<td style="font-weight:600">' + (o.clienteNome || '—') + '</td>' +
         '<td style="white-space:nowrap">' + dataFmt + '</td>' +
+        '<td>' + badgeTipo(o.tipo) + '</td>' +
         '<td style="font-size:12px;color:var(--text-secondary)">' + obj + '</td>' +
-        '<td style="font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;white-space:nowrap">R$ ' + fmtVal(o.total || 0) + '</td>' +
+        '<td style="font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;white-space:nowrap">R$ ' + fmtVal(o.total || 0) + (o.tipo === 'sob_demanda' ? '/mês' : '') + '</td>' +
         '<td>' + selStatus + '</td>' +
         '<td style="white-space:nowrap">' +
         '<button onclick="imprimirOrcamentoConsultoria(\'' + o.id + '\')" title="Imprimir / PDF" style="border:none;background:none;cursor:pointer;color:var(--navy);font-size:15px"><i class="ti ti-printer"></i></button> ' +
@@ -8891,7 +8973,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function _ocGerarDocumentoOC(o) {
     var esc = function(s) { return (s == null ? '' : String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
     var dataFmt = o.data ? o.data.split('-').reverse().join('/') : '';
-    var subtotal = (o.itens || []).reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
+    var ehSobDemanda = o.tipo === 'sob_demanda';
+    var horasSemana = (parseFloat(o.horasSemanaPresencial) || 0) + (parseFloat(o.horasSemanaHomeOffice) || 0);
+    var subtotal = ehSobDemanda
+      ? horasSemana * (parseFloat(o.valorHora) || 0) * SEMANAS_POR_MES
+      : (o.itens || []).reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
     var desconto = subtotal * ((o.descontoPct || 0) / 100);
     var impostos = (subtotal - desconto) * ((o.impostosPct || 0) / 100);
     var total = subtotal - desconto + impostos;
@@ -8902,11 +8988,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var linhaResumo = function(l, v, dest) {
       return '<tr class="' + (dest ? 'tot' : '') + '"><td colspan="3" class="r">' + l + '</td><td class="r">' + v + '</td></tr>';
     };
+    var linhasSobDemanda = [
+      '<tr><td>Dedicação semanal — Presencial</td><td class="c">' + fmtVal(o.horasSemanaPresencial || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaPresencial) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>',
+      '<tr><td>Dedicação semanal — Home Office</td><td class="c">' + fmtVal(o.horasSemanaHomeOffice || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaHomeOffice) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>'
+    ].join('');
     var resumo = [
-      linhaResumo('Subtotal', 'R$ ' + fmtVal(subtotal)),
+      linhaResumo(ehSobDemanda ? 'Subtotal (estimativa mensal, ' + SEMANAS_POR_MES + ' semanas/mês)' : 'Subtotal', 'R$ ' + fmtVal(subtotal)),
       (o.descontoPct || 0) > 0 ? linhaResumo('Desconto (' + o.descontoPct + '%)', '– R$ ' + fmtVal(desconto)) : '',
       (o.impostosPct || 0) > 0 ? linhaResumo('Impostos (' + o.impostosPct + '%)', '+ R$ ' + fmtVal(impostos)) : '',
-      linhaResumo('TOTAL', 'R$ ' + fmtVal(total), true)
+      linhaResumo(ehSobDemanda ? 'TOTAL ESTIMADO / MÊS' : 'TOTAL', 'R$ ' + fmtVal(total), true)
     ].join('');
 
     var pInfo = [];
@@ -8958,7 +9048,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '</div>' +
       '<div class="sec"><h3>Objeto</h3><div class="objeto">' + esc(o.objeto) + '</div></div>' +
       '<div class="sec"><h3>Investimento</h3><table class="itens"><thead><tr><th>Descrição</th><th class="c">Qtd</th><th class="r">Valor unit.</th><th class="r">Subtotal</th></tr></thead>' +
-      '<tbody>' + linhasItens + resumo + '</tbody></table></div>' +
+      '<tbody>' + (ehSobDemanda ? linhasSobDemanda : linhasItens) + resumo + '</tbody></table></div>' +
       '<div class="sec"><h3>Condições</h3><div class="cond">' + condicoes.join('') + '</div></div>' +
       (o.observacoes ? '<div class="sec"><h3>Observações</h3><div class="obs">' + esc(o.observacoes) + '</div></div>' : '') +
       '<div class="assina"><div class="box">' + esc(OC_PRESTADOR.nome) + '</div><div class="box">' + esc(o.clienteNome) + '</div></div>' +
