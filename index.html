@@ -9894,10 +9894,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     // --- Aba: Orçamentos de Consultoria ---
     const wsOrcConsult = XLSX.utils.json_to_sheet(orcamentosConsult.map(o => ({
+      'Nº':        ocCodigo(o),
       'ID':        o.id,
       'Cliente':   o.clienteNome || '',
       'Data':      fmtData(o.data || ''),
       'Objeto':    o.objeto || '',
+      'Vigência do Contrato': o.vigenciaContrato || '',
       'Total R$':  o.total,
       'Status':    o.status || ''
     })));
