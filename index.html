@@ -2247,13 +2247,21 @@
       <div class="card">
         <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
           <span><i class="ti ti-list"></i> Vendas Registradas</span>
-          <select id="venda-filtro-cliente" onchange="renderizarVendas()" style="width:auto;padding:7px 10px;font-size:13px">
-            <option value="">Todos os clientes</option>
-          </select>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="venda-filtro-cliente" onchange="renderizarVendas()" style="width:auto;padding:7px 10px;font-size:13px">
+              <option value="">Todos os clientes</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" onclick="imprimirVendas()"><i class="ti ti-printer"></i> Imprimir completo</button>
+          </div>
+        </div>
+        <div id="venda-massa-toolbar" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#eff6ff;border-bottom:2px solid #2563eb;flex-wrap:wrap">
+          <span id="venda-massa-count" style="font-size:13px;font-weight:600;color:#1e3a8a;min-width:130px"></span>
+          <button class="btn btn-primary btn-sm" onclick="imprimirVendasSelecionadas()"><i class="ti ti-printer"></i> Imprimir Selecionadas</button>
+          <button class="btn btn-secondary btn-sm" onclick="desmarcarTodasVendas()"><i class="ti ti-x"></i> Desmarcar</button>
         </div>
         <div style="overflow-x:auto">
           <table class="table">
-            <thead><tr><th style="width:24px"></th><th>Cliente</th><th>Data</th><th>Solução</th><th>Valor</th><th>Parcelas</th><th>Ações</th></tr></thead>
+            <thead><tr><th style="width:30px"><input type="checkbox" id="venda-chk-todos" onchange="selecionarTodasVendas(this.checked)"></th><th style="width:24px"></th><th>Cliente</th><th>Data</th><th>Solução</th><th>Valor</th><th>Parcelas</th><th>Ações</th></tr></thead>
             <tbody id="tbody-vendas"></tbody>
           </table>
         </div>
@@ -6006,17 +6014,26 @@ ${corpoHTML}
 // ===== Prazo padrão de pagamento usado na data de vencimento do relatório (dias após a emissão) =====
   const PRAZO_PAGAMENTO_DIAS = 10;
 
-  // ===== Numeração sequencial dos relatórios/faturas (REL-AAAA-0001), persistida em gh_config =====
-  function proximoNumeroRelatorio() {
+  // ===== Numeração sequencial de documentos (REL-AAAA-0001, VND-AAAA-0001, ...), persistida em gh_config =====
+  // chaveContador identifica a série (uma por tipo de documento); prefixo é o texto exibido antes do ano.
+  function proximoNumeroDocumento(chaveContador, prefixo) {
     const ano = new Date().getFullYear();
-    let cfg = configApp.find(c => c.chave === 'contador_relatorio');
-    if (!cfg) { cfg = { chave: 'contador_relatorio', valor: { ano, numero: 0 } }; configApp.push(cfg); }
+    let cfg = configApp.find(c => c.chave === chaveContador);
+    if (!cfg) { cfg = { chave: chaveContador, valor: { ano, numero: 0 } }; configApp.push(cfg); }
     if (!cfg.valor || cfg.valor.ano !== ano) cfg.valor = { ano, numero: 0 };
     cfg.valor.numero += 1;
     persistir(
-      fetch(SUPABASE_URL + '/rest/v1/gh_config', { method: 'POST', headers: sbAuthHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ chave: 'contador_relatorio', valor: cfg.valor }) }).then(checarResposta)
+      fetch(SUPABASE_URL + '/rest/v1/gh_config', { method: 'POST', headers: sbAuthHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ chave: chaveContador, valor: cfg.valor }) }).then(checarResposta)
     );
-    return `REL-${ano}-${String(cfg.valor.numero).padStart(4, '0')}`;
+    return `${prefixo}-${ano}-${String(cfg.valor.numero).padStart(4, '0')}`;
+  }
+
+  function proximoNumeroRelatorio() {
+    return proximoNumeroDocumento('contador_relatorio', 'REL');
+  }
+
+  function proximoNumeroVenda() {
+    return proximoNumeroDocumento('contador_venda', 'VND');
   }
 
   // ===== Monta o bloco HTML (uma "fatura") de um cliente para o relatório/fatura de cobrança =====
@@ -9250,6 +9267,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const resumoParcelas = parcelas.length <= 1 ? '<span style="color:var(--text-secondary)">à vista</span>' : `${qtdRecebidas}/${parcelas.length} recebidas`;
       const linhaPrincipal = `
       <tr>
+        <td style="text-align:center"><input type="checkbox" class="venda-chk" value="${v.id}" onchange="atualizarToolbarVendas()"></td>
         <td>${parcelas.length > 1 ? `<button class="btn btn-icon" style="background:transparent;color:var(--navy)" onclick="toggleExpandirVenda('${v.id}')" title="Ver parcelas"><i class="ti ti-chevron-${vendaExpandidaId===v.id?'down':'right'}"></i></button>` : ''}</td>
         <td>${v.clienteNome || '—'}</td>
         <td>${fmtData(v.data)}</td>
@@ -9266,6 +9284,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const linhaParcelas = (vendaExpandidaId === v.id && parcelas.length > 1) ? `
       <tr>
         <td></td>
+        <td></td>
         <td colspan="6" style="background:var(--surface-1);padding:0">
           <table class="table" style="margin:0">
             <tbody>
@@ -9281,7 +9300,157 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         </td>
       </tr>` : '';
       return linhaPrincipal + linhaParcelas;
-    }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary)">Nenhuma venda registrada</td></tr>';
+    }).join('') || '<tr><td colspan="8" style="text-align:center;color:var(--text-secondary)">Nenhuma venda registrada</td></tr>';
+    atualizarToolbarVendas();
+  }
+
+  // ===== Seleção em massa das vendas (mesmo padrão da Cobrança) =====
+  function atualizarToolbarVendas() {
+    const chks = [...document.querySelectorAll('.venda-chk:checked')];
+    const total = document.querySelectorAll('.venda-chk').length;
+    const toolbar = document.getElementById('venda-massa-toolbar');
+    const count = document.getElementById('venda-massa-count');
+    const todos = document.getElementById('venda-chk-todos');
+    if (!toolbar) return;
+    toolbar.style.display = chks.length ? 'flex' : 'none';
+    if (count) count.textContent = `${chks.length} selecionada${chks.length !== 1 ? 's' : ''}`;
+    if (todos) { todos.indeterminate = chks.length > 0 && chks.length < total; todos.checked = chks.length === total && total > 0; }
+  }
+
+  function selecionarTodasVendas(marcado) {
+    document.querySelectorAll('.venda-chk').forEach(c => c.checked = marcado);
+    atualizarToolbarVendas();
+  }
+
+  function desmarcarTodasVendas() {
+    document.querySelectorAll('.venda-chk').forEach(c => c.checked = false);
+    const todos = document.getElementById('venda-chk-todos');
+    if (todos) { todos.checked = false; todos.indeterminate = false; }
+    atualizarToolbarVendas();
+  }
+
+  // ===== Impressão das vendas — mesmo layout/estilo do relatório de Cobrança (construirBlocoFaturaCobranca /
+  // abrirJanelaCobranca), porém uma "fatura" por cliente listando os produtos/parcelas vendidos em vez de horas.
+  function construirBlocoVenda(nomeCliente, vendasCliente, ctx) {
+    const totalV = vendasCliente.reduce((s, v) => s + (parseFloat(v.valor) || 0), 0);
+
+    // Parcela é a unidade de linha (cada produto pode ter 1 ou mais parcelas)
+    const linhasDados = [];
+    vendasCliente.slice().sort((a, b) => (a.data || '').localeCompare(b.data || '')).forEach(v => {
+      const parcelas = vendasParcelas.filter(p => p.vendaId === v.id).sort((a, b) => a.numero - b.numero);
+      (parcelas.length ? parcelas : [null]).forEach(p => linhasDados.push({ venda: v, parcela: p }));
+    });
+
+    const totalRecebido = linhasDados.reduce((s, x) => s + (x.parcela && x.parcela.recebido ? (parseFloat(x.parcela.valor) || 0) : 0), 0);
+    const saldo = Math.max(0, totalV - totalRecebido);
+    const cliObj = clientes.find(c => c.nome === nomeCliente) || {};
+
+    const linhas = linhasDados.map(({ venda, parcela }) => {
+      const qtdParcelasVenda = vendasParcelas.filter(p => p.vendaId === venda.id).length;
+      const numParcela = parcela ? `${parcela.numero}/${qtdParcelasVenda}` : 'à vista';
+      const vencimento = parcela ? fmtData(parcela.dataPrevista) : fmtData(venda.data);
+      const status = parcela ? (parcela.recebido ? 'Recebida' : 'A receber') : '—';
+      const valorLinha = parcela ? (parseFloat(parcela.valor) || 0) : (parseFloat(venda.valor) || 0);
+      return `
+      <tr>
+        <td class="dt-cel">${fmtData(venda.data)}</td>
+        <td>${venda.descricao || '—'}</td>
+        <td class="tc">${numParcela}</td>
+        <td class="tc dt-cel">${vencimento}</td>
+        <td class="tc">${status}</td>
+        <td class="tr valor-cel">R$ ${fmtVal(valorLinha)}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+    <div class="fatura${ctx.idx > 0 ? ' quebra' : ''}">
+      <div class="cab">
+        <div class="cab-esq">
+          <div class="logo-marca">ORB<span>EEX</span></div>
+          <div class="logo-sub">Assessoria em Sistemas de Gestão</div>
+          <div class="cab-contato">luana.civardi@orbeex.com.br<br>Bento Gonçalves – RS</div>
+        </div>
+        <div class="cab-dir">
+          <div class="fatura-titulo">${ctx.tituloDoc}</div>
+          <div class="fatura-meta">
+            <div><span class="meta-label">Nº:</span> ${ctx.numeroDoc}</div>
+            <div><span class="meta-label">Emissão:</span> ${ctx.dataEmissao}</div>
+            <div><span class="meta-label">Período:</span> ${ctx.periodoFmt}</div>
+          </div>
+        </div>
+      </div>
+      <div class="cab-barra"></div>
+      <div class="partes">
+        <div class="parte"><div class="parte-titulo">PRESTADOR DE SERVIÇOS</div><div class="parte-nome">ORBEEX</div><div class="parte-info">Assessoria em Sistemas de Gestão</div></div>
+        <div class="parte-sep"></div>
+        <div class="parte"><div class="parte-titulo">TOMADOR / CLIENTE</div><div class="parte-nome">${nomeCliente}</div>${cliObj.projeto ? `<div class="parte-info">${cliObj.projeto}</div>` : ''}</div>
+      </div>
+      <div class="sec-titulo"><i>🛍️</i> Produtos / Soluções Vendidas</div>
+      <table class="srv-table">
+        <thead><tr><th class="dt-cel" style="width:80px">Data</th><th>Produto / Solução</th><th class="tc" style="width:64px">Parcela</th><th class="tc dt-cel" style="width:90px">Vencimento</th><th class="tc" style="width:80px">Status</th><th class="tr" style="width:86px">Valor R$</th></tr></thead>
+        <tbody>${linhas}</tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="5"><strong>TOTAL GERAL</strong></td>
+            <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
+          </tr>
+        </tfoot>
+      </table>
+      <div class="resumo">
+        <div class="resumo-item"><span class="resumo-label">Total Vendido</span><span class="resumo-val">R$ ${fmtVal(totalV)}</span></div>
+        ${totalRecebido > 0 ? `<div class="resumo-item"><span class="resumo-label">Valor Já Recebido</span><span class="resumo-val pago">R$ ${fmtVal(totalRecebido)}</span></div>` : ''}
+        <div class="resumo-item destaque">
+          <span class="resumo-label">SALDO A RECEBER</span>
+          <span class="resumo-val pendente">R$ ${fmtVal(saldo)}</span>
+        </div>
+      </div>
+      <div class="rodape">
+        <div class="rodape-obs"><strong>Observações:</strong><br><span style="color:#888">Em caso de dúvidas, entre em contato.</span></div>
+        <div class="rodape-assinatura">
+          <div class="assinatura-linha"></div>
+          <div class="assinatura-nome">ORBEEX · Assessoria em Sistemas de Gestão</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Núcleo único de impressão de vendas: agrupa por cliente, monta cada bloco e abre a janela de impressão
+  // (reaproveita abrirJanelaCobranca — o layout/CSS é genérico, não específico de horas).
+  function imprimirDocumentoVendas(vendasSelecionadas, opts) {
+    const porcl = {};
+    vendasSelecionadas.forEach(v => { if (!porcl[v.clienteNome]) porcl[v.clienteNome] = []; porcl[v.clienteNome].push(v); });
+
+    const agora = new Date();
+    const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+    const datasSel = vendasSelecionadas.map(v => v.data).sort();
+    const periodoFmt = datasSel.length
+      ? `${fmtData(datasSel[0])} a ${fmtData(datasSel[datasSel.length - 1])}`
+      : 'Período selecionado';
+
+    let blocos = '';
+    Object.entries(porcl).forEach(([nomeCliente, vs], idx) => {
+      blocos += construirBlocoVenda(nomeCliente, vs, {
+        dataEmissao, periodoFmt, idx,
+        numeroDoc: proximoNumeroVenda(), tituloDoc: opts.tituloDoc
+      });
+    });
+
+    abrirJanelaCobranca(opts.tituloDoc, blocos);
+  }
+
+  function imprimirVendasSelecionadas() {
+    const ids = [...document.querySelectorAll('.venda-chk:checked')].map(c => c.value);
+    if (!ids.length) return;
+    const selecionadas = ids.map(id => vendas.find(v => v.id === id)).filter(Boolean);
+    if (!selecionadas.length) return;
+    imprimirDocumentoVendas(selecionadas, { tituloDoc: 'RECIBO DE VENDA' });
+  }
+
+  function imprimirVendas() {
+    const fCliente = document.getElementById('venda-filtro-cliente')?.value || '';
+    const dados = fCliente ? vendas.filter(v => v.clienteId == fCliente) : vendas.slice();
+    if (!dados.length) { alert('Nenhuma venda para imprimir.'); return; }
+    imprimirDocumentoVendas(dados, { tituloDoc: 'RECIBO DE VENDA' });
   }
 
   // ===== CONTAS A RECEBER / CONTAS A PAGAR =====
