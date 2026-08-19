@@ -1985,7 +1985,8 @@
     <div class="card">
       <div class="card-header"><i class="ti ti-filter"></i> Filtros</div>
       <div class="form-row">
-        <div class="form-group"><label>Cliente</label><select id="cobranca-cliente" onchange="filtrarCobranca()"><option value="">Todos os clientes</option></select></div>
+        <div class="form-group"><label>Cliente</label><select id="cobranca-cliente" onchange="atualizarSelectProjetoCobranca();filtrarCobranca()"><option value="">Todos os clientes</option></select></div>
+        <div class="form-group"><label>Projeto</label><select id="cobranca-projeto" onchange="filtrarCobranca()"><option value="">Todos os projetos</option></select></div>
         <div class="form-group"><label>Período Inicial</label><input type="date" id="cobranca-inicio" onchange="filtrarCobranca()"></div>
         <div class="form-group"><label>Período Final</label><input type="date" id="cobranca-fim" onchange="filtrarCobranca()"></div>
         <div class="form-group"><label>Status</label>
@@ -2666,7 +2667,7 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado,projetoId:projeto_id'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,dataRecebimento:data_recebimento,planejamentoId:planejamento_id,projetoId:projeto_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo,taxa'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
@@ -5931,10 +5932,33 @@ ${corpoHTML}
     const select = document.getElementById('cobranca-cliente');
     const opts = clientes.map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
     select.innerHTML = `<option value="">Todos</option>${opts}`;
+    atualizarSelectProjetoCobranca();
+  }
+
+  /* Popula o filtro de Projeto da Cobrança com os projetos ativos do cliente selecionado.
+     Sem cliente selecionado ("Todos"), o filtro de projeto fica vazio/desabilitado — não faz
+     sentido filtrar por projeto quando se está olhando vários clientes ao mesmo tempo. */
+  function atualizarSelectProjetoCobranca() {
+    const clienteId = document.getElementById('cobranca-cliente')?.value || '';
+    const sel = document.getElementById('cobranca-projeto');
+    if (!sel) return;
+    const atual = sel.value;
+    if (!clienteId) {
+      sel.innerHTML = '<option value="">Todos os projetos</option>';
+      sel.value = '';
+      sel.disabled = true;
+      return;
+    }
+    const doCliente = projetos.filter(p => p.clienteId == clienteId && p.ativo !== false)
+      .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    sel.disabled = false;
+    sel.innerHTML = '<option value="">Todos os projetos</option>' + doCliente.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    if (doCliente.some(p => p.id === atual)) sel.value = atual;
   }
 
   function filtrarCobranca() {
     const clienteId = document.getElementById('cobranca-cliente').value;
+    const projetoId = document.getElementById('cobranca-projeto')?.value || '';
     const inicio    = new Date(document.getElementById('cobranca-inicio').value || '2000-01-01');
     const fim       = new Date(document.getElementById('cobranca-fim').value    || '2099-12-31');
     const status    = (document.getElementById('cobranca-status') || {value:'pendente'}).value;
@@ -5942,9 +5966,10 @@ ${corpoHTML}
     let dados = tarefas.filter(t => {
       const dt = new Date(t.data);
       const clienteOk = !clienteId || t.clienteId == clienteId;
+      const projetoOk = !projetoId || t.projetoId == projetoId;
       const periodoOk = dt >= inicio && dt <= fim;
       const statusOk  = status === 'todos' ? true : status === 'cobrado' ? t.cobrado : !t.cobrado;
-      return clienteOk && periodoOk && statusOk;
+      return clienteOk && projetoOk && periodoOk && statusOk;
     }).sort((a, b) => a.data.localeCompare(b.data) || a.clienteNome.localeCompare(b.clienteNome));
 
     const cont = document.getElementById('relatorio-cobranca');
@@ -6054,8 +6079,9 @@ ${corpoHTML}
     // de Horas; as que NÃO têm (mas caem dentro do período) vão para um bloco próprio, para não sumirem.
     const cliIdGrupo = ts[0] ? ts[0].clienteId : null;
     const anotConcluidas = anotacoes.filter(a =>
-      a.concluida && a.visivelRelatorio !== false && a.data &&
-      ((cliIdGrupo != null && a.clienteId == cliIdGrupo) || a.clienteNome === nomeCliente)
+      a.concluida && a.visivelCobranca !== false && a.data &&
+      ((cliIdGrupo != null && a.clienteId == cliIdGrupo) || a.clienteNome === nomeCliente) &&
+      (!ctx.projetoId || a.projetoId === ctx.projetoId)
     );
     const billedDates = new Set(ts.map(t => t.data));
     const datasGrupo = ts.map(t => t.data).sort();
@@ -6241,7 +6267,7 @@ ${corpoHTML}
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       blocos += construirBlocoFaturaCobranca(nomeCliente, ts, {
         dataEmissao, dataVencimento, periodoFmt, comModalidade, thModalidade, colspanTotal,
-        descontoTotal, nClientes, modo: opts.modo, idx,
+        descontoTotal, nClientes, modo: opts.modo, idx, projetoId: opts.projetoId || null,
         numeroDoc: proximoNumeroRelatorio(), tituloDoc: opts.tituloDoc
       });
     });
@@ -6263,7 +6289,7 @@ ${corpoHTML}
       renderizarTarefas();
     });
 
-    imprimirDocumentoCobranca(selecionados, { modo: 'relatorio', tituloDoc: 'RELATÓRIO DE COBRANÇA' });
+    imprimirDocumentoCobranca(selecionados, { modo: 'relatorio', tituloDoc: 'RELATÓRIO DE COBRANÇA', projetoId: document.getElementById('cobranca-projeto')?.value || null });
 
     desmarcarTodosCobranca();
     filtrarCobranca();
@@ -6341,10 +6367,11 @@ ${corpoHTML}
     const selecionados = ids.map(id => tarefas.find(t => t.id === id)).filter(Boolean);
     if (!selecionados.length) return;
 
-    imprimirDocumentoCobranca(selecionados, { modo: 'fatura', tituloDoc: 'FATURA DE SERVIÇOS' });
+    imprimirDocumentoCobranca(selecionados, { modo: 'fatura', tituloDoc: 'FATURA DE SERVIÇOS', projetoId: document.getElementById('cobranca-projeto')?.value || null });
   }
 function imprimirCobranca() {
     const clienteId = document.getElementById('cobranca-cliente').value;
+    const projetoId = document.getElementById('cobranca-projeto')?.value || '';
     const inicioVal = document.getElementById('cobranca-inicio').value;
     const fimVal    = document.getElementById('cobranca-fim').value;
     const inicio = new Date(inicioVal || '2000-01-01');
@@ -6352,11 +6379,11 @@ function imprimirCobranca() {
 
     let dados = tarefas.filter(t => {
       const dt = new Date(t.data);
-      return (!clienteId || t.clienteId == clienteId) && dt >= inicio && dt <= fim;
+      return (!clienteId || t.clienteId == clienteId) && (!projetoId || t.projetoId == projetoId) && dt >= inicio && dt <= fim;
     });
     if (!dados.length) { alert('Nenhum registro para imprimir.'); return; }
 
-    imprimirDocumentoCobranca(dados, { modo: 'fatura', tituloDoc: 'FATURA DE SERVIÇOS' });
+    imprimirDocumentoCobranca(dados, { modo: 'fatura', tituloDoc: 'FATURA DE SERVIÇOS', projetoId: projetoId || null });
   }
  
   // ===== EXPORTAÇÃO CSV (formatada — ponto e vírgula, BOM UTF-8, pronta para Excel BR) =====
@@ -6380,15 +6407,17 @@ function imprimirCobranca() {
 
   function exportarCSV() {
     const clienteId = document.getElementById('cobranca-cliente').value;
+    const projetoId = document.getElementById('cobranca-projeto')?.value || '';
     const inicio = new Date(document.getElementById('cobranca-inicio').value || '2000-01-01');
     const fim = new Date(document.getElementById('cobranca-fim').value || '2099-12-31');
     const status = (document.getElementById('cobranca-status') || {value:'pendente'}).value;
     let dados = tarefas.filter(t => {
       const dt = new Date(t.data);
       const clienteOk = !clienteId || t.clienteId == clienteId;
+      const projetoOk = !projetoId || t.projetoId == projetoId;
       const periodoOk = dt >= inicio && dt <= fim;
       const statusOk  = status === 'todos' ? true : status === 'cobrado' ? t.cobrado : !t.cobrado;
-      return clienteOk && periodoOk && statusOk;
+      return clienteOk && projetoOk && periodoOk && statusOk;
     }).sort((a,b) => a.data.localeCompare(b.data) || a.clienteNome.localeCompare(b.clienteNome));
 
     if (!dados.length) { alert('Nenhum registro para exportar com os filtros atuais.'); return; }
@@ -7064,6 +7093,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const cliObj = clientes.find(c => c.id == cliId);
     const status = document.getElementById('anot-status').value || 'pendente';
     const visivelRelatorio = document.getElementById('anot-visivel-relatorio')?.checked !== false;
+    const visivelCobranca  = document.getElementById('anot-visivel-cobranca')?.checked !== false;
     const projetoId = document.getElementById('anot-projeto')?.value || null;
     const dados = {
       titulo,
@@ -7078,6 +7108,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       status,
       concluida:   status === 'concluida',
       visivelRelatorio,
+      visivelCobranca,
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
@@ -7089,7 +7120,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
             titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
             data: dados.data, hora: dados.hora, projeto_id: dados.projetoId || null, prioridade: dados.prioridade,
             descricao: dados.descricao, responsavel: dados.responsavel, status: dados.status, concluida: dados.concluida,
-            visivel_relatorio: dados.visivelRelatorio
+            visivel_relatorio: dados.visivelRelatorio, visivel_cobranca: dados.visivelCobranca
           }),
           function() { Object.assign(a, anterior); renderizarAnotacoes(); }
         );
@@ -7104,7 +7135,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, projeto_id: nova.projetoId || null, prioridade: nova.prioridade,
           descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm, numero: nova.numero,
-          visivel_relatorio: nova.visivelRelatorio
+          visivel_relatorio: nova.visivelRelatorio, visivel_cobranca: nova.visivelCobranca
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
       );
@@ -7140,6 +7171,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-descricao').value  = a.descricao || '';
     document.getElementById('anot-responsavel').value = a.responsavel || '';
     document.getElementById('anot-visivel-relatorio').checked = a.visivelRelatorio !== false;
+    document.getElementById('anot-visivel-cobranca').checked = a.visivelCobranca !== false;
     document.getElementById('anot-cliente').value = a.clienteId || '';
     atualizarProjetosAnotacao();
     document.getElementById('anot-projeto').value = a.projetoId || '';
@@ -7156,6 +7188,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-descricao').value = '';
     document.getElementById('anot-responsavel').value = '';
     document.getElementById('anot-visivel-relatorio').checked = true;
+    document.getElementById('anot-visivel-cobranca').checked = true;
     document.getElementById('anot-cliente').value = '';
     atualizarProjetosAnotacao();
   }
@@ -10763,10 +10796,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <label>Descrição</label>
         <textarea id="anot-descricao" rows="2" placeholder="Detalhes, contexto, links..."></textarea>
       </div>
-      <div class="form-group" style="margin-bottom:0">
+      <div class="form-group" style="margin-bottom:0;display:flex;flex-direction:column;gap:6px">
         <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
           <input type="checkbox" id="anot-visivel-relatorio" checked>
-          Visível no relatório do cliente <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
+          Visível no Relatório Consolidado / de Projeto <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
+          <input type="checkbox" id="anot-visivel-cobranca" checked>
+          Visível no Relatório de Cobrança (mensal) <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
         </label>
       </div>
       <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()" style="width:100%;justify-content:center"><i class="ti ti-device-floppy"></i> Salvar</button>
