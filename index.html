@@ -6551,6 +6551,67 @@ function imprimirCobranca() {
         </div>
       </details>`;
 
+    // ── Despesas do mês por categoria (mesmas fontes que compõem vDespesasMes: lançadas + recorrentes previstas)
+    const despesasPorCategoria = {};
+    despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).forEach(d => {
+      const cat = d.categoria || 'Outros';
+      despesasPorCategoria[cat] = (despesasPorCategoria[cat] || 0) + (parseFloat(d.valor) || 0);
+    });
+    (function acumularRecorrentesPorCategoria() {
+      const inicioMes = chaveMesAtual + '-01';
+      const fimMes = isoData(new Date(anoAtual, mesAtual + 1, 0));
+      despesasRecorrentes.forEach(function(r) {
+        if (!r.ativa) return;
+        const passo = PASSOS_FREQUENCIA[r.frequencia] || 1;
+        let dataOcorrencia = r.dataInicio;
+        let guarda = 0;
+        while (dataOcorrencia <= fimMes && (!r.dataFim || dataOcorrencia <= r.dataFim) && guarda < 500) {
+          guarda++;
+          if (dataOcorrencia >= inicioMes && dataOcorrencia <= fimMes) {
+            const jaLancada = despesas.some(function(d) { return d.recorrenteId === r.id && d.data === dataOcorrencia; });
+            if (!jaLancada) {
+              const cat = r.categoria || 'Outros';
+              despesasPorCategoria[cat] = (despesasPorCategoria[cat] || 0) + (parseFloat(r.valor) || 0);
+            }
+          }
+          dataOcorrencia = addMeses(dataOcorrencia, passo);
+        }
+      });
+    })();
+    const CORES_CATEGORIA_DESPESA = { 'Contador':'#f59e0b', 'Gasolina':'#ef4444', 'Alimentação':'#ec4899', 'Impostos':'#dc2626', 'Outros':'#94a3b8' };
+    const breakdownDespesas = Object.keys(despesasPorCategoria).length ? `
+      <details class="dash-kpi-breakdown">
+        <summary>Ver percentual por categoria</summary>
+        ${Object.entries(despesasPorCategoria).sort((a,b) => b[1] - a[1]).map(([cat, val]) => {
+          const pct = vDespesasMes > 0 ? (val / vDespesasMes * 100) : 0;
+          const cor = CORES_CATEGORIA_DESPESA[cat] || '#94a3b8';
+          return `<div class="dash-kpi-breakdown-item">
+            <div class="dkb-linha"><span>${cat}</span><b>R$ ${fmtVal(val)} · ${pct.toFixed(1)}%</b></div>
+            <div class="dash-kpi-breakdown-bar"><span style="width:${pct.toFixed(1)}%;background:${cor}"></span></div>
+          </div>`;
+        }).join('')}
+      </details>` : '';
+
+    // ── Composição do Lucro: Valor Confirmado − Despesas do Mês = Lucro
+    const pctDespesasSobreConf = mesConf > 0 ? (vDespesasMes / mesConf * 100) : 0;
+    const pctLucroSobreConf    = mesConf > 0 ? (Math.max(0, vLucroMes) / mesConf * 100) : 0;
+    const breakdownLucro = `
+      <details class="dash-kpi-breakdown">
+        <summary>Ver composição do lucro</summary>
+        <div class="dash-kpi-breakdown-item">
+          <div class="dkb-linha"><span>Valor Confirmado</span><b>R$ ${fmtVal(mesConf)}</b></div>
+          <div class="dash-kpi-breakdown-bar"><span style="width:100%;background:#E8B84B"></span></div>
+        </div>
+        <div class="dash-kpi-breakdown-item">
+          <div class="dkb-linha"><span>(−) Despesas do Mês</span><b>R$ ${fmtVal(vDespesasMes)} · ${pctDespesasSobreConf.toFixed(1)}%</b></div>
+          <div class="dash-kpi-breakdown-bar"><span style="width:${Math.min(100, pctDespesasSobreConf).toFixed(1)}%;background:#ef4444"></span></div>
+        </div>
+        <div class="dash-kpi-breakdown-item">
+          <div class="dkb-linha"><span>(=) Lucro</span><b>R$ ${fmtVal(vLucroMes)} · ${pctLucroSobreConf.toFixed(1)}%</b></div>
+          <div class="dash-kpi-breakdown-bar"><span style="width:${Math.min(100, pctLucroSobreConf).toFixed(1)}%;background:${vLucroMes >= 0 ? '#10b981' : '#ef4444'}"></span></div>
+        </div>
+      </details>`;
+
     document.getElementById('dash-kpis').innerHTML = [
       { label:'Valor Planejado — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub: 'Tudo que está programado para o mês (planejamento + registrado + histórico)', cor:'#93c5fd' },
       { label:'Valor Confirmado até o Momento', value:'R$ '+fmtVal(mesConf), sub: fmtVal(mesHConf)+'h confirmadas no mês', cor:'#E8B84B' },
@@ -6559,8 +6620,8 @@ function imprimirCobranca() {
       { label:'Valor em Venda de Produtos',    value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
       { label:'Valor Assinaturas',             value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s) — STRATEGYA', cor:'#0891b2' },
       { label:'Faturamento Total do Mês',      value:'R$ '+fmtVal(vFaturamentoTotalMes), sub: 'Consultoria + Produtos + Assinaturas', cor:'#E8B84B', extra: breakdownFaturamento },
-      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444' },
-      { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Valor Confirmado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444' },
+      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444', extra: breakdownDespesas },
+      { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Valor Confirmado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444', extra: breakdownLucro },
     ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
