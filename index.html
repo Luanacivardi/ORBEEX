@@ -3482,16 +3482,29 @@ let clienteEditandoId = null;
 
   function abrirModalRelatorioPeriodo(clienteId, projetoId) {
     _relCtx = { clienteId, projetoId: projetoId || null };
-    const cliente = clientes.find(c => c.id === clienteId);
-    const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
-    document.getElementById('relp-titulo').textContent = projeto
-      ? `Relatório do Projeto · ${projeto.nome}`
-      : `Relatório Consolidado · ${cliente ? cliente.nome : ''}`;
+    // Popula o seletor de projeto com os projetos ativos do cliente, mantendo a opção "Consolidado"
+    const selProjeto = document.getElementById('relp-projeto');
+    const doCliente = projetos.filter(p => p.clienteId == clienteId && p.ativo !== false)
+      .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    selProjeto.innerHTML = '<option value="">Todos os projetos (Consolidado)</option>' +
+      doCliente.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    selProjeto.value = projetoId || '';
+    atualizarTituloRelatorioPeriodo();
     // Padrão: ano corrente até hoje
     const hoje = new Date();
     document.getElementById('relp-ini').value = new Date(hoje.getFullYear(), 0, 1).toISOString().split('T')[0];
     document.getElementById('relp-fim').value = hoje.toISOString().split('T')[0];
     document.getElementById('modal-relatorio-periodo').style.display = 'flex';
+  }
+
+  /* Atualiza o título do modal conforme o projeto escolhido no seletor */
+  function atualizarTituloRelatorioPeriodo() {
+    const cliente = clientes.find(c => c.id === _relCtx.clienteId);
+    const projetoId = document.getElementById('relp-projeto')?.value || '';
+    const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
+    document.getElementById('relp-titulo').textContent = projeto
+      ? `Relatório do Projeto · ${projeto.nome}`
+      : `Relatório Consolidado · ${cliente ? cliente.nome : ''}`;
   }
 
   function fecharModalRelatorioPeriodo() {
@@ -3517,8 +3530,9 @@ let clienteEditandoId = null;
     const ini = document.getElementById('relp-ini').value || null;
     const fim = document.getElementById('relp-fim').value || null;
     if (ini && fim && ini > fim) { alert('A data inicial não pode ser maior que a final.'); return; }
+    const projetoId = document.getElementById('relp-projeto')?.value || null;
     fecharModalRelatorioPeriodo();
-    gerarRelatorioEvolucao(_relCtx.clienteId, _relCtx.projetoId, ini, fim);
+    gerarRelatorioEvolucao(_relCtx.clienteId, projetoId, ini, fim);
   }
 
   /* Chave de ordenação de uma anotação no relatório de evolução: itens sem data (planejados, ainda
@@ -10687,7 +10701,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <button onclick="fecharModalRelatorioPeriodo()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px">Escolha o período das atividades executadas que deve entrar no relatório. Deixe as datas em branco (ou use <strong>Tudo</strong>) para incluir todo o histórico.</p>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px">Escolha o projeto e o período das atividades que devem entrar no relatório. Deixe as datas em branco (ou use <strong>Tudo</strong>) para incluir todo o histórico.</p>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">Projeto</label>
+        <select id="relp-projeto" onchange="atualizarTituloRelatorioPeriodo()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Todos os projetos (Consolidado)</option>
+        </select>
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn btn-sm btn-secondary" onclick="aplicarPresetRel('mes')">Este mês</button>
         <button class="btn btn-sm btn-secondary" onclick="aplicarPresetRel('ano')">Este ano</button>
