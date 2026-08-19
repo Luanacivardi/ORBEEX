@@ -3368,8 +3368,9 @@ let clienteEditandoId = null;
   }
 
   /* Monta o bloco de barras de evolução mensal a partir de uma lista de pontos (anotações concluídas) */
-  function construirBarrasMensais(pontos) {
-    if (!pontos.length) return '<p style="font-size:11px;color:#9999aa;margin:0 40px 8px">Nenhuma atividade executada neste período.</p>';
+  function construirBarrasMensais(pontosComData) {
+    const pontos = pontosComData.filter(p => p.data);
+    if (!pontos.length) return '<p style="font-size:11px;color:#9999aa;margin:0 40px 8px">Nenhuma atividade com data neste período.</p>';
     const chavesMes = [];
     pontos.forEach(p => { const k = p.data.slice(0,7); if (!chavesMes.includes(k)) chavesMes.push(k); });
     chavesMes.sort();
@@ -3387,20 +3388,25 @@ let clienteEditandoId = null;
     }).join('');
   }
 
-  /* Linha do tempo das atividades executadas (anotações concluídas), da mais recente para a mais antiga */
+  /* Linha do tempo de todas as ações do cliente (executadas, em andamento, atrasadas e planejadas),
+     da mais recente para a mais antiga; itens sem data (ainda a agendar) ficam no topo. */
   function construirLinhaTempoPontos(pontos) {
     if (!pontos.length) return '';
-    return `<div class="rp-timeline">` + pontos.slice().reverse().map(p => `
+    return `<div class="rp-timeline">` + pontos.slice().reverse().map(p => {
+      const st = statusRelatorioPonto(p);
+      return `
       <div class="rp-tl-item">
-        <div class="rp-tl-rail"><span class="rp-tl-dot"></span></div>
+        <div class="rp-tl-rail"><span class="rp-tl-dot" style="border-color:${st.cor}"></span></div>
         <div class="rp-tl-body">
           <div class="rp-tl-top">
             <span class="rp-tl-titulo">${p.titulo}</span>
-            <span class="rp-tl-data">${fmtData(p.data)}</span>
+            <span class="rp-tl-data">${p.data ? fmtData(p.data) : 'Sem data definida'}</span>
           </div>
+          <span style="display:inline-block;margin-top:4px;font-size:8px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:${st.cor};background:${st.cor}1f;padding:2px 8px;border-radius:20px">${st.label}</span>
           ${p.descricao ? `<div class="rp-tl-desc">${p.descricao}</div>` : ''}
         </div>
-      </div>`).join('') + `</div>`;
+      </div>`;
+    }).join('') + `</div>`;
   }
 
   /* Monta a linha do tempo de entregáveis planejados de um projeto (prazo x entrega real) */
@@ -3458,7 +3464,7 @@ let clienteEditandoId = null;
          <div class="eq-bars">${construirBarrasMensais(pontos)}</div>`
       : '';
     const listaHtml = pontos.length
-      ? `<div class="rp-sub">Atividades Executadas <span class="rp-sub-count">${pontos.length}</span></div>
+      ? `<div class="rp-sub">Ações — Executadas e Planejadas <span class="rp-sub-count">${pontos.length}</span></div>
          ${construirLinhaTempoPontos(pontos)}`
       : '';
     return `
@@ -3515,6 +3521,20 @@ let clienteEditandoId = null;
     gerarRelatorioEvolucao(_relCtx.clienteId, _relCtx.projetoId, ini, fim);
   }
 
+  /* Chave de ordenação de uma anotação no relatório de evolução: itens sem data (planejados, ainda
+     sem data definida) vão para o final da lista em vez de quebrar a ordenação. */
+  function chavePonto(a) { return (a.data || '9999-12-31') + (a.hora || ''); }
+
+  /* Rótulo/cor de status de um item no relatório de evolução — agora que o relatório mostra tudo
+     (não só concluídas), cada item precisa deixar claro em que pé está. */
+  function statusRelatorioPonto(p) {
+    if (p.concluida) return { label: 'Concluída', cor: '#10b981' };
+    const hoje = new Date().toISOString().split('T')[0];
+    if (p.data && p.data < hoje) return { label: 'Atrasada', cor: '#dc2626' };
+    if (p.status === 'andamento') return { label: 'Em andamento', cor: '#E8B84B' };
+    return { label: 'Planejada', cor: '#8a8aa4' };
+  }
+
   function gerarRelatorioEvolucao(clienteId, projetoId, periodoIni, periodoFim) {
     const cliente = clientes.find(c => c.id === clienteId);
     if (!cliente) return;
@@ -3523,15 +3543,20 @@ let clienteEditandoId = null;
     const temPeriodo = !!(periodoIni || periodoFim);
     const pIni = periodoIni || '0000-01-01';
     const pFim = periodoFim || '9999-12-31';
-    const noPeriodoPonto = a => !temPeriodo || (a.data >= pIni && a.data <= pFim);
+    // Item sem data (ainda não agendado) entra mesmo com filtro de período ativo — não dá pra saber
+    // se cai dentro do período, e omiti-lo esconderia trabalho planejado que ainda não tem data definida.
+    const noPeriodoPonto = a => !temPeriodo || !a.data || (a.data >= pIni && a.data <= pFim);
     const noPeriodoEnt   = e => { if (!temPeriodo) return true; const d = e.dataEntrega || e.prazo; return d && d >= pIni && d <= pFim; };
     const rotuloPeriodo = temPeriodo
       ? (periodoIni && periodoFim ? `${fmtData(periodoIni)} a ${fmtData(periodoFim)}`
          : periodoIni ? `A partir de ${fmtData(periodoIni)}` : `Até ${fmtData(periodoFim)}`)
       : null;
 
+    // Relatório de evolução: mostra TODAS as ações do cliente (executadas, em andamento, pendentes/
+    // atrasadas e planejadas) — não só as concluídas — porque o objetivo é apresentar o que foi feito
+    // e o que está planejado, não só um histórico do que já terminou.
     const pontosBase = anotacoes.filter(a =>
-      a.clienteId == clienteId && a.concluida && a.visivelRelatorio !== false && a.data && noPeriodoPonto(a));
+      a.clienteId == clienteId && a.visivelRelatorio !== false && noPeriodoPonto(a));
 
     let corpoRelatorio = '';
     let tituloDoc = projetoId ? 'RELATÓRIO DO PROJETO' : 'RELATÓRIO CONSOLIDADO';
@@ -3545,15 +3570,15 @@ let clienteEditandoId = null;
       const projeto = projetos.find(p => p.id === projetoId);
       if (!projeto) return;
       const pontos = pontosBase.filter(a => a.projetoId === projetoId)
-        .sort((a,b) => (a.data + (a.hora||'')).localeCompare(b.data + (b.hora||'')));
+        .sort((a,b) => chavePonto(a).localeCompare(chavePonto(b)));
       const ents = entregaveis.filter(e => e.projetoId === projetoId && noPeriodoEnt(e));
 
       if (!pontos.length && !ents.length) {
-        alert(`Nenhuma atividade executada ou entregável para o projeto "${projeto.nome}"${temPeriodo ? ' no período selecionado' : ''}.`);
+        alert(`Nenhuma atividade (executada, em andamento ou planejada) ou entregável para o projeto "${projeto.nome}"${temPeriodo ? ' no período selecionado' : ''}.`);
         return;
       }
       subtituloParte = projeto.nome;
-      todasDatas = pontos.map(p => p.data);
+      todasDatas = pontos.map(p => p.data).filter(Boolean);
       entsEscopo = ents;
       qtdProjetos = 1;
       corpoRelatorio = construirSecaoEvolucao(projeto.nome, pontos, ents);
@@ -3568,28 +3593,28 @@ let clienteEditandoId = null;
 
       projetosCliente.forEach(p => {
         const pontosProj = pontosBase.filter(a => a.projetoId === p.id)
-          .sort((a,b) => (a.data + (a.hora||'')).localeCompare(b.data + (b.hora||'')));
+          .sort((a,b) => chavePonto(a).localeCompare(chavePonto(b)));
         const entsProj = entregaveis.filter(e => e.projetoId === p.id && noPeriodoEnt(e));
         if (!pontosProj.length && !entsProj.length) return;
         distribuicao.push([p.nome, pontosProj.length]);
         totalPontos += pontosProj.length;
-        todasDatas = todasDatas.concat(pontosProj.map(x => x.data));
+        todasDatas = todasDatas.concat(pontosProj.map(x => x.data).filter(Boolean));
         entsEscopo = entsEscopo.concat(entsProj);
         qtdProjetos++;
         secoes += construirSecaoEvolucao(p.nome, pontosProj, entsProj);
       });
 
       const pontosGeral = pontosBase.filter(a => !a.projetoId)
-        .sort((a,b) => (a.data + (a.hora||'')).localeCompare(b.data + (b.hora||'')));
+        .sort((a,b) => chavePonto(a).localeCompare(chavePonto(b)));
       if (pontosGeral.length) {
         distribuicao.push(['Geral', pontosGeral.length]);
         totalPontos += pontosGeral.length;
-        todasDatas = todasDatas.concat(pontosGeral.map(x => x.data));
+        todasDatas = todasDatas.concat(pontosGeral.map(x => x.data).filter(Boolean));
         secoes += construirSecaoEvolucao('Geral', pontosGeral, []);
       }
 
       if (!totalPontos) {
-        alert(`Nenhuma atividade executada encontrada para ${cliente.nome}${temPeriodo ? ' no período selecionado' : ''}.`);
+        alert(`Nenhuma atividade (executada, em andamento ou planejada) encontrada para ${cliente.nome}${temPeriodo ? ' no período selecionado' : ''}.`);
         return;
       }
 
@@ -3615,13 +3640,15 @@ let clienteEditandoId = null;
     const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
     const periodoFmt = rotuloPeriodo || (todasDatas.length ? `${fmtData(todasDatas[0])} a ${fmtData(todasDatas[todasDatas.length-1])}` : 'Todo o período');
     const totalGeral = pontosBase.length;
+    const totalExecutadas = pontosBase.filter(p => p.concluida).length;
+    const totalPlanejadas = totalGeral - totalExecutadas;
     const entregues = entsEscopo.filter(e => e.dataEntrega).length;
 
     // KPIs do topo do documento
     const kpis = [
-      { rotulo: 'Atividades Executadas', valor: totalGeral },
+      { rotulo: 'Executadas', valor: totalExecutadas },
+      { rotulo: 'Em Andamento / Planejadas', valor: totalPlanejadas },
       { rotulo: projetoId ? 'Entregáveis Entregues' : 'Projetos com Atividade', valor: projetoId ? entregues : qtdProjetos },
-      { rotulo: 'Entregáveis no Escopo', valor: entsEscopo.length },
       { rotulo: 'Período', valor: periodoFmt, small: true }
     ];
     const kpiHtml = kpis.map(k => `
