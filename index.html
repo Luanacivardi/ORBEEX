@@ -2006,23 +2006,6 @@
       </div>
     </div>
     <div class="card">
-      <div class="card-header"><i class="ti ti-settings"></i> Configurações do Relatório</div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>Prazo de pagamento (dias após emissão)</label>
-          <input type="number" id="cob-cfg-prazo" min="0" step="1" placeholder="10">
-        </div>
-        <div class="form-group" style="flex:2;min-width:280px">
-          <label>Dados para pagamento (PIX / conta bancária) — aparece no rodapé do relatório</label>
-          <textarea id="cob-cfg-dados-pagamento" rows="2" placeholder="Ex: PIX (CNPJ) 00.000.000/0001-00 — Banco XYZ, Ag 0001, CC 12345-6"></textarea>
-        </div>
-        <div class="form-group" style="justify-content:flex-end;display:flex">
-          <button class="btn btn-primary" onclick="salvarConfigCobranca()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar</button>
-        </div>
-      </div>
-      <p style="font-size:11px;color:var(--text-secondary);margin:4px 0 0">Esses dados valem para todos os clientes e ficam salvos para os próximos relatórios.</p>
-    </div>
-    <div class="card">
       <div id="cob-massa-toolbar" style="display:none;align-items:center;gap:8px;padding:10px 16px;background:#f0f9f0;border-bottom:2px solid #10b981;flex-wrap:wrap">
         <span id="cob-massa-count" style="font-size:13px;font-weight:600;color:#065f46;min-width:130px"></span>
         <button class="btn btn-success" onclick="gerarRelatorioCobranca()"><i class="ti ti-receipt"></i> Gerar Relatório e Marcar como Cobrado</button>
@@ -4343,7 +4326,7 @@ let clienteEditandoId = null;
     // Trigger tab-specific init
     if (tab === 'atividades') { renderizarPlanejamento(); atualizarDashboardPlan(); preencherTarefasConfirmadas(); renderizarTarefas(); }
     else if (tab === 'agenda') { atualizarFiltroClienteAgenda(); renderizarAgenda(); }
-    else if (tab === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); preencherConfigCobrancaUI(); }
+    else if (tab === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); }
     else if (tab === 'dashboard') { renderizarDashboard(); }
     else if (tab === 'anotacoes') { renderizarAnotacoes(); }
     else if (tab === 'clientes') { renderizarClientes(); }
@@ -6020,36 +6003,8 @@ ${corpoHTML}
     atualizarToolbarCobranca();
   }
   
-// ===== Configuração do Relatório de Cobrança (prazo + dados de pagamento) =====
-  // Guardada em gh_config, mesma tabela chave/valor já usada para 'dados_contratada'.
-  function getConfigCobranca() {
-    const cfg = configApp.find(c => c.chave === 'config_cobranca');
-    return Object.assign({ prazoDias: 10, dadosPagamento: '' }, (cfg && cfg.valor) || {});
-  }
-
-  function preencherConfigCobrancaUI() {
-    const cfg = getConfigCobranca();
-    const elPrazo = document.getElementById('cob-cfg-prazo');
-    const elDados = document.getElementById('cob-cfg-dados-pagamento');
-    if (elPrazo) elPrazo.value = cfg.prazoDias;
-    if (elDados) elDados.value = cfg.dadosPagamento;
-  }
-
-  function salvarConfigCobranca() {
-    const novoValor = {
-      prazoDias: Math.max(0, parseInt(document.getElementById('cob-cfg-prazo').value, 10) || 0),
-      dadosPagamento: document.getElementById('cob-cfg-dados-pagamento').value.trim()
-    };
-    let cfg = configApp.find(c => c.chave === 'config_cobranca');
-    const anterior = cfg ? Object.assign({}, cfg.valor) : null;
-    if (cfg) cfg.valor = novoValor;
-    else { cfg = { chave: 'config_cobranca', valor: novoValor }; configApp.push(cfg); }
-    persistir(
-      fetch(SUPABASE_URL + '/rest/v1/gh_config', { method: 'POST', headers: sbAuthHeaders({ Prefer: 'resolution=merge-duplicates,return=minimal' }), body: JSON.stringify({ chave: 'config_cobranca', valor: novoValor }) }).then(checarResposta),
-      function() { if (anterior) cfg.valor = anterior; }
-    );
-    setStatus('✓ Configurações do relatório salvas');
-  }
+// ===== Prazo padrão de pagamento usado na data de vencimento do relatório (dias após a emissão) =====
+  const PRAZO_PAGAMENTO_DIAS = 10;
 
   // ===== Numeração sequencial dos relatórios/faturas (REL-AAAA-0001), persistida em gh_config =====
   function proximoNumeroRelatorio() {
@@ -6119,9 +6074,7 @@ ${corpoHTML}
       </tr>`;
     }).join('');
 
-    const dadosPagamentoHtml = ctx.cfgCob.dadosPagamento
-      ? `<div class="rodape-obs"><strong>Dados para pagamento:</strong><br>${esc(ctx.cfgCob.dadosPagamento).replace(/\n/g, '<br>')}</div>`
-      : `<div class="rodape-obs"><strong>Observações:</strong><br><span style="color:#888">Em caso de dúvidas, entre em contato.</span></div>`;
+    const dadosPagamentoHtml = `<div class="rodape-obs"><strong>Observações:</strong><br><span style="color:#888">Em caso de dúvidas, entre em contato.</span></div>`;
 
     return `
     <div class="fatura${ctx.idx > 0 ? ' quebra' : ''}">
@@ -6255,8 +6208,7 @@ ${corpoHTML}
 
     const agora = new Date();
     const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
-    const cfgCob = getConfigCobranca();
-    const dataVencimento = new Date(agora.getTime() + cfgCob.prazoDias * 86400000).toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+    const dataVencimento = new Date(agora.getTime() + PRAZO_PAGAMENTO_DIAS * 86400000).toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
     const datasSel = dados.map(t => t.data).sort();
     const periodoFmt = datasSel.length
       ? `${fmtData(datasSel[0])} a ${fmtData(datasSel[datasSel.length - 1])}`
@@ -6272,7 +6224,7 @@ ${corpoHTML}
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       blocos += construirBlocoFaturaCobranca(nomeCliente, ts, {
         dataEmissao, dataVencimento, periodoFmt, comModalidade, thModalidade, colspanTotal,
-        descontoTotal, nClientes, modo: opts.modo, cfgCob, idx,
+        descontoTotal, nClientes, modo: opts.modo, idx,
         numeroDoc: proximoNumeroRelatorio(), tituloDoc: opts.tituloDoc
       });
     });
@@ -7958,7 +7910,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var pane = document.getElementById('fin-subtab-' + nome);
     if (btn) btn.classList.add('active');
     if (pane) pane.classList.add('active');
-    if (nome === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); preencherConfigCobrancaUI(); }
+    if (nome === 'cobranca') { atualizarSelectCobranca(); filtrarCobranca(); }
     else if (nome === 'despesas') { renderizarDespesas(); renderizarDespesasRecorrentes(); }
     else if (nome === 'orcamentos') { ocInit(); }
     else if (nome === 'vendas') { atualizarSelectsVenda(); renderizarVendas(); }
