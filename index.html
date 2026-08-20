@@ -3389,10 +3389,11 @@ let clienteEditandoId = null;
   }
 
   /* Linha do tempo de todas as ações do cliente (executadas, em andamento, atrasadas e planejadas),
-     da mais recente para a mais antiga; itens sem data (ainda a agendar) ficam no topo. */
+     ordenadas por data de conclusão (concluídas) ou data prevista de conclusão (em andamento/pendentes/
+     atrasadas); itens sem data ainda definida ficam por último. */
   function construirLinhaTempoPontos(pontos) {
     if (!pontos.length) return '';
-    return `<div class="rp-timeline">` + pontos.slice().reverse().map(p => {
+    return `<div class="rp-timeline">` + pontos.map(p => {
       const st = statusRelatorioPonto(p);
       return `
       <div class="rp-tl-item">
