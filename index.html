@@ -2667,7 +2667,7 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado,projetoId:projeto_id'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,dataRecebimento:data_recebimento,planejamentoId:planejamento_id,projetoId:projeto_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero,marco'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo,taxa'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
@@ -3400,7 +3400,7 @@ let clienteEditandoId = null;
         <div class="rp-tl-rail"><span class="rp-tl-dot" style="border-color:${st.cor}"></span></div>
         <div class="rp-tl-body">
           <div class="rp-tl-top">
-            <span class="rp-tl-titulo">${p.titulo}</span>
+            <span class="rp-tl-titulo">${p.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:11px;margin-right:3px" title="Marco do projeto"></i>' : ''}${p.titulo}</span>
             <span class="rp-tl-data">${p.data ? fmtData(p.data) : 'Sem data definida'}</span>
           </div>
           <span style="display:inline-block;margin-top:4px;font-size:8px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:${st.cor};background:${st.cor}1f;padding:2px 8px;border-radius:20px">${st.label}</span>
@@ -3432,33 +3432,44 @@ let clienteEditandoId = null;
     }).join('');
   }
 
-  /* Linha do tempo GRÁFICA dos entregáveis: marcos numa linha horizontal, ordenados por prazo,
-     coloridos por status (verde=entregue, dourado=pendente, vermelho=atrasado). */
-  function construirTimelineGraficaEntregaveis(ents) {
-    if (!ents.length) return '';
+  /* Linha do tempo GRÁFICA dos entregáveis + marcos: pontos numa linha horizontal, ordenados por data,
+     coloridos por status (verde=entregue, dourado=pendente, vermelho=atrasado) — e os marcos (anotações
+     marcadas como "ação importante do projeto") entram com um ícone de bandeira e cor própria (roxo),
+     misturados na mesma ordem cronológica dos entregáveis. */
+  function construirTimelineGraficaEntregaveis(ents, marcos) {
+    marcos = marcos || [];
+    if (!ents.length && !marcos.length) return '';
     const hoje = new Date().toISOString().split('T')[0];
-    const ordenados = ents.slice().sort((a,b) => (a.prazo||'9999').localeCompare(b.prazo||'9999'));
-    const itens = ordenados.map(e => {
+    const COR_MARCO = '#7c3aed';
+
+    const itensEnt = ents.map(e => {
       const atrasado = !e.dataEntrega && e.prazo && e.prazo < hoje;
       const statusLabel = e.dataEntrega ? 'Entregue' : atrasado ? 'Atrasado' : 'Pendente';
       const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
-      return `
+      return { data: e.prazo || '', titulo: e.titulo, statusLabel, statusCor, ehMarco: false };
+    });
+    const itensMarco = marcos.map(a => ({
+      data: a.data || '', titulo: a.titulo, statusLabel: 'Marco', statusCor: COR_MARCO, ehMarco: true
+    }));
+
+    const ordenados = itensEnt.concat(itensMarco).sort((a,b) => (a.data||'9999').localeCompare(b.data||'9999'));
+    const itens = ordenados.map(p => `
         <div class="eq-tlg-item">
-          <div class="eq-tlg-dot" style="border-color:${statusCor};box-shadow:0 0 0 2px ${statusCor}"></div>
-          <div class="eq-tlg-data">${e.prazo ? fmtData(e.prazo) : 'Sem prazo'}</div>
-          <div class="eq-tlg-titulo">${e.titulo}</div>
-          <div class="eq-tlg-status" style="color:${statusCor}">${statusLabel}</div>
-        </div>`;
-    }).join('');
+          <div class="eq-tlg-dot" style="border-color:${p.statusCor};box-shadow:0 0 0 2px ${p.statusCor}${p.ehMarco ? ';background:'+p.statusCor : ''}">${p.ehMarco ? '<i class="ti ti-flag-filled" style="font-size:9px;color:#fff;position:relative;top:-1px"></i>' : ''}</div>
+          <div class="eq-tlg-data">${p.data ? fmtData(p.data) : 'Sem prazo'}</div>
+          <div class="eq-tlg-titulo">${p.ehMarco ? '<i class="ti ti-flag-filled" style="font-size:11px;color:'+COR_MARCO+';margin-right:3px"></i>' : ''}${p.titulo}</div>
+          <div class="eq-tlg-status" style="color:${p.statusCor}">${p.statusLabel}</div>
+        </div>`).join('');
     return `<div class="eq-tlg-wrap">${itens}</div>`;
   }
 
   /* Monta uma seção completa (entregáveis + evolução mensal + timeline) para um projeto ou para "Geral" */
   function construirSecaoEvolucao(titulo, pontos, ents) {
     if (!pontos.length && (!ents || !ents.length)) return '';
-    const entregaveisHtml = (ents && ents.length)
-      ? `<div class="rp-sub">Linha do Tempo de Entregáveis</div>
-         ${construirTimelineGraficaEntregaveis(ents)}`
+    const marcos = pontos.filter(p => p.marco);
+    const entregaveisHtml = ((ents && ents.length) || marcos.length)
+      ? `<div class="rp-sub">Linha do Tempo${marcos.length ? ' de Entregáveis e Marcos' : ' de Entregáveis'}</div>
+         ${construirTimelineGraficaEntregaveis(ents || [], marcos)}`
       : '';
     const evolucaoHtml = pontos.length
       ? `<div class="rp-sub">Evolução Mensal</div>
@@ -7137,6 +7148,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const visivelRelatorio = document.getElementById('anot-visivel-relatorio')?.checked !== false;
     const visivelCobranca  = document.getElementById('anot-visivel-cobranca')?.checked !== false;
     const projetoId = document.getElementById('anot-projeto')?.value || null;
+    const marco = document.getElementById('anot-marco')?.checked || false;
     const dados = {
       titulo,
       clienteId:   cliId,
@@ -7151,6 +7163,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       concluida:   status === 'concluida',
       visivelRelatorio,
       visivelCobranca,
+      marco,
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
@@ -7162,7 +7175,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
             titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
             data: dados.data, hora: dados.hora, projeto_id: dados.projetoId || null, prioridade: dados.prioridade,
             descricao: dados.descricao, responsavel: dados.responsavel, status: dados.status, concluida: dados.concluida,
-            visivel_relatorio: dados.visivelRelatorio, visivel_cobranca: dados.visivelCobranca
+            visivel_relatorio: dados.visivelRelatorio, visivel_cobranca: dados.visivelCobranca, marco: dados.marco
           }),
           function() { Object.assign(a, anterior); renderizarAnotacoes(); }
         );
@@ -7177,7 +7190,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, projeto_id: nova.projetoId || null, prioridade: nova.prioridade,
           descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm, numero: nova.numero,
-          visivel_relatorio: nova.visivelRelatorio, visivel_cobranca: nova.visivelCobranca
+          visivel_relatorio: nova.visivelRelatorio, visivel_cobranca: nova.visivelCobranca, marco: nova.marco
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
       );
@@ -7214,6 +7227,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-responsavel').value = a.responsavel || '';
     document.getElementById('anot-visivel-relatorio').checked = a.visivelRelatorio !== false;
     document.getElementById('anot-visivel-cobranca').checked = a.visivelCobranca !== false;
+    document.getElementById('anot-marco').checked = a.marco === true;
     document.getElementById('anot-cliente').value = a.clienteId || '';
     atualizarProjetosAnotacao();
     document.getElementById('anot-projeto').value = a.projetoId || '';
@@ -7231,6 +7245,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-responsavel').value = '';
     document.getElementById('anot-visivel-relatorio').checked = true;
     document.getElementById('anot-visivel-cobranca').checked = true;
+    document.getElementById('anot-marco').checked = false;
     document.getElementById('anot-cliente').value = '';
     atualizarProjetosAnotacao();
   }
@@ -7295,7 +7310,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       return `
       <div class="board-card ${corClasse}">
         <div class="board-card-cliente">${a.clienteNome ? a.clienteNome : 'Sem cliente'}${projetoNome ? ' · '+projetoNome : ''}</div>
-        <div class="board-card-pauta" style="cursor:pointer" onclick="abrirModalAnotacaoDetalhe('${a.id}')">${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
+        <div class="board-card-pauta" style="cursor:pointer" onclick="abrirModalAnotacaoDetalhe('${a.id}')">${a.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:11px;margin-right:3px" title="Marco do projeto"></i>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
         <div class="board-card-meta">
           <span class="anot-badge ${badgePrio}" style="margin-right:6px">${a.prioridade}</span>
           ${a.data ? fmtData(a.data) : '—'}${vencida ? ' · <span style="color:#dc2626;font-weight:700">Vencida</span>' : ''}
@@ -7579,7 +7594,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const linhaClasse = vencida ? 'anot-row-vencida' : status === 'concluida' ? 'anot-row-concluida' : '';
 
       return `<tr class="${linhaClasse}">
-        <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
+        <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:12px;margin-right:4px" title="Marco do projeto"></i>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle" style="font-size:10px"></i> Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
@@ -10116,6 +10131,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       'Prioridade': a.prioridade,
       'Descrição':  a.descricao || '',
       'Concluída':  a.concluida ? 'Sim' : 'Não',
+      'Marco':      a.marco ? 'Sim' : 'Não',
       'Criada em':  fmtData(a.criadaEm)
     })));
     ajustarColunas(wsAnot);
@@ -10852,6 +10868,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer">
           <input type="checkbox" id="anot-visivel-cobranca" checked>
           Visível no Relatório de Cobrança (mensal) <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;background:#E8B84B14;border:1px solid #E8B84B44;border-radius:6px;padding:6px 8px">
+          <input type="checkbox" id="anot-marco">
+          <i class="ti ti-flag-filled" style="color:#E8B84B"></i>
+          Marco / ação importante do projeto <span style="font-size:11px;color:var(--text-secondary)">(entra na Linha do Tempo Gráfica, junto com os entregáveis)</span>
         </label>
       </div>
       <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()" style="width:100%;justify-content:center"><i class="ti ti-device-floppy"></i> Salvar</button>
