@@ -1655,7 +1655,7 @@
         </div>
         <div style="overflow-x:auto">
           <table class="table">
-            <thead><tr><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
+            <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
             <tbody id="tbody-orcamentos"></tbody>
           </table>
         </div>
@@ -2695,7 +2695,7 @@
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id,pago,dataPagamento:data_pagamento'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
-      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,treinValorHora:trein_valor_hora,treinHoras:trein_horas,treinDescricao:trein_descricao,treinamentoTotal:trein_total,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
+      ['orcamentos',   'gh_orcamentos?select=id,numero,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,treinValorHora:trein_valor_hora,treinHoras:trein_horas,treinDescricao:trein_descricao,treinamentoTotal:trein_total,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
       ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status,tipo,valorHora:valor_hora,horasSemanaPresencial:horas_semana_presencial,horasSemanaHomeOffice:horas_semana_home_office,homeOfficeSobDemanda:home_office_sob_demanda,homeOfficeSobDemandaDescricao:home_office_sob_demanda_descricao,sobDemandaLinhas:sob_demanda_linhas'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
@@ -8462,6 +8462,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     return 'PROP-' + yy + '-' + String(o.numero).padStart(3, '0');
   }
 
+  // Código sequencial do orçamento STRATEGYA no formato STRA-AA-NNN (reinicia a cada ano) —
+  // mesmo padrão do ocCodigo, mas numerado à parte (namespace próprio do orçamento STRATEGYA).
+  function strategyaOrcCodigo(o) {
+    if (!o || !o.numero) return '—';
+    var base = (o.data || '') + '';
+    var yy = base.length >= 4 ? base.slice(2, 4) : '00';
+    return 'STRA-' + yy + '-' + String(o.numero).padStart(3, '0');
+  }
+
   // Aplica os dados persistidos da CONTRATADA (ORBEEX) sobre OC_PRESTADOR, usados na proposta e no contrato
   function aplicarConfigContratada() {
     var cfg = configApp.find(function(c) { return c.chave === 'dados_contratada'; });
@@ -9331,7 +9340,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       return linhas.join('');
     }).join('');
     var resumo = [
-      linhaResumo(ehSobDemanda ? 'Subtotal (estimativa mensal, ' + SEMANAS_POR_MES + ' semanas/mês)' : 'Subtotal', 'R$ ' + fmtVal(subtotal)),
+      linhaResumo(ehSobDemanda ? 'Subtotal (estimativa mensal)' : 'Subtotal', 'R$ ' + fmtVal(subtotal)),
       (o.descontoPct || 0) > 0 ? linhaResumo('Desconto (' + o.descontoPct + '%)', '– R$ ' + fmtVal(desconto)) : '',
       (o.impostosPct || 0) > 0 ? linhaResumo('Impostos (' + o.impostosPct + '%)', '+ R$ ' + fmtVal(impostos)) : '',
       linhaResumo(ehSobDemanda ? 'TOTAL ESTIMADO / MÊS' : 'TOTAL', 'R$ ' + fmtVal(total), true)
@@ -9555,10 +9564,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         );
       }
     } else {
-      const novo = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      const anoNovo = parseInt((hoje || '').slice(0, 4)) || new Date().getFullYear();
+      const numeroNovo = orcamentos.filter(o => parseInt((o.data || '').slice(0, 4)) === anoNovo)
+        .reduce((m, o) => Math.max(m, o.numero || 0), 0) + 1;
+      const novo = Object.assign({ id: crypto.randomUUID(), numero: numeroNovo }, campoLocal);
       orcamentos.push(novo);
       persistir(
-        sbTable('gh_orcamentos').insert(Object.assign({ id: novo.id }, payload)),
+        sbTable('gh_orcamentos').insert(Object.assign({ id: novo.id, numero: numeroNovo }, payload)),
         function () { orcamentos = orcamentos.filter(o => o.id !== novo.id); renderizarOrcamentos(); }
       );
     }
@@ -9650,11 +9662,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!tbody) return;
     const lista = [...orcamentos].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
     if (!lista.length) {
-      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--text-secondary);padding:2rem">Nenhum orçamento salvo ainda</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-secondary);padding:2rem">Nenhum orçamento salvo ainda</td></tr>`;
       return;
     }
     tbody.innerHTML = lista.map(o => `
       <tr>
+        <td><span class="badge" style="background:var(--surface-1);color:var(--text-secondary);font-weight:600">${strategyaOrcCodigo(o)}</span></td>
         <td><strong>${o.clienteNome}</strong></td>
         <td>${fmtData(o.data)}</td>
         <td><span class="badge" style="background:var(--surface-1);color:var(--text-secondary);font-weight:600">${(o.modulos || []).length} módulo(s)</span></td>
@@ -10283,6 +10296,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const implUsuariosAdicionais = Math.max(0, o.numUsuarios - IMPL_USUARIOS_INCLUSOS);
     const linhas = [
       'ORÇAMENTO STRATEGYA — ORBEEX',
+      `Proposta nº ${strategyaOrcCodigo(o)}`,
       '',
       'O STRATEGYA é o sistema de gestão integrada da ORBEEX, feito a partir da vivência prática de quem implementa e audita sistemas de qualidade. Reúne planejamento estratégico, ações, controladoria, documentos, apurações e auditorias num fluxo único, rastreável e pronto para auditoria (ISO 9001 / 14001 / 45001).',
       '',
@@ -10423,7 +10437,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     <div class="doc-body">
       <div class="meta">
         <div><strong>${o.clienteNome}</strong>${o.numUsuarios} usuário(s) · ${usuariosAdicionais} adicional(is) sobre os ${o.usuariosInclusos} inclusos</div>
-        <div style="text-align:right">${fmtData(o.data)}</div>
+        <div style="text-align:right"><span style="font-family:ui-monospace,monospace;font-weight:700">${strategyaOrcCodigo(o)}</span> · ${fmtData(o.data)}</div>
       </div>
       <p style="font-size:11.5px;color:#6b6b8a;margin:0 0 12px">Tudo o que está listado abaixo de cada módulo já está incluso no valor da mensalidade — sem custo adicional.</p>
       <table>
