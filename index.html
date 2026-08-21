@@ -261,6 +261,7 @@
     .btn-inline { width: auto; }
     .btn-icon { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 7px; font-size: 15px; flex-shrink: 0; }
     .btn-acao-row { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+    .btn-acao-grid { display: grid; grid-template-columns: repeat(2, 32px); gap: 4px; justify-content: flex-end; }
 
     .table { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 1rem; }
     .table thead { background: var(--surface-1); border-bottom: 1px solid var(--border); }
@@ -7719,13 +7720,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
         <td style="font-size:12px;color:var(--text-primary);white-space:normal;word-break:break-word">${a.descricao || '—'}</td>
         <td style="white-space:nowrap">
-          <div class="btn-acao-row" style="justify-content:flex-end;flex-wrap:nowrap">
+          <div class="btn-acao-grid">
             <button class="btn-icon" onclick="moverAnotacao('${a.id}','${PROXIMO_STATUS[status]}')" title="${TITULO_STATUS[status]}"
               style="border-radius:7px;border:2px solid ${BORDAS_STATUS[status]};background:${CORES_STATUS[status]};cursor:pointer;display:inline-flex;align-items:center;justify-content:center">
               <i class="ti ${ICONES_STATUS[status]}" style="color:${status === 'pendente' ? 'var(--text-secondary)' : '#fff'};font-size:${status === 'andamento' ? '12px' : '14px'};font-weight:700"></i>
             </button>
             <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Detalhes / Editar / Sub-ações" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
-            <button class="btn btn-icon" onclick="imprimirAnotacoes(['${a.id}'])" title="Gerar PDF/imagem para enviar" style="background:#252538;color:#fff"><i class="ti ti-printer"></i></button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
