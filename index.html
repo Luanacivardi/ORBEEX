@@ -3148,16 +3148,11 @@ let clienteEditandoId = null;
         const statusLabel = e.dataEntrega ? 'Entregue' : atrasado ? 'Atrasado' : 'Pendente';
         const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
         const acoesVinculadas = acoesDoEntregavel(e.id);
-        const chipsAcoes = acoesVinculadas.length ? `
-            <div class="ent-row-acoes-vinc">
-              ${acoesVinculadas.map(a => `<span class="ent-acao-chip">${a.titulo}<i class="ti ti-x" onclick="desvincularAcaoEntregavel('${e.id}','${a.id}')" title="Desvincular"></i></span>`).join('')}
-            </div>` : '';
         return `
           <div class="ent-row" style="flex-wrap:wrap">
             <div class="ent-row-info">
               <div class="ent-row-titulo">${e.titulo}</div>
               <div class="ent-row-prazo">Prazo: ${e.prazo ? fmtData(e.prazo) : '—'}${e.dataEntrega ? ' · Entregue em ' + fmtData(e.dataEntrega) : ''}</div>
-              ${chipsAcoes}
             </div>
             <span class="ent-row-status" style="background:${statusCor}22;color:${statusCor}">${statusLabel}</span>
             <div class="ent-row-acoes">
@@ -3427,6 +3422,15 @@ let clienteEditandoId = null;
     renderizarModalProjetos();
   }
 
+  /* Ações do mesmo projeto do entregável que passam pelo filtro de busca atual — usada tanto pela
+     lista com checkboxes quanto pelos botões de vincular/desvincular em massa. */
+  function _acoesVisiveisNoVincular(e) {
+    const busca = (document.getElementById('vinc-ent-busca')?.value || '').trim().toLowerCase();
+    return anotacoes
+      .filter(a => a.projetoId === e.projetoId)
+      .filter(a => !busca || (a.titulo||'').toLowerCase().includes(busca));
+  }
+
   /* Lista as ações do mesmo projeto do entregável, mais recentes primeiro, com checkbox marcando
      as que já estão vinculadas — marcar/desmarcar salva na hora, sem precisar de botão "Salvar". */
   function renderizarModalVincularAcoes() {
@@ -3434,11 +3438,7 @@ let clienteEditandoId = null;
     const lista = document.getElementById('vinc-ent-lista');
     if (!e || !lista) return;
     const vinculadasIds = entregavelAcoes.filter(v => v.entregavelId === e.id).map(v => v.anotacaoId);
-    const busca = (document.getElementById('vinc-ent-busca')?.value || '').trim().toLowerCase();
-    const doProjeto = anotacoes
-      .filter(a => a.projetoId === e.projetoId)
-      .filter(a => !busca || (a.titulo||'').toLowerCase().includes(busca))
-      .sort((a,b) => (b.data||'').localeCompare(a.data||''));
+    const doProjeto = _acoesVisiveisNoVincular(e).sort((a,b) => (b.data||'').localeCompare(a.data||''));
 
     if (!doProjeto.length) {
       lista.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0">Nenhuma ação encontrada neste projeto.</p>';
@@ -3478,6 +3478,47 @@ let clienteEditandoId = null;
       sbTable('gh_entregavel_acoes').remove(v.id),
       function() { entregavelAcoes.push(v); renderizarModalProjetos(); renderizarModalVincularAcoes(); }
     );
+  }
+
+  /* Vincula de uma vez todas as ações visíveis (respeitando a busca) que ainda não estão vinculadas. */
+  function vincularTodasAcoesVisiveis() {
+    const e = entregaveis.find(e => e.id === vincularEntregavelId);
+    if (!e) return;
+    const jaVinculadasIds = entregavelAcoes.filter(v => v.entregavelId === e.id).map(v => v.anotacaoId);
+    const faltantes = _acoesVisiveisNoVincular(e).filter(a => !jaVinculadasIds.includes(a.id));
+    if (!faltantes.length) return;
+    const novos = faltantes.map(a => ({ id: crypto.randomUUID(), entregavelId: e.id, anotacaoId: a.id }));
+    entregavelAcoes = entregavelAcoes.concat(novos);
+    renderizarModalVincularAcoes();
+    renderizarModalProjetos();
+    persistir(
+      sbTable('gh_entregavel_acoes').insertMany(novos.map(n => ({ id: n.id, entregavel_id: n.entregavelId, anotacao_id: n.anotacaoId }))),
+      function() {
+        const idsNovos = novos.map(n => n.id);
+        entregavelAcoes = entregavelAcoes.filter(v => !idsNovos.includes(v.id));
+        renderizarModalVincularAcoes(); renderizarModalProjetos();
+      }
+    );
+    setStatus(`✓ ${faltantes.length} ação(ões) vinculada(s)`);
+  }
+
+  /* Desvincula de uma vez todas as ações visíveis (respeitando a busca) que estão vinculadas. */
+  function desvincularTodasAcoesVisiveis() {
+    const e = entregaveis.find(e => e.id === vincularEntregavelId);
+    if (!e) return;
+    const visiveisIds = _acoesVisiveisNoVincular(e).map(a => a.id);
+    const vinculos = entregavelAcoes.filter(v => v.entregavelId === e.id && visiveisIds.includes(v.anotacaoId));
+    if (!vinculos.length) return;
+    if (!confirm(`Desvincular ${vinculos.length} ação(ões) deste entregável?`)) return;
+    const idsVinc = vinculos.map(v => v.id);
+    entregavelAcoes = entregavelAcoes.filter(v => !idsVinc.includes(v.id));
+    renderizarModalVincularAcoes();
+    renderizarModalProjetos();
+    persistir(
+      sbTable('gh_entregavel_acoes').removeMany(idsVinc),
+      function() { entregavelAcoes = entregavelAcoes.concat(vinculos); renderizarModalVincularAcoes(); renderizarModalProjetos(); }
+    );
+    setStatus(`🗑️ ${vinculos.length} ação(ões) desvinculada(s)`);
   }
 
   /* Monta o bloco de barras de evolução mensal a partir de uma lista de pontos (anotações concluídas) */
@@ -3576,13 +3617,29 @@ let clienteEditandoId = null;
     return `<div class="eq-tlg-wrap">${itens}</div>`;
   }
 
+  /* Lista, só no relatório impresso, as ações (anotações) atreladas a cada entregável — na tela de
+     Entregáveis (renderizarModalProjetos) esses vínculos ficam ocultos, só o contador no botão 🔗. */
+  function construirDetalheAcoesEntregaveis(ents) {
+    const comAcoes = (ents || []).map(e => ({ e: e, acoes: acoesDoEntregavel(e.id) })).filter(x => x.acoes.length);
+    if (!comAcoes.length) return '';
+    const linhas = comAcoes.map(function(x) {
+      return `
+        <div class="eq-ent-acoes-item">
+          <div class="eq-ent-acoes-titulo">${x.e.titulo}</div>
+          <div class="eq-ent-acoes-chips">${x.acoes.map(function(a) { return '<span class="eq-ent-acoes-chip">' + a.titulo + '</span>'; }).join('')}</div>
+        </div>`;
+    }).join('');
+    return `<div class="rp-sub">Ações Atreladas aos Entregáveis</div><div class="eq-ent-acoes-wrap">${linhas}</div>`;
+  }
+
   /* Monta uma seção completa (entregáveis + evolução mensal + timeline) para um projeto ou para "Geral" */
   function construirSecaoEvolucao(titulo, pontos, ents) {
     if (!pontos.length && (!ents || !ents.length)) return '';
     const marcos = pontos.filter(p => p.marco);
     const entregaveisHtml = ((ents && ents.length) || marcos.length)
       ? `<div class="rp-sub">Linha do Tempo${marcos.length ? ' de Entregáveis e Marcos' : ' de Entregáveis'}</div>
-         ${construirTimelineGraficaEntregaveis(ents || [], marcos)}`
+         ${construirTimelineGraficaEntregaveis(ents || [], marcos)}
+         ${construirDetalheAcoesEntregaveis(ents || [])}`
       : '';
     const evolucaoHtml = pontos.length
       ? `<div class="rp-sub">Evolução Mensal</div>
@@ -3865,6 +3922,12 @@ let clienteEditandoId = null;
   .eq-tlg-data{font-size:8.5px;color:#8a8aa4;white-space:nowrap;margin-bottom:3px;font-weight:600}
   .eq-tlg-titulo{font-size:9px;font-weight:700;color:#1a1a2e;line-height:1.3}
   .eq-tlg-status{font-size:8px;font-weight:800;margin-top:4px;text-transform:uppercase;letter-spacing:.4px}
+  /* Ações atreladas aos entregáveis (só no relatório) */
+  .eq-ent-acoes-wrap{margin:6px 40px 18px;display:flex;flex-direction:column;gap:8px}
+  .eq-ent-acoes-item{padding:8px 10px;background:#f8f7fc;border-radius:8px}
+  .eq-ent-acoes-titulo{font-size:11px;font-weight:700;color:#1a1a2e;margin-bottom:5px}
+  .eq-ent-acoes-chips{display:flex;flex-wrap:wrap;gap:5px}
+  .eq-ent-acoes-chip{display:inline-block;font-size:9.5px;font-weight:600;color:#7c3aed;background:#7c3aed1a;padding:2px 8px;border-radius:20px}
   /* Rodapé */
   .rp-foot{margin:26px 40px 30px;padding-top:14px;border-top:1px solid #eaeaf3;font-size:10px;color:#a0a0b8;text-align:center;line-height:1.7}
   .rp-foot b{color:#252538}
@@ -3872,8 +3935,8 @@ let clienteEditandoId = null;
     body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}
     @page{size:A4;margin:0}
     .rp-head{padding:22mm 16mm 8mm}.rp-parties,.rp-kpis{padding-left:16mm;padding-right:16mm}
-    .rp-proj-titulo,.rp-sub,.eq-cat-row,.eq-bars,.rp-timeline,.eq-tlg-wrap,.rp-foot{margin-left:16mm;margin-right:16mm}
-    .rp-proj{page-break-inside:avoid}.rp-tl-item,.eq-tlg-item{page-break-inside:avoid}
+    .rp-proj-titulo,.rp-sub,.eq-cat-row,.eq-bars,.rp-timeline,.eq-tlg-wrap,.eq-ent-acoes-wrap,.rp-foot{margin-left:16mm;margin-right:16mm}
+    .rp-proj{page-break-inside:avoid}.rp-tl-item,.eq-tlg-item,.eq-ent-acoes-item{page-break-inside:avoid}
     .rp-kpi{break-inside:avoid}
   }
 </style></head><body>
@@ -9314,7 +9377,21 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '.assina{display:flex;justify-content:space-between;gap:40px;padding:44px 40px 20px}' +
       '.assina .box{flex:1;text-align:center;border-top:1px solid #333;padding-top:6px;font-size:11px;color:#555}' +
       '.foot{padding:12px 40px 26px;border-top:1px solid #ececf3;text-align:center;font-size:10px;color:#a0a0b0}' +
-      '@media print{body{background:#fff}.doc{box-shadow:none;margin:0;max-width:none}@page{margin:12mm 10mm}.sec,table.itens tr{page-break-inside:avoid}}' +
+      '@media print{' +
+      'body{background:#fff;font-size:11px;line-height:1.35}' +
+      '.doc{box-shadow:none;margin:0;max-width:none}' +
+      '@page{size:A4;margin:8mm 8mm}' +
+      '.sec,table.itens tr,.assina,.parties{page-break-inside:avoid}' +
+      '.head{padding:12px 24px}' +
+      '.parties{padding:8px 24px 4px;gap:12px}' +
+      '.party{padding:7px 10px}' +
+      '.sec{padding:6px 24px}.sec h3{margin-bottom:4px}' +
+      '.objeto{line-height:1.3}' +
+      'table.itens th,table.itens td{padding:4px 8px}' +
+      '.cond div{margin-bottom:2px}' +
+      '.assina{padding:14px 24px 8px;gap:24px}' +
+      '.foot{padding:5px 24px 6px}' +
+      '}' +
       '</style></head><body><div class="doc">' +
       '<div class="head"><div><div class="logo">' + esc(OC_PRESTADOR.nome) + (OC_PRESTADOR.subtitulo ? '' : '') + '</div>' +
       '<div class="sub">' + esc(OC_PRESTADOR.subtitulo) + '</div>' + (pInfo.length ? '<div class="pinfo">' + pInfo.join('<br>') + '</div>' : '') + '</div>' +
@@ -11499,6 +11576,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     <div class="modal-body">
       <p style="font-size:11.5px;color:var(--text-secondary);margin:0 0 6px">Marque todas as ações do projeto que contribuíram para este entregável. Marcar/desmarcar salva na hora.</p>
       <input type="text" id="vinc-ent-busca" placeholder="Buscar ação..." oninput="renderizarModalVincularAcoes()" style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div style="display:flex;gap:6px;margin-bottom:8px">
+        <button class="btn btn-secondary btn-sm" onclick="vincularTodasAcoesVisiveis()" style="flex:1;justify-content:center;font-size:11.5px"><i class="ti ti-checks"></i> Vincular todas</button>
+        <button class="btn btn-secondary btn-sm" onclick="desvincularTodasAcoesVisiveis()" style="flex:1;justify-content:center;font-size:11.5px;color:#dc2626"><i class="ti ti-unlink"></i> Desvincular todas</button>
+      </div>
       <div id="vinc-ent-lista" style="max-height:340px;overflow-y:auto"></div>
     </div>
     <div class="modal-footer">
