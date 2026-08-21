@@ -9486,6 +9486,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         devPersonalizado > 0 ? linha('Desenvolvimento personalizado', `R$ ${fmtVal(devPersonalizado)}`) : '',
         treinamentoTotal > 0 ? linha('Treinamento dos usuários', `R$ ${fmtVal(treinamentoTotal)}`) : '',
         linha('Total Ano 1 — plano mensal', `R$ ${fmtVal(totalAno1Mensal)}`, true),
+        formula(`(R$ ${fmtVal(mensalidadeMensal)}/mês × 12) + R$ ${fmtVal(totalUnico)} (implantação${devPersonalizado > 0 ? ' + desenvolvimento' : ''}${treinamentoTotal > 0 ? ' + treinamento' : ''}) = R$ ${fmtVal(totalAno1Mensal)}`),
         linha('Total Ano 1 — plano anual', `R$ ${fmtVal(totalAno1Anual)}`, true),
       ].join('');
     }
@@ -10310,6 +10311,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '',
       `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
       `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
+      '',
+      `INVESTIMENTO TOTAL NO 1º ANO (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
+      `  Cálculo: (R$ ${fmtVal(o.mensalidadeMensal)}/mês × 12) + implantação + treinamento/dev. personalizado = R$ ${fmtVal(o.totalAno1Mensal)}`,
+      `INVESTIMENTO TOTAL NO 1º ANO (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
     );
     if (o.politicaSuporte) {
       linhas.push('', o.politicaSuporte);
@@ -10404,6 +10409,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         ${o.treinamentoTotal > 0 ? `<div class="linha"><span>Treinamento dos usuários${o.treinDescricao ? ' — ' + o.treinDescricao : ''}</span><span>R$ ${fmtVal(o.treinamentoTotal)}</span></div>` : ''}
         <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
+        <div class="linha dest" style="background:#252538;color:#fff;border-radius:8px;margin-top:8px"><span>Investimento total — 1º ano (plano mensal)</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
+        <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">(R$ ${fmtVal(o.mensalidadeMensal)}/mês × 12) + implantação${o.devPersonalizado > 0 ? ' + desenvolvimento' : ''}${o.treinamentoTotal > 0 ? ' + treinamento' : ''} = R$ ${fmtVal(o.totalAno1Mensal)}</div>
+        <div class="linha dest" style="background:#252538;color:#fff;border-radius:8px"><span>Investimento total — 1º ano (plano anual)</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
       </div>
       ${o.politicaSuporte ? `<div class="politica-suporte"><i>&#9432;</i> ${o.politicaSuporte}</div>` : ''}
     </div>
