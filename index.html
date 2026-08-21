@@ -2450,9 +2450,12 @@
     <div class="card">
       <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
         <span><i class="ti ti-list"></i> Anotações</span>
-        <div class="view-toggle">
-          <button class="active" id="anot-view-btn-lista" onclick="alternarVisaoAnot('lista')"><i class="ti ti-list"></i> Lista</button>
-          <button id="anot-view-btn-board" onclick="alternarVisaoAnot('board')"><i class="ti ti-layout-kanban"></i> Board</button>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <button class="btn btn-secondary btn-sm" id="anot-btn-exportar-sel" onclick="imprimirAnotacoesSelecionadas()" disabled title="Selecione uma ou mais anotações na lista"><i class="ti ti-printer"></i> Exportar selecionadas (0)</button>
+          <div class="view-toggle">
+            <button class="active" id="anot-view-btn-lista" onclick="alternarVisaoAnot('lista')"><i class="ti ti-list"></i> Lista</button>
+            <button id="anot-view-btn-board" onclick="alternarVisaoAnot('board')"><i class="ti ti-layout-kanban"></i> Board</button>
+          </div>
         </div>
       </div>
 
@@ -2460,6 +2463,7 @@
         <div style="overflow-x:auto">
           <table class="table">
             <thead><tr>
+              <th style="width:24px"><input type="checkbox" id="anot-check-all" onchange="alternarTodasAnotSelecionadas(this.checked)" title="Selecionar todas"></th>
               <th>Título</th><th>Cliente</th><th>Data</th><th>Prioridade</th><th>Descrição</th><th style="text-align:right;white-space:nowrap;min-width:150px">Status / Ação</th>
             </tr></thead>
             <tbody id="tbody-anotacoes"></tbody>
@@ -2667,7 +2671,7 @@
       ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado,projetoId:projeto_id'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,dataRecebimento:data_recebimento,planejamentoId:planejamento_id,projetoId:projeto_id'],
-      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero'],
+      ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero,marco,tipoMarco:tipo_marco'],
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo,taxa'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
@@ -3389,17 +3393,18 @@ let clienteEditandoId = null;
   }
 
   /* Linha do tempo de todas as ações do cliente (executadas, em andamento, atrasadas e planejadas),
-     da mais recente para a mais antiga; itens sem data (ainda a agendar) ficam no topo. */
+     ordenadas por data de conclusão (concluídas) ou data prevista de conclusão (em andamento/pendentes/
+     atrasadas); itens sem data ainda definida ficam por último. */
   function construirLinhaTempoPontos(pontos) {
     if (!pontos.length) return '';
-    return `<div class="rp-timeline">` + pontos.slice().reverse().map(p => {
+    return `<div class="rp-timeline">` + pontos.map(p => {
       const st = statusRelatorioPonto(p);
       return `
       <div class="rp-tl-item">
         <div class="rp-tl-rail"><span class="rp-tl-dot" style="border-color:${st.cor}"></span></div>
         <div class="rp-tl-body">
           <div class="rp-tl-top">
-            <span class="rp-tl-titulo">${p.titulo}</span>
+            <span class="rp-tl-titulo">${p.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:11px;margin-right:3px" title="'+(p.tipoMarco || 'Marco do projeto')+'"></i>' : ''}${p.titulo}</span>
             <span class="rp-tl-data">${p.data ? fmtData(p.data) : 'Sem data definida'}</span>
           </div>
           <span style="display:inline-block;margin-top:4px;font-size:8px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:${st.cor};background:${st.cor}1f;padding:2px 8px;border-radius:20px">${st.label}</span>
@@ -3431,33 +3436,44 @@ let clienteEditandoId = null;
     }).join('');
   }
 
-  /* Linha do tempo GRÁFICA dos entregáveis: marcos numa linha horizontal, ordenados por prazo,
-     coloridos por status (verde=entregue, dourado=pendente, vermelho=atrasado). */
-  function construirTimelineGraficaEntregaveis(ents) {
-    if (!ents.length) return '';
+  /* Linha do tempo GRÁFICA dos entregáveis + marcos: pontos numa linha horizontal, ordenados por data,
+     coloridos por status (verde=entregue, dourado=pendente, vermelho=atrasado) — e os marcos (anotações
+     marcadas como "ação importante do projeto") entram com um ícone de bandeira e cor própria (roxo),
+     misturados na mesma ordem cronológica dos entregáveis. */
+  function construirTimelineGraficaEntregaveis(ents, marcos) {
+    marcos = marcos || [];
+    if (!ents.length && !marcos.length) return '';
     const hoje = new Date().toISOString().split('T')[0];
-    const ordenados = ents.slice().sort((a,b) => (a.prazo||'9999').localeCompare(b.prazo||'9999'));
-    const itens = ordenados.map(e => {
+    const COR_MARCO = '#7c3aed';
+
+    const itensEnt = ents.map(e => {
       const atrasado = !e.dataEntrega && e.prazo && e.prazo < hoje;
       const statusLabel = e.dataEntrega ? 'Entregue' : atrasado ? 'Atrasado' : 'Pendente';
       const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
-      return `
+      return { data: e.prazo || '', titulo: e.titulo, statusLabel, statusCor, ehMarco: false };
+    });
+    const itensMarco = marcos.map(a => ({
+      data: a.data || '', titulo: a.titulo, statusLabel: a.tipoMarco || 'Marco', statusCor: COR_MARCO, ehMarco: true
+    }));
+
+    const ordenados = itensEnt.concat(itensMarco).sort((a,b) => (a.data||'9999').localeCompare(b.data||'9999'));
+    const itens = ordenados.map(p => `
         <div class="eq-tlg-item">
-          <div class="eq-tlg-dot" style="border-color:${statusCor};box-shadow:0 0 0 2px ${statusCor}"></div>
-          <div class="eq-tlg-data">${e.prazo ? fmtData(e.prazo) : 'Sem prazo'}</div>
-          <div class="eq-tlg-titulo">${e.titulo}</div>
-          <div class="eq-tlg-status" style="color:${statusCor}">${statusLabel}</div>
-        </div>`;
-    }).join('');
+          <div class="eq-tlg-dot" style="border-color:${p.statusCor};box-shadow:0 0 0 2px ${p.statusCor}${p.ehMarco ? ';background:'+p.statusCor : ''}">${p.ehMarco ? '<i class="ti ti-flag-filled" style="font-size:9px;color:#fff;position:relative;top:-1px"></i>' : ''}</div>
+          <div class="eq-tlg-data">${p.data ? fmtData(p.data) : 'Sem prazo'}</div>
+          <div class="eq-tlg-titulo">${p.ehMarco ? '<i class="ti ti-flag-filled" style="font-size:11px;color:'+COR_MARCO+';margin-right:3px"></i>' : ''}${p.titulo}</div>
+          <div class="eq-tlg-status" style="color:${p.statusCor}">${p.statusLabel}</div>
+        </div>`).join('');
     return `<div class="eq-tlg-wrap">${itens}</div>`;
   }
 
   /* Monta uma seção completa (entregáveis + evolução mensal + timeline) para um projeto ou para "Geral" */
   function construirSecaoEvolucao(titulo, pontos, ents) {
     if (!pontos.length && (!ents || !ents.length)) return '';
-    const entregaveisHtml = (ents && ents.length)
-      ? `<div class="rp-sub">Linha do Tempo de Entregáveis</div>
-         ${construirTimelineGraficaEntregaveis(ents)}`
+    const marcos = pontos.filter(p => p.marco);
+    const entregaveisHtml = ((ents && ents.length) || marcos.length)
+      ? `<div class="rp-sub">Linha do Tempo${marcos.length ? ' de Entregáveis e Marcos' : ' de Entregáveis'}</div>
+         ${construirTimelineGraficaEntregaveis(ents || [], marcos)}`
       : '';
     const evolucaoHtml = pontos.length
       ? `<div class="rp-sub">Evolução Mensal</div>
@@ -3482,16 +3498,29 @@ let clienteEditandoId = null;
 
   function abrirModalRelatorioPeriodo(clienteId, projetoId) {
     _relCtx = { clienteId, projetoId: projetoId || null };
-    const cliente = clientes.find(c => c.id === clienteId);
-    const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
-    document.getElementById('relp-titulo').textContent = projeto
-      ? `Relatório do Projeto · ${projeto.nome}`
-      : `Relatório Consolidado · ${cliente ? cliente.nome : ''}`;
+    // Popula o seletor de projeto com os projetos ativos do cliente, mantendo a opção "Consolidado"
+    const selProjeto = document.getElementById('relp-projeto');
+    const doCliente = projetos.filter(p => p.clienteId == clienteId && p.ativo !== false)
+      .sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+    selProjeto.innerHTML = '<option value="">Todos os projetos (Consolidado)</option>' +
+      doCliente.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+    selProjeto.value = projetoId || '';
+    atualizarTituloRelatorioPeriodo();
     // Padrão: ano corrente até hoje
     const hoje = new Date();
     document.getElementById('relp-ini').value = new Date(hoje.getFullYear(), 0, 1).toISOString().split('T')[0];
     document.getElementById('relp-fim').value = hoje.toISOString().split('T')[0];
     document.getElementById('modal-relatorio-periodo').style.display = 'flex';
+  }
+
+  /* Atualiza o título do modal conforme o projeto escolhido no seletor */
+  function atualizarTituloRelatorioPeriodo() {
+    const cliente = clientes.find(c => c.id === _relCtx.clienteId);
+    const projetoId = document.getElementById('relp-projeto')?.value || '';
+    const projeto = projetoId ? projetos.find(p => p.id === projetoId) : null;
+    document.getElementById('relp-titulo').textContent = projeto
+      ? `Relatório do Projeto · ${projeto.nome}`
+      : `Relatório Consolidado · ${cliente ? cliente.nome : ''}`;
   }
 
   function fecharModalRelatorioPeriodo() {
@@ -3517,8 +3546,9 @@ let clienteEditandoId = null;
     const ini = document.getElementById('relp-ini').value || null;
     const fim = document.getElementById('relp-fim').value || null;
     if (ini && fim && ini > fim) { alert('A data inicial não pode ser maior que a final.'); return; }
+    const projetoId = document.getElementById('relp-projeto')?.value || null;
     fecharModalRelatorioPeriodo();
-    gerarRelatorioEvolucao(_relCtx.clienteId, _relCtx.projetoId, ini, fim);
+    gerarRelatorioEvolucao(_relCtx.clienteId, projetoId, ini, fim);
   }
 
   /* Chave de ordenação de uma anotação no relatório de evolução: itens sem data (planejados, ainda
@@ -7122,6 +7152,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const visivelRelatorio = document.getElementById('anot-visivel-relatorio')?.checked !== false;
     const visivelCobranca  = document.getElementById('anot-visivel-cobranca')?.checked !== false;
     const projetoId = document.getElementById('anot-projeto')?.value || null;
+    const marco = document.getElementById('anot-marco')?.checked || false;
+    const tipoMarco = marco ? (document.getElementById('anot-tipo-marco')?.value || '') : '';
     const dados = {
       titulo,
       clienteId:   cliId,
@@ -7136,6 +7168,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       concluida:   status === 'concluida',
       visivelRelatorio,
       visivelCobranca,
+      marco,
+      tipoMarco,
     };
     if (anotEditandoId) {
       const a = anotacoes.find(a => a.id === anotEditandoId);
@@ -7147,7 +7181,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
             titulo: dados.titulo, cliente_id: dados.clienteId || null, cliente_nome: dados.clienteNome,
             data: dados.data, hora: dados.hora, projeto_id: dados.projetoId || null, prioridade: dados.prioridade,
             descricao: dados.descricao, responsavel: dados.responsavel, status: dados.status, concluida: dados.concluida,
-            visivel_relatorio: dados.visivelRelatorio, visivel_cobranca: dados.visivelCobranca
+            visivel_relatorio: dados.visivelRelatorio, visivel_cobranca: dados.visivelCobranca, marco: dados.marco, tipo_marco: dados.tipoMarco || null
           }),
           function() { Object.assign(a, anterior); renderizarAnotacoes(); }
         );
@@ -7162,13 +7196,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           id: nova.id, titulo: nova.titulo, cliente_id: nova.clienteId || null, cliente_nome: nova.clienteNome,
           data: nova.data, hora: nova.hora, projeto_id: nova.projetoId || null, prioridade: nova.prioridade,
           descricao: nova.descricao, responsavel: nova.responsavel, status: nova.status, concluida: nova.concluida, criada_em: nova.criadaEm, numero: nova.numero,
-          visivel_relatorio: nova.visivelRelatorio, visivel_cobranca: nova.visivelCobranca
+          visivel_relatorio: nova.visivelRelatorio, visivel_cobranca: nova.visivelCobranca, marco: nova.marco, tipo_marco: nova.tipoMarco || null
         }),
         function() { anotacoes = anotacoes.filter(a => a.id !== nova.id); renderizarAnotacoes(); }
       );
       // Entra em modo edição na mesma janela, pra liberar as sub-ações sem precisar reabrir
       anotEditandoId = nova.id;
       const tit = document.getElementById('anotd-modal-titulo'); if (tit) tit.textContent = 'Editar Anotação';
+      const btnImp = document.getElementById('anotd-btn-imprimir'); if (btnImp) btnImp.style.display = '';
     }
     renderizarAnotacoes();
     atualizarModoModalAnotacao();
@@ -7199,9 +7234,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-responsavel').value = a.responsavel || '';
     document.getElementById('anot-visivel-relatorio').checked = a.visivelRelatorio !== false;
     document.getElementById('anot-visivel-cobranca').checked = a.visivelCobranca !== false;
+    document.getElementById('anot-marco').checked = a.marco === true;
+    document.getElementById('anot-tipo-marco').value = a.tipoMarco || '';
+    atualizarTipoMarcoVisivel();
     document.getElementById('anot-cliente').value = a.clienteId || '';
     atualizarProjetosAnotacao();
     document.getElementById('anot-projeto').value = a.projetoId || '';
+  }
+
+  /* Mostra/esconde o select de Tipo do Marco conforme o checkbox "Marco" */
+  function atualizarTipoMarcoVisivel() {
+    const marcado = document.getElementById('anot-marco')?.checked;
+    const wrap = document.getElementById('anot-tipo-marco-wrap');
+    if (wrap) wrap.style.display = marcado ? '' : 'none';
   }
 
   /* Limpa o card/modal para criar uma anotação nova */
@@ -7216,6 +7261,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anot-responsavel').value = '';
     document.getElementById('anot-visivel-relatorio').checked = true;
     document.getElementById('anot-visivel-cobranca').checked = true;
+    document.getElementById('anot-marco').checked = false;
+    document.getElementById('anot-tipo-marco').value = '';
+    atualizarTipoMarcoVisivel();
     document.getElementById('anot-cliente').value = '';
     atualizarProjetosAnotacao();
   }
@@ -7280,7 +7328,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       return `
       <div class="board-card ${corClasse}">
         <div class="board-card-cliente">${a.clienteNome ? a.clienteNome : 'Sem cliente'}${projetoNome ? ' · '+projetoNome : ''}</div>
-        <div class="board-card-pauta" style="cursor:pointer" onclick="abrirModalAnotacaoDetalhe('${a.id}')">${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
+        <div class="board-card-pauta" style="cursor:pointer" onclick="abrirModalAnotacaoDetalhe('${a.id}')">${a.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:11px;margin-right:3px" title="'+(a.tipoMarco || 'Marco do projeto')+'"></i>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:11px"></i>' : ''}</div>
         <div class="board-card-meta">
           <span class="anot-badge ${badgePrio}" style="margin-right:6px">${a.prioridade}</span>
           ${a.data ? fmtData(a.data) : '—'}${vencida ? ' · <span style="color:#dc2626;font-weight:700">Vencida</span>' : ''}
@@ -7323,6 +7371,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('anotd-modal-titulo').textContent = 'Editar Anotação';
     popularFormAnotacao(a);
     atualizarModoModalAnotacao();
+    const btnImp = document.getElementById('anotd-btn-imprimir'); if (btnImp) btnImp.style.display = '';
     document.getElementById('modal-anotacao-detalhe').style.display = 'flex';
   }
 
@@ -7330,6 +7379,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function abrirModalNovaAnotacao() {
     anotEditandoId = null;
     document.getElementById('anotd-modal-titulo').textContent = 'Nova Anotação';
+    const btnImp = document.getElementById('anotd-btn-imprimir'); if (btnImp) btnImp.style.display = 'none';
     limparFormAnotacao();
     atualizarModoModalAnotacao();
     document.getElementById('modal-anotacao-detalhe').style.display = 'flex';
@@ -7545,7 +7595,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (!tbody) return;
 
     if (!lista.length) {
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma anotação encontrada.</td></tr>`;
       return;
     }
 
@@ -7564,7 +7614,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const linhaClasse = vencida ? 'anot-row-vencida' : status === 'concluida' ? 'anot-row-concluida' : '';
 
       return `<tr class="${linhaClasse}">
-        <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
+        <td style="width:24px"><input type="checkbox" class="anot-check" value="${a.id}" onchange="atualizarBotaoExportarAnot()"></td>
+        <td>${anotCodigo(a) ? '<span style="font-family:ui-monospace,monospace;font-size:11px;font-weight:700;color:var(--navy);background:var(--gold-bg);padding:1px 6px;border-radius:5px;margin-right:6px;white-space:nowrap">'+anotCodigo(a)+'</span>' : ''}${a.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:12px;margin-right:4px" title="'+(a.tipoMarco || 'Marco do projeto')+'"></i>' : ''}${a.titulo}${a.visivelRelatorio === false ? ' <i class="ti ti-eye-off" style="color:var(--text-secondary);font-size:12px" title="Não aparece no relatório do cliente"></i>' : ''}${subs.length ? ` <span class="board-card-checklist"><i class="ti ti-checklist"></i> ${subsFeitas}/${subs.length}</span>` : ''}${a.responsavel ? ` <span class="board-card-responsavel"><i class="ti ti-user"></i> ${a.responsavel}</span>` : ''}</td>
         <td>${a.clienteNome ? `<span style="display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap;color:${corCliente(a.clienteNome)};background:${hexToRgba(corCliente(a.clienteNome),0.13)}">${a.clienteNome}</span>` : '—'}${a.projetoId ? ` <span style="display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:600;white-space:nowrap;color:#7c3aed;background:#7c3aed1f">${(projetos.find(p=>p.id===a.projetoId)||{}).nome || 'Projeto'}</span>` : ''}</td>
         <td style="white-space:nowrap">${a.data ? fmtData(a.data) : '—'}${a.hora ? ' ' + a.hora : ''}${vencida ? ' <span class="anot-badge anot-badge-vencida"><i class="ti ti-alert-triangle" style="font-size:10px"></i> Vencida</span>' : ''}</td>
         <td><span class="anot-badge ${badgePrio}">${a.prioridade}</span></td>
@@ -7576,6 +7627,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
               <i class="ti ${ICONES_STATUS[status]}" style="color:${status === 'pendente' ? 'var(--text-secondary)' : '#fff'};font-size:${status === 'andamento' ? '12px' : '14px'};font-weight:700"></i>
             </button>
             <button class="btn btn-icon" onclick="abrirModalAnotacaoDetalhe('${a.id}')" title="Detalhes / Editar / Sub-ações" style="background:#7c3aed;color:#fff"><i class="ti ti-checklist"></i></button>
+            <button class="btn btn-icon" onclick="imprimirAnotacoes(['${a.id}'])" title="Gerar PDF/imagem para enviar" style="background:#252538;color:#fff"><i class="ti ti-printer"></i></button>
             <button class="btn btn-icon" onclick="enviarAnotacaoWhats('${a.id}')" title="Enviar pelo WhatsApp" style="background:#25D366;color:#fff"><i class="ti ti-brand-whatsapp"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarAnotacao('${a.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
@@ -7584,6 +7636,143 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     }).join('');
     renderizarBoardAnotacoes();
     atualizarAlertaAnotacoesVencidas();
+    const checkAll = document.getElementById('anot-check-all'); if (checkAll) checkAll.checked = false;
+    atualizarBotaoExportarAnot();
+  }
+
+  /* ===== Seleção múltipla + exportação (PDF/imagem) de anotações para enviar ao cliente ===== */
+
+  function anotIdsSelecionados() {
+    return [...document.querySelectorAll('#tbody-anotacoes .anot-check:checked')].map(c => c.value);
+  }
+
+  function alternarTodasAnotSelecionadas(marcar) {
+    document.querySelectorAll('#tbody-anotacoes .anot-check').forEach(c => { c.checked = marcar; });
+    atualizarBotaoExportarAnot();
+  }
+
+  function atualizarBotaoExportarAnot() {
+    const ids = anotIdsSelecionados();
+    const btn = document.getElementById('anot-btn-exportar-sel');
+    if (!btn) return;
+    btn.disabled = ids.length === 0;
+    btn.innerHTML = `<i class="ti ti-printer"></i> Exportar selecionadas (${ids.length})`;
+    const checkAll = document.getElementById('anot-check-all');
+    const todos = document.querySelectorAll('#tbody-anotacoes .anot-check');
+    if (checkAll) checkAll.checked = todos.length > 0 && ids.length === todos.length;
+  }
+
+  function imprimirAnotacoesSelecionadas() {
+    const ids = anotIdsSelecionados();
+    if (!ids.length) { alert('Selecione ao menos uma anotação.'); return; }
+    imprimirAnotacoes(ids);
+  }
+
+  /* Gera um documento pronto pra impressão/"Salvar como PDF" com uma ou mais anotações — pensado pra
+     enviar pro cliente ou pra diretoria como comprovação/resumo de ações executadas. Segue o mesmo
+     padrão visual (ORBEEX) e o mesmo fluxo (window.open + print) já usado no Relatório de Evolução. */
+  function imprimirAnotacoes(ids) {
+    const itens = ids.map(id => anotacoes.find(a => a.id === id)).filter(Boolean);
+    if (!itens.length) { alert('Nenhuma anotação encontrada para exportar.'); return; }
+    itens.sort((a,b) => (a.data||'9999-99-99').localeCompare(b.data||'9999-99-99'));
+
+    const agora = new Date();
+    const dataEmissao = agora.toLocaleDateString('pt-BR', { day:'2-digit', month:'long', year:'numeric' });
+    const clientesEnvolvidos = [...new Set(itens.map(a => a.clienteNome).filter(Boolean))];
+    const tituloDoc = itens.length === 1 ? 'REGISTRO DE AÇÃO' : `REGISTRO DE AÇÕES (${itens.length})`;
+
+    const CORES_STATUS = { pendente: '#8a8aa4', andamento: '#E8B84B', concluida: '#10b981' };
+    const LABEL_STATUS = { pendente: 'A Fazer', andamento: 'Em Andamento', concluida: 'Concluída' };
+
+    const cartoes = itens.map(a => {
+      const status = statusAnot(a);
+      const projetoNome = a.projetoId ? (projetos.find(p => p.id === a.projetoId) || {}).nome : null;
+      const subs = subacoesDe(a.id);
+      const subsHtml = subs.length ? `
+        <div class="pr-subacoes">
+          ${subs.map(s => `<div class="pr-sub-item">${s.concluido ? '<i class="ti ti-square-check" style="color:#10b981"></i>' : '<i class="ti ti-square" style="color:#c9c9dc"></i>'} ${s.titulo}</div>`).join('')}
+        </div>` : '';
+      return `
+      <div class="pr-card">
+        <div class="pr-card-top">
+          <div>
+            ${a.marco ? `<span class="pr-marco-badge"><i class="ti ti-flag-filled"></i> ${a.tipoMarco || 'Marco do projeto'}</span>` : ''}
+            <div class="pr-card-titulo">${a.titulo}</div>
+            <div class="pr-card-meta">
+              ${a.clienteNome ? `<span>${a.clienteNome}</span>` : ''}${projetoNome ? `<span>· ${projetoNome}</span>` : ''}${a.responsavel ? `<span>· Responsável: ${a.responsavel}</span>` : ''}
+            </div>
+          </div>
+          <div class="pr-card-status" style="color:${CORES_STATUS[status]};border-color:${CORES_STATUS[status]}">${LABEL_STATUS[status]}</div>
+        </div>
+        <div class="pr-card-data">${a.data ? fmtData(a.data) : 'Sem data definida'}${a.hora ? ' às ' + a.hora : ''}</div>
+        ${a.descricao ? `<div class="pr-card-desc">${a.descricao.replace(/\n/g,'<br>')}</div>` : ''}
+        ${subsHtml}
+      </div>`;
+    }).join('');
+
+    const janela = window.open('', '', 'width=900,height=800');
+    janela.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${tituloDoc}</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Segoe UI','Inter',Arial,sans-serif;background:#ececf2;color:#1a1a2e;font-size:12px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .doc{background:#fff;max-width:820px;margin:24px auto;border-radius:6px;box-shadow:0 6px 28px rgba(20,20,45,.14);overflow:hidden}
+  .print-bar{max-width:820px;margin:16px auto 0;text-align:right}
+  .print-bar button{background:#252538;color:#fff;border:none;padding:9px 18px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+  .pr-head{display:flex;justify-content:space-between;align-items:flex-start;padding:26px 40px 18px;background:#252538;color:#fff}
+  .pr-logo{font-size:26px;font-weight:900;letter-spacing:1px;line-height:1}.pr-logo span{color:#E8B84B}
+  .pr-logo-sub{font-size:8px;color:#b9b9cf;letter-spacing:2px;text-transform:uppercase;margin-top:5px}
+  .pr-contato{font-size:10px;color:#9d9db8;margin-top:12px;line-height:1.7}
+  .pr-head-dir{text-align:right}
+  .pr-doc-titulo{font-size:15px;font-weight:800;letter-spacing:.6px;color:#fff}
+  .pr-meta{margin-top:10px;font-size:10.5px;color:#c9c9dc;line-height:1.8}.pr-meta b{color:#fff;font-weight:600}
+  .pr-accent{height:5px;background:linear-gradient(90deg,#E8B84B 0%,#c99d38 45%,#252538 100%)}
+  .pr-body{padding:22px 40px 8px}
+  .pr-card{border:1px solid #eaeaf3;border-left:4px solid #E8B84B;border-radius:8px;padding:16px 18px;margin-bottom:16px;background:#fafafd}
+  .pr-card-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+  .pr-marco-badge{display:inline-flex;align-items:center;gap:5px;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:#fff;background:#7c3aed;padding:2px 9px;border-radius:20px;margin-bottom:6px}
+  .pr-card-titulo{font-size:14px;font-weight:800;color:#1a1a2e}
+  .pr-card-meta{font-size:10.5px;color:#8a8aa4;margin-top:3px;display:flex;gap:5px;flex-wrap:wrap}
+  .pr-card-status{flex-shrink:0;font-size:9px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;border:1.5px solid;padding:3px 10px;border-radius:20px;white-space:nowrap}
+  .pr-card-data{font-size:10.5px;font-weight:700;color:#252538;margin-top:10px}
+  .pr-card-desc{font-size:11.5px;color:#4a4a66;margin-top:8px;line-height:1.6;white-space:pre-wrap}
+  .pr-subacoes{margin-top:10px;padding-top:10px;border-top:1px dashed #e0e0ec}
+  .pr-sub-item{font-size:11px;color:#3a3a58;padding:2px 0;display:flex;align-items:center;gap:6px}
+  .pr-foot{margin:14px 40px 26px;padding-top:14px;border-top:1px solid #eaeaf3;font-size:10px;color:#a0a0b8;text-align:center;line-height:1.7}
+  .pr-foot b{color:#252538}
+  @media print{
+    .print-bar{display:none}
+    body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0}
+    @page{size:A4;margin:0}
+    .pr-head{padding:18mm 16mm 8mm}.pr-body{padding-left:16mm;padding-right:16mm}
+    .pr-foot{margin-left:16mm;margin-right:16mm}
+    .pr-card{page-break-inside:avoid}
+  }
+</style></head><body>
+<div class="print-bar"><button onclick="window.print()"><i class="ti ti-printer"></i> Imprimir / Salvar como PDF</button></div>
+<div class="doc">
+  <header class="pr-head">
+    <div>
+      <div class="pr-logo">ORB<span>EEX</span></div>
+      <div class="pr-logo-sub">Assessoria em Sistemas de Gestão</div>
+      <div class="pr-contato">luana.civardi@orbeex.com.br<br>Bento Gonçalves – RS</div>
+    </div>
+    <div class="pr-head-dir">
+      <div class="pr-doc-titulo">${tituloDoc}</div>
+      <div class="pr-meta">
+        <div><b>Emissão:</b> ${dataEmissao}</div>
+        ${clientesEnvolvidos.length ? `<div><b>Cliente:</b> ${clientesEnvolvidos.join(', ')}</div>` : ''}
+      </div>
+    </div>
+  </header>
+  <div class="pr-accent"></div>
+  <div class="pr-body">${cartoes}</div>
+  <footer class="pr-foot">
+    <b>ORBEEX</b> · Assessoria em Sistemas de Gestão · luana.civardi@orbeex.com.br · Bento Gonçalves – RS
+  </footer>
+</div>
+</body></html>`);
+    janela.document.close();
+    setTimeout(() => { janela.document.title = tituloDoc; }, 300);
   }
 
   // Alerta visível de anotações vencidas (não concluídas com data no passado) — mostrado no topo da
@@ -10101,6 +10290,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       'Prioridade': a.prioridade,
       'Descrição':  a.descricao || '',
       'Concluída':  a.concluida ? 'Sim' : 'Não',
+      'Marco':      a.marco ? 'Sim' : 'Não',
+      'Tipo do Marco': a.tipoMarco || '',
       'Criada em':  fmtData(a.criadaEm)
     })));
     ajustarColunas(wsAnot);
@@ -10687,7 +10878,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       <button onclick="fecharModalRelatorioPeriodo()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
     </div>
     <div class="modal-body">
-      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px">Escolha o período das atividades executadas que deve entrar no relatório. Deixe as datas em branco (ou use <strong>Tudo</strong>) para incluir todo o histórico.</p>
+      <p style="font-size:13px;color:var(--text-secondary);margin:0 0 12px">Escolha o projeto e o período das atividades que devem entrar no relatório. Deixe as datas em branco (ou use <strong>Tudo</strong>) para incluir todo o histórico.</p>
+      <div style="margin-bottom:14px">
+        <label style="font-size:12px;font-weight:600;color:var(--text-secondary);display:block;margin-bottom:4px">Projeto</label>
+        <select id="relp-projeto" onchange="atualizarTituloRelatorioPeriodo()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+          <option value="">Todos os projetos (Consolidado)</option>
+        </select>
+      </div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
         <button class="btn btn-sm btn-secondary" onclick="aplicarPresetRel('mes')">Este mês</button>
         <button class="btn btn-sm btn-secondary" onclick="aplicarPresetRel('ano')">Este ano</button>
@@ -10832,8 +11029,29 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           <input type="checkbox" id="anot-visivel-cobranca" checked>
           Visível no Relatório de Cobrança (mensal) <span style="font-size:11px;color:var(--text-secondary)">(quando concluída)</span>
         </label>
+        <label style="display:flex;align-items:center;gap:6px;font-weight:400;cursor:pointer;background:#E8B84B14;border:1px solid #E8B84B44;border-radius:6px;padding:6px 8px">
+          <input type="checkbox" id="anot-marco" onchange="atualizarTipoMarcoVisivel()">
+          <i class="ti ti-flag-filled" style="color:#E8B84B"></i>
+          Marco / ação importante do projeto <span style="font-size:11px;color:var(--text-secondary)">(entra na Linha do Tempo Gráfica, junto com os entregáveis)</span>
+        </label>
+        <div id="anot-tipo-marco-wrap" style="display:none;padding-left:26px">
+          <label style="font-size:11px">Tipo do marco</label>
+          <select id="anot-tipo-marco">
+            <option value="">Não especificado</option>
+            <option value="Kickoff">Kickoff</option>
+            <option value="Aprovação">Aprovação</option>
+            <option value="Entrega Parcial">Entrega Parcial</option>
+            <option value="Auditoria">Auditoria</option>
+            <option value="Reunião de Diretoria">Reunião de Diretoria</option>
+            <option value="Certificação">Certificação</option>
+            <option value="Outro">Outro</option>
+          </select>
+        </div>
       </div>
-      <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()" style="width:100%;justify-content:center"><i class="ti ti-device-floppy"></i> Salvar</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary" id="anot-btn-salvar" onclick="adicionarAnotacao()" style="flex:1;justify-content:center"><i class="ti ti-device-floppy"></i> Salvar</button>
+        <button class="btn btn-secondary" id="anotd-btn-imprimir" onclick="if(anotEditandoId) imprimirAnotacoes([anotEditandoId])" style="display:none" title="Gerar PDF/imagem para enviar"><i class="ti ti-printer"></i></button>
+      </div>
 
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:6px">
         <div id="anotd-checklist-vazio-msg" style="font-size:12px;color:var(--text-secondary);text-align:center;padding:8px 0">Salve a anotação para adicionar sub-ações.</div>
