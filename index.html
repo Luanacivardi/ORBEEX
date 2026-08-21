@@ -310,6 +310,11 @@
     .ent-row-prazo { font-size:10.5px; color:var(--text-secondary); }
     .ent-row-status { font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; white-space:nowrap; }
     .ent-row-acoes { display:flex; gap:4px; }
+    .ent-row-acoes-vinc { display:flex; flex-wrap:wrap; gap:4px; margin-top:5px; }
+    .ent-acao-chip { display:inline-flex; align-items:center; gap:4px; font-size:10px; font-weight:600; color:#7c3aed; background:#7c3aed1a; padding:2px 6px 2px 9px; border-radius:20px; white-space:nowrap; }
+    .ent-acao-chip .ti-x { cursor:pointer; font-size:11px; opacity:.7; }
+    .ent-acao-chip .ti-x:hover { opacity:1; }
+    .ent-link-badge { position:absolute; top:-5px; right:-5px; background:#7c3aed; color:#fff; font-size:8px; font-weight:800; min-width:13px; height:13px; border-radius:20px; display:flex; align-items:center; justify-content:center; padding:0 2px; }
 
     /* ===== BOARD DE ATIVIDADES (kanban) ===== */
     .view-toggle { display:flex; gap:6px; margin-bottom:1rem; }
@@ -2675,6 +2680,7 @@
       ['projetos',     'gh_projetos?select=id,clienteId:cliente_id,nome,ativo,taxa'],
       ['entregaveis',  'gh_entregaveis?select=id,projetoId:projeto_id,titulo,prazo,dataEntrega:data_entrega,anotacaoEvidenciaId:anotacao_evidencia_id'],
       ['anotacaoItens', 'gh_anotacao_itens?select=id,anotacaoId:anotacao_id,titulo,concluido,ordem'],
+      ['entregavelAcoes', 'gh_entregavel_acoes?select=id,entregavelId:entregavel_id,anotacaoId:anotacao_id'],
       ['historico',    'gh_historico?select=id,ano,mes,cliente,horas,valor,descricao'],
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id,pago,dataPagamento:data_pagamento'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
@@ -2728,6 +2734,7 @@
   let projetos    = [];
   let entregaveis = [];
   let anotacaoItens = [];
+  let entregavelAcoes = [];
   let orcamentosConsult = [];
   let vendas      = [];
   let vendasParcelas = [];
@@ -3127,14 +3134,23 @@ let clienteEditandoId = null;
         const atrasado = !e.dataEntrega && e.prazo && e.prazo < hoje;
         const statusLabel = e.dataEntrega ? 'Entregue' : atrasado ? 'Atrasado' : 'Pendente';
         const statusCor = e.dataEntrega ? '#10b981' : atrasado ? '#dc2626' : '#E8B84B';
+        const acoesVinculadas = acoesDoEntregavel(e.id);
+        const chipsAcoes = acoesVinculadas.length ? `
+            <div class="ent-row-acoes-vinc">
+              ${acoesVinculadas.map(a => `<span class="ent-acao-chip">${a.titulo}<i class="ti ti-x" onclick="desvincularAcaoEntregavel('${e.id}','${a.id}')" title="Desvincular"></i></span>`).join('')}
+            </div>` : '';
         return `
-          <div class="ent-row">
+          <div class="ent-row" style="flex-wrap:wrap">
             <div class="ent-row-info">
               <div class="ent-row-titulo">${e.titulo}</div>
               <div class="ent-row-prazo">Prazo: ${e.prazo ? fmtData(e.prazo) : '—'}${e.dataEntrega ? ' · Entregue em ' + fmtData(e.dataEntrega) : ''}</div>
+              ${chipsAcoes}
             </div>
             <span class="ent-row-status" style="background:${statusCor}22;color:${statusCor}">${statusLabel}</span>
             <div class="ent-row-acoes">
+              <button class="btn-icon-sm" onclick="abrirModalVincularAcoes('${e.id}')" title="Vincular ações a este entregável" style="position:relative">
+                <i class="ti ti-link"></i>${acoesVinculadas.length ? `<span class="ent-link-badge">${acoesVinculadas.length}</span>` : ''}
+              </button>
               <button class="btn-icon-sm" onclick="editarEntregavel('${e.id}')" title="Editar"><i class="ti ti-pencil"></i></button>
               ${!e.dataEntrega
                 ? `<button class="btn-icon-sm" onclick="marcarEntregaveComoEntregue('${e.id}')" title="Marcar como entregue"><i class="ti ti-check"></i></button>`
@@ -3309,11 +3325,13 @@ let clienteEditandoId = null;
   function excluirEntregavel(id) {
     if (!confirm('Excluir este entregável?')) return;
     const removido = entregaveis.find(e => e.id === id);
+    const vinculosRemovidos = entregavelAcoes.filter(v => v.entregavelId === id);
     entregaveis = entregaveis.filter(e => e.id !== id);
+    entregavelAcoes = entregavelAcoes.filter(v => v.entregavelId !== id);
     renderizarModalProjetos();
     persistir(
-      sbTable('gh_entregaveis').remove(id),
-      function() { if (removido) entregaveis.push(removido); renderizarModalProjetos(); }
+      sbTable('gh_entregaveis').remove(id), // exclusão em cascata no Supabase já remove os vínculos gh_entregavel_acoes
+      function() { if (removido) entregaveis.push(removido); entregavelAcoes = entregavelAcoes.concat(vinculosRemovidos); renderizarModalProjetos(); }
     );
   }
 
@@ -3368,6 +3386,84 @@ let clienteEditandoId = null;
     persistir(
       sbTable('gh_entregaveis').update(e.id, { data_entrega: dataEntrega, anotacao_evidencia_id: anotacaoId }),
       function() { Object.assign(e, anterior); renderizarModalProjetos(); }
+    );
+  }
+
+  /* ===== Vínculo N:N entre Entregáveis e Ações (anotações) — uma mesma entrega geralmente é
+     resultado de várias ações ao longo do projeto, não só a "evidência" marcada no fechamento. ===== */
+
+  function acoesDoEntregavel(entregavelId) {
+    const ids = entregavelAcoes.filter(v => v.entregavelId === entregavelId).map(v => v.anotacaoId);
+    return anotacoes.filter(a => ids.includes(a.id)).sort((a,b) => (a.data||'').localeCompare(b.data||''));
+  }
+
+  let vincularEntregavelId = null;
+
+  function abrirModalVincularAcoes(entregavelId) {
+    const e = entregaveis.find(e => e.id === entregavelId);
+    if (!e) return;
+    vincularEntregavelId = entregavelId;
+    document.getElementById('vinc-ent-titulo').textContent = e.titulo;
+    renderizarModalVincularAcoes();
+    document.getElementById('modal-vincular-acoes').style.display = 'flex';
+  }
+
+  function fecharModalVincularAcoes() {
+    document.getElementById('modal-vincular-acoes').style.display = 'none';
+    vincularEntregavelId = null;
+    renderizarModalProjetos();
+  }
+
+  /* Lista as ações do mesmo projeto do entregável, mais recentes primeiro, com checkbox marcando
+     as que já estão vinculadas — marcar/desmarcar salva na hora, sem precisar de botão "Salvar". */
+  function renderizarModalVincularAcoes() {
+    const e = entregaveis.find(e => e.id === vincularEntregavelId);
+    const lista = document.getElementById('vinc-ent-lista');
+    if (!e || !lista) return;
+    const vinculadasIds = entregavelAcoes.filter(v => v.entregavelId === e.id).map(v => v.anotacaoId);
+    const busca = (document.getElementById('vinc-ent-busca')?.value || '').trim().toLowerCase();
+    const doProjeto = anotacoes
+      .filter(a => a.projetoId === e.projetoId)
+      .filter(a => !busca || (a.titulo||'').toLowerCase().includes(busca))
+      .sort((a,b) => (b.data||'').localeCompare(a.data||''));
+
+    if (!doProjeto.length) {
+      lista.innerHTML = '<p style="font-size:12px;color:var(--text-secondary);text-align:center;padding:16px 0">Nenhuma ação encontrada neste projeto.</p>';
+      return;
+    }
+    lista.innerHTML = doProjeto.map(a => `
+      <label style="display:flex;align-items:flex-start;gap:8px;padding:7px 4px;border-bottom:1px solid var(--surface-1);cursor:pointer;font-weight:400">
+        <input type="checkbox" style="margin-top:2px" ${vinculadasIds.includes(a.id) ? 'checked' : ''} onchange="alternarVinculoAcaoEntregavel('${e.id}','${a.id}',this.checked)">
+        <span style="flex:1;min-width:0">
+          <span style="font-size:12.5px;font-weight:600;color:var(--text-primary)">${a.marco ? '<i class="ti ti-flag-filled" style="color:#7c3aed;font-size:11px;margin-right:3px"></i>' : ''}${a.titulo}</span>
+          <span style="display:block;font-size:10.5px;color:var(--text-secondary)">${a.data ? fmtData(a.data) : 'Sem data'} · ${statusAnot(a) === 'concluida' ? 'Concluída' : statusAnot(a) === 'andamento' ? 'Em andamento' : 'A Fazer'}</span>
+        </span>
+      </label>`).join('');
+  }
+
+  function alternarVinculoAcaoEntregavel(entregavelId, anotacaoId, marcar) {
+    if (marcar) {
+      if (entregavelAcoes.some(v => v.entregavelId === entregavelId && v.anotacaoId === anotacaoId)) return;
+      const novo = { id: crypto.randomUUID(), entregavelId, anotacaoId };
+      entregavelAcoes.push(novo);
+      persistir(
+        sbTable('gh_entregavel_acoes').insert({ id: novo.id, entregavel_id: entregavelId, anotacao_id: anotacaoId }),
+        function() { entregavelAcoes = entregavelAcoes.filter(v => v.id !== novo.id); renderizarModalVincularAcoes(); }
+      );
+    } else {
+      desvincularAcaoEntregavel(entregavelId, anotacaoId);
+    }
+  }
+
+  function desvincularAcaoEntregavel(entregavelId, anotacaoId) {
+    const v = entregavelAcoes.find(v => v.entregavelId === entregavelId && v.anotacaoId === anotacaoId);
+    if (!v) return;
+    entregavelAcoes = entregavelAcoes.filter(x => x.id !== v.id);
+    renderizarModalProjetos();
+    if (document.getElementById('modal-vincular-acoes').style.display !== 'none') renderizarModalVincularAcoes();
+    persistir(
+      sbTable('gh_entregavel_acoes').remove(v.id),
+      function() { entregavelAcoes.push(v); renderizarModalProjetos(); renderizarModalVincularAcoes(); }
     );
   }
 
@@ -7517,11 +7613,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function deletarAnotacao(id) {
     if (!confirm('Remover esta anotação?')) return;
     const removida = anotacoes.find(a => a.id === id);
+    const vinculosRemovidos = entregavelAcoes.filter(v => v.anotacaoId === id);
     anotacoes = anotacoes.filter(a => a.id !== id);
+    entregavelAcoes = entregavelAcoes.filter(v => v.anotacaoId !== id);
     renderizarAnotacoes();
     persistir(
-      sbTable('gh_anotacoes').remove(id),
-      function() { if (removida) anotacoes.push(removida); renderizarAnotacoes(); }
+      sbTable('gh_anotacoes').remove(id), // exclusão em cascata no Supabase já remove os vínculos gh_entregavel_acoes
+      function() { if (removida) anotacoes.push(removida); entregavelAcoes = entregavelAcoes.concat(vinculosRemovidos); renderizarAnotacoes(); }
     );
   }
 
@@ -10774,6 +10872,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     projetos     = lsGet('projetos');
     entregaveis  = lsGet('entregaveis');
     anotacaoItens = lsGet('anotacaoItens');
+    entregavelAcoes = lsGet('entregavelAcoes');
     orcamentosConsult = lsGet('orcamentosConsult');
     vendas       = lsGet('vendas');
     vendasParcelas = lsGet('vendasParcelas');
@@ -11231,6 +11330,23 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     <div class="modal-footer">
       <button class="btn btn-sm" onclick="fecharModalEvidencia()" style="background:#6b7280;color:#fff">Cancelar</button>
       <button class="btn btn-primary btn-sm" onclick="confirmarEntregaComEvidencia()"><i class="ti ti-check"></i> Confirmar Entrega</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-vincular-acoes" class="modal-overlay" style="display:none" onclick="if(event.target===this)fecharModalVincularAcoes()">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <h3><i class="ti ti-link" style="color:#7c3aed"></i> Vincular ações — <span id="vinc-ent-titulo" style="font-weight:400"></span></h3>
+      <button onclick="fecharModalVincularAcoes()" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-secondary)">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:11.5px;color:var(--text-secondary);margin:0 0 6px">Marque todas as ações do projeto que contribuíram para este entregável. Marcar/desmarcar salva na hora.</p>
+      <input type="text" id="vinc-ent-busca" placeholder="Buscar ação..." oninput="renderizarModalVincularAcoes()" style="width:100%;padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px">
+      <div id="vinc-ent-lista" style="max-height:340px;overflow-y:auto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-primary btn-sm" onclick="fecharModalVincularAcoes()" style="width:100%;justify-content:center">Concluído</button>
     </div>
   </div>
 </div>
