@@ -1627,6 +1627,15 @@
           </div>
         </details>
 
+        <details style="margin-bottom:.5rem">
+          <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Treinamento dos usuários (opcional — cobrança única)</summary>
+          <div class="form-row" style="margin-top:.75rem">
+            <div class="form-group"><label>Valor/hora (R$)</label><input type="number" id="orc-trein-valorHora" value="180" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Horas estimadas</label><input type="number" id="orc-trein-horas" value="0" min="0" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Descrição do treinamento</label><input type="text" id="orc-trein-descricao" placeholder="Ex: Treinamento dos usuários-chave no módulo de Ações"></div>
+          </div>
+        </details>
+
         <div class="form-group">
           <label>Política de suporte / observações <span style="font-size:11px;color:var(--text-secondary)">(aparece no orçamento e no relatório)</span></label>
           <textarea id="orc-politica-suporte" rows="2" style="width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-family:inherit;font-size:13px;resize:vertical">Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.</textarea>
@@ -2691,7 +2700,7 @@
       ['despesas',     'gh_despesas?select=id,categoria,data,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,recorrenteId:recorrente_id,pago,dataPagamento:data_pagamento'],
       ['despesasRecorrentes', 'gh_despesas_recorrentes?select=id,categoria,valor,descricao,clienteId:cliente_id,clienteNome:cliente_nome,frequencia,dataInicio:data_inicio,dataFim:data_fim,ativa'],
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
-      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
+      ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,treinValorHora:trein_valor_hora,treinHoras:trein_horas,treinDescricao:trein_descricao,treinamentoTotal:trein_total,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
       ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status,tipo,valorHora:valor_hora,horasSemanaPresencial:horas_semana_presencial,horasSemanaHomeOffice:horas_semana_home_office,homeOfficeSobDemanda:home_office_sob_demanda,homeOfficeSobDemandaDescricao:home_office_sob_demanda_descricao,sobDemandaLinhas:sob_demanda_linhas'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
@@ -8406,13 +8415,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const wrap = document.getElementById('orc-modulos-list');
     if (!wrap) return;
     wrap.innerHTML = MODULOS_ORC.map(m => `
-      <label style="display:flex;flex-direction:column;gap:4px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;cursor:pointer">
-        <span style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
-          <span style="flex:1;font-weight:600">${m.nome}</span>
-          <span style="color:var(--text-secondary);white-space:nowrap">R$ ${fmtVal(m.preco)}/mês</span>
-        </span>
-        <span style="font-size:11px;color:var(--text-secondary);padding-left:24px;line-height:1.4">Inclui: ${(m.itens || []).join(' · ')}</span>
+      <label style="display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid var(--border);border-radius:8px;font-size:12.5px;cursor:pointer">
+        <input type="checkbox" class="orc-mod-check" data-id="${m.id}" data-preco="${m.preco}" ${ORC_DEFAULT_SELECIONADOS.includes(m.id) ? 'checked' : ''} onchange="calcularOrcamento()" style="width:16px;height:16px;accent-color:var(--navy);flex-shrink:0">
+        <span style="flex:1;font-weight:600">${m.nome}</span>
+        <span style="color:var(--text-secondary);white-space:nowrap">R$ ${fmtVal(m.preco)}/mês</span>
       </label>
     `).join('');
     wrap.dataset.built = '1';
@@ -9430,6 +9436,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const devValorHora = parseFloat(document.getElementById('orc-dev-valorHora')?.value) || 0;
     const devHoras = parseFloat(document.getElementById('orc-dev-horas')?.value) || 0;
     const devDescricao = document.getElementById('orc-dev-descricao')?.value.trim() || '';
+    const treinValorHora = parseFloat(document.getElementById('orc-trein-valorHora')?.value) || 0;
+    const treinHoras = parseFloat(document.getElementById('orc-trein-horas')?.value) || 0;
+    const treinDescricao = document.getElementById('orc-trein-descricao')?.value.trim() || '';
     const politicaSuporte = document.getElementById('orc-politica-suporte')?.value.trim() || '';
 
     const checks = Array.from(document.querySelectorAll('.orc-mod-check'));
@@ -9453,7 +9462,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const implUsuariosAdicionais = Math.max(0, numUsuarios - IMPL_USUARIOS_INCLUSOS);
     const implantacao = (selecionados.length * implModulo) + (implUsuariosAdicionais * implUsuario);
     const devPersonalizado = devHoras * devValorHora;
-    const totalUnico = implantacao + devPersonalizado;
+    const treinamentoTotal = treinHoras * treinValorHora;
+    const totalUnico = implantacao + devPersonalizado + treinamentoTotal;
     const totalAno1Mensal = (mensalidadeMensal * 12) + totalUnico;
     const totalAno1Anual = (mensalidadeAnual * 12) + totalUnico;
 
@@ -9475,6 +9485,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         linha('Implantação (única)', `R$ ${fmtVal(implantacao)}`),
         formula(`${selecionados.length} módulo(s) × R$ ${fmtVal(implModulo)} + ${implUsuariosAdicionais} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(implUsuario)} = R$ ${fmtVal(implantacao)}`),
         devPersonalizado > 0 ? linha('Desenvolvimento personalizado', `R$ ${fmtVal(devPersonalizado)}`) : '',
+        treinamentoTotal > 0 ? linha('Treinamento dos usuários', `R$ ${fmtVal(treinamentoTotal)}`) : '',
         linha('Total Ano 1 — plano mensal', `R$ ${fmtVal(totalAno1Mensal)}`, true),
         linha('Total Ano 1 — plano anual', `R$ ${fmtVal(totalAno1Anual)}`, true),
       ].join('');
@@ -9482,7 +9493,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     return {
       numUsuarios, usuariosInclusos, precoUsuAdic, descontoAnual, implModulo, implUsuario,
-      devValorHora, devHoras, devDescricao, devPersonalizado, politicaSuporte,
+      devValorHora, devHoras, devDescricao, devPersonalizado,
+      treinValorHora, treinHoras, treinDescricao, treinamentoTotal, politicaSuporte,
       selecionados, mensalidadeModulos, usuariosAdicionais, mensalidadeUsuarios,
       mensalidadeMensal, mensalidadeAnual, implUsuariosAdicionais, implantacao, totalAno1Mensal, totalAno1Anual
     };
@@ -9520,6 +9532,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       usuarios_inclusos: calc.usuariosInclusos, preco_usuario_adicional: calc.precoUsuAdic,
       desconto_anual: calc.descontoAnual, impl_por_modulo: calc.implModulo, impl_por_usuario: calc.implUsuario,
       dev_valor_hora: calc.devValorHora, dev_horas: calc.devHoras, dev_descricao: calc.devDescricao, dev_personalizado: calc.devPersonalizado,
+      trein_valor_hora: calc.treinValorHora, trein_horas: calc.treinHoras, trein_descricao: calc.treinDescricao, trein_total: calc.treinamentoTotal,
       politica_suporte: calc.politicaSuporte,
       mensalidade_mensal: calc.mensalidadeMensal, mensalidade_anual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, total_ano1_mensal: calc.totalAno1Mensal, total_ano1_anual: calc.totalAno1Anual
@@ -9529,6 +9542,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       usuariosInclusos: calc.usuariosInclusos, precoUsuarioAdicional: calc.precoUsuAdic,
       descontoAnual: calc.descontoAnual, implPorModulo: calc.implModulo, implPorUsuario: calc.implUsuario,
       devValorHora: calc.devValorHora, devHoras: calc.devHoras, devDescricao: calc.devDescricao, devPersonalizado: calc.devPersonalizado,
+      treinValorHora: calc.treinValorHora, treinHoras: calc.treinHoras, treinDescricao: calc.treinDescricao, treinamentoTotal: calc.treinamentoTotal,
       politicaSuporte: calc.politicaSuporte,
       mensalidadeMensal: calc.mensalidadeMensal, mensalidadeAnual: calc.mensalidadeAnual,
       implantacao: calc.implantacao, totalAno1Mensal: calc.totalAno1Mensal, totalAno1Anual: calc.totalAno1Anual
@@ -9570,6 +9584,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-dev-valorHora').value = o.devValorHora != null ? o.devValorHora : 180;
     document.getElementById('orc-dev-horas').value = o.devHoras != null ? o.devHoras : 0;
     document.getElementById('orc-dev-descricao').value = o.devDescricao || '';
+    document.getElementById('orc-trein-valorHora').value = o.treinValorHora != null ? o.treinValorHora : 180;
+    document.getElementById('orc-trein-horas').value = o.treinHoras != null ? o.treinHoras : 0;
+    document.getElementById('orc-trein-descricao').value = o.treinDescricao || '';
     document.getElementById('orc-politica-suporte').value = o.politicaSuporte || 'Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.';
     const idsSelecionados = (o.modulos || []).map(m => m.id);
     document.querySelectorAll('.orc-mod-check').forEach(c => {
@@ -9595,6 +9612,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('orc-dev-valorHora').value = 180;
     document.getElementById('orc-dev-horas').value = 0;
     document.getElementById('orc-dev-descricao').value = '';
+    document.getElementById('orc-trein-valorHora').value = 180;
+    document.getElementById('orc-trein-horas').value = 0;
+    document.getElementById('orc-trein-descricao').value = '';
     document.getElementById('orc-politica-suporte').value = 'Inclui até 3 horas de suporte técnico por mês. Horas não utilizadas não se acumulam para o mês seguinte.';
     document.querySelectorAll('.orc-mod-check').forEach(c => {
       c.checked = ORC_DEFAULT_SELECIONADOS.includes(c.getAttribute('data-id'));
@@ -9644,7 +9664,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td><span class="badge" style="background:var(--surface-1);color:var(--text-secondary);font-weight:600">${(o.modulos || []).length} módulo(s)</span></td>
         <td>${o.numUsuarios}</td>
         <td>R$ ${fmtVal(o.mensalidadeMensal)}/mês</td>
-        <td>R$ ${fmtVal(o.implantacao)}${o.devPersonalizado > 0 ? `<br><span style="font-size:10.5px;color:var(--text-secondary)">+ R$ ${fmtVal(o.devPersonalizado)} dev.</span>` : ''}</td>
+        <td>R$ ${fmtVal(o.implantacao)}${o.devPersonalizado > 0 ? `<br><span style="font-size:10.5px;color:var(--text-secondary)">+ R$ ${fmtVal(o.devPersonalizado)} dev.</span>` : ''}${o.treinamentoTotal > 0 ? `<br><span style="font-size:10.5px;color:var(--text-secondary)">+ R$ ${fmtVal(o.treinamentoTotal)} trein.</span>` : ''}</td>
         <td><strong>R$ ${fmtVal(o.totalAno1Mensal)}</strong></td>
         <td>
           <div class="btn-acao-row">
@@ -10284,6 +10304,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (o.devPersonalizado > 0) {
       linhas.push(`Desenvolvimento personalizado${o.devDescricao ? ' (' + o.devDescricao + ')' : ''}: R$ ${fmtVal(o.devPersonalizado)}`);
     }
+    if (o.treinamentoTotal > 0) {
+      linhas.push(`Treinamento dos usuários${o.treinDescricao ? ' (' + o.treinDescricao + ')' : ''}: R$ ${fmtVal(o.treinamentoTotal)}`);
+    }
     linhas.push(
       '',
       `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
@@ -10379,6 +10402,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
         <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">${(o.modulos || []).length} módulo(s) × R$ ${fmtVal(o.implPorModulo)} + ${implUsuariosAdicionaisRel} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(o.implPorUsuario)}</div>
         ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''}</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
+        ${o.treinamentoTotal > 0 ? `<div class="linha"><span>Treinamento dos usuários${o.treinDescricao ? ' — ' + o.treinDescricao : ''}</span><span>R$ ${fmtVal(o.treinamentoTotal)}</span></div>` : ''}
         <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
       </div>
@@ -11842,7 +11866,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   var CAMPOS_TEXTO = [
     'horas-atividade', 'horas-descricao', 'plan-atividade', 'massa-atividade',
     'import-atividade', 'ag-edit-atividade', 'anot-titulo', 'anot-descricao',
-    'desp-descricao', 'hist-descricao', 'orc-dev-descricao', 'cliente-obs',
+    'desp-descricao', 'hist-descricao', 'orc-dev-descricao', 'orc-trein-descricao', 'cliente-obs',
     'modal-cliente-obs', 'oc-obs', 'evid-anotacao', 'diario-texto'
   ];
 
