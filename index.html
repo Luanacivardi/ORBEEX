@@ -8642,7 +8642,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Contrato - ' + esc(dados.razaoSocial || '') + '</title>' +
       '<style>body{font-family:Arial,sans-serif;color:#1a1a2e;margin:0;padding:0}' +
-      '.folha{max-width:780px;margin:0 auto;padding:0 4mm 8mm}' +
+      '.folha{max-width:780px;margin:0 auto;padding:0 4mm 8mm;position:relative}' +
+      '.pagfoot{position:absolute;left:0;right:0;text-align:center;font-size:8.5px;color:#9999aa;letter-spacing:.3px}' +
+      '@media screen{.pagfoot{display:none}}' +
       '@media print{@page{size:A4;margin:9mm 9mm}body{background:#fff}}' +
       '</style></head><body><div class="folha">' +
 
@@ -8690,6 +8692,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '</tr></table>' +
       '</div>' +
+
+      // ── Numeração de páginas ("Página X de Y"), calculada após o layout renderizar ──
+      // Obs: o fechamento da tag script abaixo é montado por concatenação de propósito — a sequência
+      // literal completa (menor-que + barra + a palavra "script" + maior-que) dentro desta string
+      // quebraria o parser HTML deste PRÓPRIO arquivo.
+      '<script>(function(){function paginar(){var folha=document.querySelector(".folha");var B=(297-9*2)*96/25.4;var altura=folha.scrollHeight;var paginas=Math.max(1,Math.ceil(altura/B));folha.style.minHeight=(paginas*B)+"px";for(var i=1;i<=paginas;i++){var f=document.createElement("div");f.className="pagfoot";f.style.top=(i*B-20)+"px";f.textContent="Página "+i+" de "+paginas;folha.appendChild(f);}}if(document.readyState==="complete")paginar();else window.addEventListener("load",paginar);})();' + '<' + '/script>' +
 
       '</div></body></html>';
   }
