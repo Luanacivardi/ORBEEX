@@ -8718,7 +8718,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '}' +
       'var altura=folha.scrollHeight;' +
       'var paginas=Math.max(1,Math.ceil(altura/B));' +
-      'folha.style.minHeight=(paginas*B)+"px";' +
+      'var padBottom=parseFloat(getComputedStyle(folha).paddingBottom)||0;' +
+      'folha.style.minHeight=(paginas*B-padBottom)+"px";' +
       'for(var i=1;i<=paginas;i++){' +
       'var f=document.createElement("div");' +
       'f.className="pagfoot";' +
