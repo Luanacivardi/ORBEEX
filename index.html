@@ -1589,7 +1589,9 @@
             <input type="text" id="orc-cliente-nome" list="orc-clientes-datalist" placeholder="Digite ou busque um cliente já cadastrado" autocomplete="off">
             <datalist id="orc-clientes-datalist"></datalist>
           </div>
-          <div class="form-group"><label>Número de usuários</label><input type="number" id="orc-usuarios" min="1" value="10" oninput="calcularOrcamento()"></div>
+          <div class="form-group"><label>Número de usuários</label><input type="number" id="orc-usuarios" min="1" step="1" value="10" oninput="calcularOrcamento()">
+            <div style="font-size:10.5px;color:var(--text-secondary);margin-top:3px;line-height:1.4">Nunca orçar "ilimitado". Se o cliente pedir, pergunte o uso real esperado e informe um teto = uso real + margem de segurança (ex.: 20 reais → orçar até 25-30).</div>
+          </div>
         </div>
 
         <div style="margin:.75rem 0 1rem">
@@ -1600,13 +1602,15 @@
         <details style="margin-bottom:.5rem">
           <summary style="cursor:pointer;font-size:12.5px;color:var(--navy);font-weight:600">Premissas de precificação (ajustar se necessário)</summary>
           <div class="form-row" style="margin-top:.75rem">
-            <div class="form-group"><label>Usuários inclusos</label><input type="number" id="orc-a-usuariosInclusos" value="5" oninput="calcularOrcamento()"></div>
-            <div class="form-group"><label>Preço usuário adicional (R$/mês)</label><input type="number" id="orc-a-precoUsuAdic" value="25" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Usuários inclusos (mensalidade)</label><input type="number" id="orc-a-usuariosInclusos" value="10" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Preço usuário adicional (R$/mês) <span style="font-weight:400;color:var(--text-secondary)">— automático por faixa</span></label><input type="number" id="orc-a-precoUsuAdic" value="25" disabled style="background:var(--surface-1);cursor:not-allowed">
+              <div id="orc-a-precoUsuAdic-faixa" style="font-size:10.5px;color:var(--text-secondary);margin-top:3px"></div>
+            </div>
             <div class="form-group"><label>Desconto plano anual (%)</label><input type="number" id="orc-a-descontoAnual" value="15" oninput="calcularOrcamento()"></div>
           </div>
           <div class="form-row">
             <div class="form-group"><label>Implantação por módulo (R$)</label><input type="number" id="orc-a-implModulo" value="300" oninput="calcularOrcamento()"></div>
-            <div class="form-group"><label>Implantação por usuário adicional (R$)</label><input type="number" id="orc-a-implUsuario" value="50" oninput="calcularOrcamento()"></div>
+            <div class="form-group"><label>Implantação por usuário além dos 5 inclusos (R$)</label><input type="number" id="orc-a-implUsuario" value="50" oninput="calcularOrcamento()"></div>
           </div>
         </details>
 
@@ -8307,6 +8311,26 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   const ORC_DEFAULT_SELECIONADOS = ['plan', 'acoes', 'contr'];
   let orcamentoEditandoId = null;
 
+  // Regra de precificação de usuário adicional (recorrente), por faixa de mensalidade total dos módulos.
+  const FAIXAS_USUARIO_ADICIONAL = [
+    { ate: 300, preco: 29 },
+    { ate: 600, preco: 25 },
+    { ate: Infinity, preco: 19 },
+  ];
+  function precoUsuarioAdicionalPorFaixa(mensalidadeModulos) {
+    const faixa = FAIXAS_USUARIO_ADICIONAL.find(f => mensalidadeModulos <= f.ate);
+    return faixa ? faixa.preco : FAIXAS_USUARIO_ADICIONAL[FAIXAS_USUARIO_ADICIONAL.length - 1].preco;
+  }
+  function labelFaixaUsuarioAdicional(mensalidadeModulos) {
+    if (mensalidadeModulos <= 300) return 'até R$ 300/mês em módulos';
+    if (mensalidadeModulos <= 600) return 'de R$ 300 a R$ 600/mês em módulos';
+    return 'acima de R$ 600/mês em módulos';
+  }
+  // Implantação (taxa única): usuário incluso além dos 5 primeiros — regra fixa, não editável por orçamento.
+  const IMPL_USUARIOS_INCLUSOS = 5;
+  // Acima deste teto de usuários, a tela bloqueia o salvamento (evita orçar "ilimitado" com um número gigante-placeholder).
+  const ORC_USUARIOS_TETO_ALERTA = 500;
+
   function renderizarSeletorModulosOrc() {
     const wrap = document.getElementById('orc-modulos-list');
     if (!wrap) return;
@@ -9237,7 +9261,6 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function calcularOrcamento() {
     const numUsuarios = parseFloat(document.getElementById('orc-usuarios')?.value) || 0;
     const usuariosInclusos = parseFloat(document.getElementById('orc-a-usuariosInclusos')?.value) || 0;
-    const precoUsuAdic = parseFloat(document.getElementById('orc-a-precoUsuAdic')?.value) || 0;
     const descontoAnual = (parseFloat(document.getElementById('orc-a-descontoAnual')?.value) || 0) / 100;
     const implModulo = parseFloat(document.getElementById('orc-a-implModulo')?.value) || 0;
     const implUsuario = parseFloat(document.getElementById('orc-a-implUsuario')?.value) || 0;
@@ -9254,11 +9277,18 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
 
     const mensalidadeModulos = selecionados.reduce((s, m) => s + m.preco, 0);
+    const precoUsuAdic = precoUsuarioAdicionalPorFaixa(mensalidadeModulos);
+    const campoPrecoUsuAdic = document.getElementById('orc-a-precoUsuAdic');
+    if (campoPrecoUsuAdic) campoPrecoUsuAdic.value = precoUsuAdic;
+    const campoFaixa = document.getElementById('orc-a-precoUsuAdic-faixa');
+    if (campoFaixa) campoFaixa.textContent = `Faixa atual: ${labelFaixaUsuarioAdicional(mensalidadeModulos)} → R$ ${fmtVal(precoUsuAdic)}/usuário/mês`;
+
     const usuariosAdicionais = Math.max(0, numUsuarios - usuariosInclusos);
     const mensalidadeUsuarios = usuariosAdicionais * precoUsuAdic;
     const mensalidadeMensal = mensalidadeModulos + mensalidadeUsuarios;
     const mensalidadeAnual = mensalidadeMensal * (1 - descontoAnual);
-    const implantacao = (selecionados.length * implModulo) + (usuariosAdicionais * implUsuario);
+    const implUsuariosAdicionais = Math.max(0, numUsuarios - IMPL_USUARIOS_INCLUSOS);
+    const implantacao = (selecionados.length * implModulo) + (implUsuariosAdicionais * implUsuario);
     const devPersonalizado = devHoras * devValorHora;
     const totalUnico = implantacao + devPersonalizado;
     const totalAno1Mensal = (mensalidadeMensal * 12) + totalUnico;
@@ -9271,12 +9301,16 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           <span style="color:${destaque ? 'var(--navy)' : 'var(--text-secondary)'};font-weight:${destaque ? '700' : '400'}">${label}</span>
           <span style="color:var(--navy);font-weight:${destaque ? '800' : '600'};font-variant-numeric:tabular-nums">${valor}</span>
         </div>`;
+      const formula = (texto) => `<div style="padding:3px 2px 8px;font-size:11px;color:var(--text-secondary)">${texto}</div>`;
       resumo.innerHTML = [
-        linha('Mensalidade — módulos', `R$ ${fmtVal(mensalidadeModulos)}`),
+        linha(`Mensalidade — módulos (${selecionados.length})`, `R$ ${fmtVal(mensalidadeModulos)}`),
         usuariosAdicionais > 0 ? linha(`Usuários adicionais (${usuariosAdicionais})`, `R$ ${fmtVal(mensalidadeUsuarios)}`) : '',
+        usuariosAdicionais > 0 ? formula(`${usuariosAdicionais} usuário(s) adicional(is) × R$ ${fmtVal(precoUsuAdic)}/mês (faixa: ${labelFaixaUsuarioAdicional(mensalidadeModulos)}) = R$ ${fmtVal(mensalidadeUsuarios)}`) : '',
         linha('Mensalidade — plano mensal', `R$ ${fmtVal(mensalidadeMensal)}/mês`, true),
+        formula(`R$ ${fmtVal(mensalidadeModulos)} (módulos) + R$ ${fmtVal(mensalidadeUsuarios)} (usuários adicionais) = R$ ${fmtVal(mensalidadeMensal)}/mês`),
         linha(`Mensalidade — plano anual (-${(descontoAnual * 100).toFixed(0)}%)`, `R$ ${fmtVal(mensalidadeAnual)}/mês`, true),
         linha('Implantação (única)', `R$ ${fmtVal(implantacao)}`),
+        formula(`${selecionados.length} módulo(s) × R$ ${fmtVal(implModulo)} + ${implUsuariosAdicionais} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(implUsuario)} = R$ ${fmtVal(implantacao)}`),
         devPersonalizado > 0 ? linha('Desenvolvimento personalizado', `R$ ${fmtVal(devPersonalizado)}`) : '',
         linha('Total Ano 1 — plano mensal', `R$ ${fmtVal(totalAno1Mensal)}`, true),
         linha('Total Ano 1 — plano anual', `R$ ${fmtVal(totalAno1Anual)}`, true),
@@ -9287,7 +9321,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       numUsuarios, usuariosInclusos, precoUsuAdic, descontoAnual, implModulo, implUsuario,
       devValorHora, devHoras, devDescricao, devPersonalizado, politicaSuporte,
       selecionados, mensalidadeModulos, usuariosAdicionais, mensalidadeUsuarios,
-      mensalidadeMensal, mensalidadeAnual, implantacao, totalAno1Mensal, totalAno1Anual
+      mensalidadeMensal, mensalidadeAnual, implUsuariosAdicionais, implantacao, totalAno1Mensal, totalAno1Anual
     };
   }
 
@@ -9301,6 +9335,19 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function salvarOrcamento() {
     const nome = document.getElementById('orc-cliente-nome').value.trim();
     if (!nome) { alert('Informe o nome do cliente'); document.getElementById('orc-cliente-nome').focus(); return; }
+    const campoUsuarios = document.getElementById('orc-usuarios');
+    const numUsuariosRaw = campoUsuarios?.value;
+    const numUsuarios = parseFloat(numUsuariosRaw);
+    if (!numUsuariosRaw || !Number.isFinite(numUsuarios) || numUsuarios < 1 || !Number.isInteger(numUsuarios)) {
+      alert('Informe um número de usuários válido (não é possível orçar "usuários ilimitados" — o STRATEGYA sempre exige um teto numérico). Se o cliente pediu "ilimitado", pergunte o uso real esperado e informe um teto = uso real + margem de segurança.');
+      campoUsuarios?.focus();
+      return;
+    }
+    if (numUsuarios >= ORC_USUARIOS_TETO_ALERTA) {
+      alert(`Número de usuários muito alto (${numUsuarios}) — isso parece um substituto para "ilimitado", o que não é permitido no orçamento comercial. Pergunte ao cliente o uso REAL esperado (não o headcount total) e informe um teto = uso real + margem de segurança.`);
+      campoUsuarios?.focus();
+      return;
+    }
     const calc = calcularOrcamento();
     if (!calc.selecionados.length) { alert('Selecione ao menos um módulo'); return; }
     const hoje = new Date().toISOString().split('T')[0];
@@ -9378,8 +9425,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     orcamentoEditandoId = null;
     document.getElementById('orc-cliente-nome').value = '';
     document.getElementById('orc-usuarios').value = 10;
-    document.getElementById('orc-a-usuariosInclusos').value = 5;
-    document.getElementById('orc-a-precoUsuAdic').value = 25;
+    document.getElementById('orc-a-usuariosInclusos').value = 10;
     document.getElementById('orc-a-descontoAnual').value = 15;
     document.getElementById('orc-a-implModulo').value = 300;
     document.getElementById('orc-a-implUsuario').value = 50;
@@ -10052,6 +10098,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       const itens = (m.itens || []).map(it => `      - ${it}`).join('\n');
       return `  • ${m.nome} — R$ ${fmtVal(m.preco)}/mês${itens ? '\n' + itens : ''}`;
     }).join('\n');
+    const mensalidadeModulos = (o.modulos || []).reduce((s, m) => s + (parseFloat(m.preco) || 0), 0);
+    const usuariosAdicionais = Math.max(0, o.numUsuarios - o.usuariosInclusos);
+    const precoUsuAdic = precoUsuarioAdicionalPorFaixa(mensalidadeModulos);
+    const implUsuariosAdicionais = Math.max(0, o.numUsuarios - IMPL_USUARIOS_INCLUSOS);
     const linhas = [
       'ORÇAMENTO STRATEGYA — ORBEEX',
       '',
@@ -10059,12 +10109,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '',
       `Cliente: ${o.clienteNome}`,
       `Data: ${fmtData(o.data)}`,
-      `Usuários: ${o.numUsuarios} (${o.usuariosInclusos} inclusos + ${Math.max(0, o.numUsuarios - o.usuariosInclusos)} adicionais)`,
+      `Usuários: ${o.numUsuarios} (${o.usuariosInclusos} inclusos + ${usuariosAdicionais} adicionais)`,
+      usuariosAdicionais > 0 ? `  Usuário adicional: ${usuariosAdicionais} × R$ ${fmtVal(precoUsuAdic)}/mês (faixa: ${labelFaixaUsuarioAdicional(mensalidadeModulos)}) = R$ ${fmtVal(usuariosAdicionais * precoUsuAdic)}/mês` : '',
       '',
       'Módulos contratados (tudo listado abaixo já está incluso no valor do módulo):',
       linhasModulos,
       '',
       `Implantação (única, não recorrente): R$ ${fmtVal(o.implantacao)}`,
+      `  Cálculo: ${(o.modulos || []).length} módulo(s) × R$ ${fmtVal(o.implPorModulo)} + ${implUsuariosAdicionais} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(o.implPorUsuario)} = R$ ${fmtVal(o.implantacao)}`,
     ];
     if (o.devPersonalizado > 0) {
       linhas.push(`Desenvolvimento personalizado${o.devDescricao ? ' (' + o.devDescricao + ')' : ''}: R$ ${fmtVal(o.devPersonalizado)}`);
@@ -10100,6 +10152,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       </tr>`;
     }).join('');
     const usuariosAdicionais = Math.max(0, o.numUsuarios - o.usuariosInclusos);
+    const mensalidadeModulosRel = (o.modulos || []).reduce((s, m) => s + (parseFloat(m.preco) || 0), 0);
+    const precoUsuAdicRel = precoUsuarioAdicionalPorFaixa(mensalidadeModulosRel);
+    const implUsuariosAdicionaisRel = Math.max(0, o.numUsuarios - IMPL_USUARIOS_INCLUSOS);
     return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Orçamento STRATEGYA — ${o.clienteNome}</title>
@@ -10156,7 +10211,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <tbody>${linhasModulos}</tbody>
       </table>
       <div class="totais">
+        ${usuariosAdicionais > 0 ? `<div class="linha"><span>Usuários adicionais (${usuariosAdicionais})</span><span>R$ ${fmtVal(usuariosAdicionais * precoUsuAdicRel)}/mês</span></div>
+        <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">${usuariosAdicionais} usuário(s) × R$ ${fmtVal(precoUsuAdicRel)}/mês (faixa: ${labelFaixaUsuarioAdicional(mensalidadeModulosRel)})</div>` : ''}
         <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
+        <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">${(o.modulos || []).length} módulo(s) × R$ ${fmtVal(o.implPorModulo)} + ${implUsuariosAdicionaisRel} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(o.implPorUsuario)}</div>
         ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''}</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
         <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
