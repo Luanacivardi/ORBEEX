@@ -10377,6 +10377,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const implUsuariosAdicionaisRel = Math.max(0, o.numUsuarios - IMPL_USUARIOS_INCLUSOS);
     const totalUnicoRel = (parseFloat(o.implantacao) || 0) + (parseFloat(o.devPersonalizado) || 0) + (parseFloat(o.treinamentoTotal) || 0);
     const primeiroMesRel = (parseFloat(o.mensalidadeMensal) || 0) + totalUnicoRel;
+    // Com poucos módulos/itens o layout compacto sobra muito espaço em branco na página impressa —
+    // só aplica o adensamento (fontes/paddings menores) quando o conteúdo realmente precisa para caber em 1 página.
+    // Estima a altura impressa (em px, A4/8mm) com o layout "solto" para decidir se precisa adensar.
+    // Fórmula linear calibrada medindo a altura real renderizada em 3 cenários (3, 4 e 7 módulos);
+    // ~1062px é o limite de 1 página A4 com margem de 8mm — aciona o modo denso um pouco antes disso.
+    const totalItensRel = (o.modulos || []).reduce((s, m) => s + (m.itens || []).length, 0);
+    const alturaEstimadaRel = 759 + 33 * (o.modulos || []).length + 15.9 * totalItensRel;
+    const densoRel = alturaEstimadaRel > 1030;
     return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Orçamento STRATEGYA — ${o.clienteNome}</title>
@@ -10409,29 +10417,48 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   @media print{
     @page{size:A4;margin:8mm 10mm}
     .print-bar{display:none}
-    body{background:#fff;padding:0;font-size:11px;orphans:3;widows:3}
+    body{background:#fff;padding:0;font-size:12.5px;orphans:3;widows:3}
     .doc{box-shadow:none;border-radius:0;max-width:none}
-    .doc-header{padding:8px 24px}
-    .doc-body{padding:8px 24px}
-    .meta{margin-bottom:8px}
-    .intro{padding:6px 24px}
-    .intro p{margin:0 0 5px;line-height:1.25;font-size:10.5px}
-    .intro-highlights{gap:10px}
-    .intro-highlights div{font-size:9.5px}
-    table{margin-bottom:6px;font-size:12px}
-    th,td{padding:3px 0}
-    table td ul{margin:2px 0 0 !important;padding-left:16px !important;font-size:9.5px !important;line-height:1.25 !important}
-    table td > div{font-size:11px !important}
-    .totais{padding:7px 14px;margin-top:6px}
-    .totais .linha{padding:2px 0}
-    .totais .linha.dest{margin-top:4px;padding-top:5px;font-size:13.5px}
-    .politica-suporte{margin-top:6px;padding:6px 10px}
-    .doc-footer{padding:5px 24px}
+    .doc-header{padding:16px 28px}
+    .doc-body{padding:16px 28px}
+    .meta{margin-bottom:14px}
+    .intro{padding:12px 28px}
+    .intro p{margin:0 0 10px;line-height:1.5;font-size:12px}
+    .intro-highlights{gap:16px}
+    .intro-highlights div{font-size:11px}
+    table{margin-bottom:14px;font-size:13px}
+    th,td{padding:6px 0}
+    table td ul{margin:4px 0 0 !important;padding-left:17px !important;font-size:11px !important;line-height:1.45 !important}
+    table td > div{font-size:12.5px !important}
+    .totais{padding:12px 18px;margin-top:14px}
+    .totais .linha{padding:4px 0}
+    .totais .linha.dest{margin-top:6px;padding-top:9px;font-size:15.5px}
+    .politica-suporte{margin-top:10px;padding:9px 12px}
+    .doc-footer{padding:12px 28px}
     .totais,.politica-suporte,.doc-footer,table tr{page-break-inside:avoid}
     .intro,.doc-header{page-break-after:avoid}
+
+    /* Versão adensada: só entra em cena quando há módulos/itens suficientes para arriscar estourar 1 página */
+    body.denso{font-size:10.5px}
+    body.denso .doc-header{padding:6px 22px}
+    body.denso .doc-body{padding:6px 22px}
+    body.denso .meta{margin-bottom:6px}
+    body.denso .intro{padding:5px 22px}
+    body.denso .intro p{margin:0 0 4px;line-height:1.2;font-size:10px}
+    body.denso .intro-highlights{gap:9px}
+    body.denso .intro-highlights div{font-size:9px}
+    body.denso table{margin-bottom:5px;font-size:11.5px}
+    body.denso th,body.denso td{padding:2px 0}
+    body.denso table td ul{margin:2px 0 0 !important;padding-left:15px !important;font-size:9px !important;line-height:1.2 !important}
+    body.denso table td > div{font-size:10.5px !important}
+    body.denso .totais{padding:6px 12px;margin-top:5px}
+    body.denso .totais .linha{padding:1px 0}
+    body.denso .totais .linha.dest{margin-top:3px;padding-top:4px;font-size:13px}
+    body.denso .politica-suporte{margin-top:5px;padding:5px 9px}
+    body.denso .doc-footer{padding:4px 22px}
   }
 </style></head>
-<body>
+<body class="${densoRel ? 'denso' : ''}">
   <div class="print-bar"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
   <div class="doc">
     <div class="doc-header">
