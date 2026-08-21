@@ -8663,7 +8663,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       // ── Corpo do contrato ───────────────────────────────────────
       corpo +
 
-      // ── Assinaturas ─────────────────────────────────────────────
+      // ── Assinaturas (bloco único: nunca quebra entre páginas na impressão) ──
+      '<div style="page-break-inside:avoid;break-inside:avoid">' +
       '<p style="text-align:center;margin:12mm 0 6mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
       '<table style="width:100%;border-collapse:collapse"><tr>' +
       '<td style="width:50%;text-align:center;padding:0 8mm 0 0;vertical-align:top">' +
@@ -8686,6 +8687,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '<div style="height:14mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '</tr></table>' +
+      '</div>' +
 
       '</div></body></html>';
   }
