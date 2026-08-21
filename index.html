@@ -8663,28 +8663,30 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       // ── Corpo do contrato ───────────────────────────────────────
       corpo +
 
-      // ── Assinaturas (bloco único: nunca quebra entre páginas na impressão) ──
+      // ── Assinaturas (data + tabela ficam coladas no texto; só pulam de página se realmente não couberem) ──
       '<div style="page-break-inside:avoid;break-inside:avoid">' +
-      '<p style="text-align:center;margin:12mm 0 6mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
+      '<p style="text-align:center;margin:8mm 0 6mm;font-size:11px">' + esc(OC_PRESTADOR.local || 'Bento Gonçalves – RS') + ', ' + dataAssinatura + '.</p>' +
       '<table style="width:100%;border-collapse:collapse"><tr>' +
       '<td style="width:50%;text-align:center;padding:0 8mm 0 0;vertical-align:top">' +
-      '<div style="height:22mm">&nbsp;</div>' +
+      '<div style="height:18mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
       '<strong>CONTRATANTE</strong><br>' + esc(dados.razaoSocial || '') + '<br>CNPJ ' + esc(dados.cnpj || '[●]') + repCliente +
       '</div></td>' +
       '<td style="width:50%;text-align:center;padding:0 0 0 8mm;vertical-align:top">' +
-      '<div style="height:22mm">&nbsp;</div>' +
+      '<div style="height:18mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #252538;padding-top:8px;font-size:10.5px;line-height:1.6">' +
       '<strong>CONTRATADA</strong><br>' + esc((OC_PRESTADOR.razaoSocial || 'ORBEEX Assessoria em Sistemas de Gestão LTDA').toUpperCase()) + '<br>CNPJ ' + esc(OC_PRESTADOR.cnpj || '[●]') + repContratada +
       '</div></td>' +
       '</tr></table>' +
-      '<p style="margin:16mm 0 6mm;font-size:10px;font-weight:700;color:#252538;letter-spacing:.3px">TESTEMUNHAS:</p>' +
+      '</div>' +
+      '<div style="page-break-inside:avoid;break-inside:avoid">' +
+      '<p style="margin:10mm 0 6mm;font-size:10px;font-weight:700;color:#252538;letter-spacing:.3px">TESTEMUNHAS:</p>' +
       '<table style="width:100%;border-collapse:collapse"><tr>' +
       '<td style="width:50%;padding:0 8mm 0 0;vertical-align:top">' +
-      '<div style="height:14mm">&nbsp;</div>' +
+      '<div style="height:12mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '<td style="width:50%;padding:0 0 0 8mm;vertical-align:top">' +
-      '<div style="height:14mm">&nbsp;</div>' +
+      '<div style="height:12mm">&nbsp;</div>' +
       '<div style="border-top:1px solid #9999aa;padding-top:6px;font-size:9.5px;color:#555;line-height:2.1">Nome:<br>CPF:</div></td>' +
       '</tr></table>' +
       '</div>' +
