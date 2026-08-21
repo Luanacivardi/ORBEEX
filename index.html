@@ -2180,7 +2180,18 @@
           <div class="form-row">
             <div class="form-group"><label>Valor da hora (R$) <span style="color:red">*</span></label><input type="number" id="oc-sd-valorhora" min="0" step="0.01" placeholder="0,00" oninput="ocCalcular()"></div>
             <div class="form-group"><label><i class="ti ti-building" style="margin-right:3px"></i>Horas/semana — Presencial</label><input type="number" id="oc-sd-horas-presencial" min="0" step="0.5" placeholder="0" oninput="ocCalcular()"></div>
-            <div class="form-group"><label><i class="ti ti-home" style="margin-right:3px"></i>Horas/semana — Home Office</label><input type="number" id="oc-sd-horas-homeoffice" min="0" step="0.5" placeholder="0" oninput="ocCalcular()"></div>
+            <div class="form-group">
+              <label><i class="ti ti-home" style="margin-right:3px"></i>Horas/semana — Home Office</label>
+              <input type="number" id="oc-sd-horas-homeoffice" min="0" step="0.5" placeholder="0" oninput="ocCalcular()">
+              <label style="display:flex;align-items:center;gap:5px;font-weight:400;font-size:11.5px;color:var(--text-secondary);margin-top:4px;cursor:pointer">
+                <input type="checkbox" id="oc-sd-homeoffice-sobdemanda" onchange="ocToggleHomeOfficeSobDemanda()" style="width:auto;margin:0"> Sob demanda (sem hora fixa)
+              </label>
+            </div>
+          </div>
+          <div id="oc-sd-homeoffice-desc-wrap" style="display:none;margin-top:.5rem">
+            <div class="form-group"><label>Descrição do(s) projeto(s) atendidos em Home Office sob demanda</label>
+              <input type="text" id="oc-sd-homeoffice-desc" placeholder="Ex: Suporte pontual aos projetos A e B" oninput="ocCalcular()">
+            </div>
           </div>
           <div id="oc-sd-resumo" style="font-size:12.5px;color:var(--text-secondary);background:var(--surface-1);border-radius:8px;padding:9px 12px;margin-top:2px"></div>
         </div>
@@ -2692,7 +2703,7 @@
       ['diario',       'gh_diario?select=data,texto,atualizadoEm:atualizado_em'],
       ['orcamentos',   'gh_orcamentos?select=id,clienteNome:cliente_nome,data,numUsuarios:num_usuarios,modulos,usuariosInclusos:usuarios_inclusos,precoUsuarioAdicional:preco_usuario_adicional,descontoAnual:desconto_anual,implPorModulo:impl_por_modulo,implPorUsuario:impl_por_usuario,devValorHora:dev_valor_hora,devHoras:dev_horas,devDescricao:dev_descricao,devPersonalizado:dev_personalizado,politicaSuporte:politica_suporte,mensalidadeMensal:mensalidade_mensal,mensalidadeAnual:mensalidade_anual,implantacao,totalAno1Mensal:total_ano1_mensal,totalAno1Anual:total_ano1_anual'],
       ['strategyaAssinaturas', 'gh_strategya_assinaturas?select=id,clienteNome:cliente_nome,valorMensal:valor_mensal,status,dataInicio:data_inicio,plano,observacoes'],
-      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status,tipo,valorHora:valor_hora,horasSemanaPresencial:horas_semana_presencial,horasSemanaHomeOffice:horas_semana_home_office'],
+      ['orcamentosConsult', 'gh_orcamentos_consult?select=id,numero,clienteNome:cliente_nome,clienteId:cliente_id,contato,data,validadeDias:validade_dias,norma,objeto,itens,descontoPct:desconto_pct,impostosPct:impostos_pct,prazoExecucao:prazo_execucao,vigenciaContrato:vigencia_contrato,condicoesPagamento:condicoes_pagamento,observacoes,subtotal,total,status,tipo,valorHora:valor_hora,horasSemanaPresencial:horas_semana_presencial,horasSemanaHomeOffice:horas_semana_home_office,homeOfficeSobDemanda:home_office_sob_demanda,homeOfficeSobDemandaDescricao:home_office_sob_demanda_descricao'],
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
       ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento'],
       ['contratos',    'gh_contratos?select=id,clienteId:cliente_id,orcamentoId:orcamento_id,razaoSocial:razao_social,cnpj,endereco,representanteLegal:representante_legal,vigencia,horasMultaRescisao:horas_multa_rescisao,status,dataGeracao:data_geracao,dataEnvio:data_envio,dataAssinatura:data_assinatura,dataVencimento:data_vencimento,arquivoPath:arquivo_path,arquivoNome:arquivo_nome,observacoes'],
@@ -8932,11 +8943,23 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   }
 
   function ocValorHoraCampos() {
+    var homeOfficeSobDemanda = !!(document.getElementById('oc-sd-homeoffice-sobdemanda') || {}).checked;
     return {
       valorHora: parseFloat((document.getElementById('oc-sd-valorhora') || {}).value) || 0,
       horasPresencial: parseFloat((document.getElementById('oc-sd-horas-presencial') || {}).value) || 0,
-      horasHomeOffice: parseFloat((document.getElementById('oc-sd-horas-homeoffice') || {}).value) || 0
+      horasHomeOffice: homeOfficeSobDemanda ? 0 : (parseFloat((document.getElementById('oc-sd-horas-homeoffice') || {}).value) || 0),
+      homeOfficeSobDemanda: homeOfficeSobDemanda,
+      homeOfficeSobDemandaDescricao: (document.getElementById('oc-sd-homeoffice-desc') || {}).value ? document.getElementById('oc-sd-homeoffice-desc').value.trim() : ''
     };
+  }
+
+  function ocToggleHomeOfficeSobDemanda() {
+    var sobDemanda = !!(document.getElementById('oc-sd-homeoffice-sobdemanda') || {}).checked;
+    var campoHoras = document.getElementById('oc-sd-horas-homeoffice');
+    var wrapDesc = document.getElementById('oc-sd-homeoffice-desc-wrap');
+    if (campoHoras) { campoHoras.disabled = sobDemanda; campoHoras.style.opacity = sobDemanda ? '0.5' : ''; if (sobDemanda) campoHoras.value = ''; }
+    if (wrapDesc) wrapDesc.style.display = sobDemanda ? '' : 'none';
+    ocCalcular();
   }
 
   function ocCalcular() {
@@ -8949,9 +8972,10 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       var resumoSd = document.getElementById('oc-sd-resumo');
       if (resumoSd) {
         resumoSd.innerHTML = '<strong style="color:var(--navy)">' + horasSemana + 'h/semana</strong> (' +
-          sd.horasPresencial + 'h presencial + ' + sd.horasHomeOffice + 'h home office) × R$ ' + fmtVal(sd.valorHora) + '/h' +
+          sd.horasPresencial + 'h presencial' + (sd.homeOfficeSobDemanda ? '' : ' + ' + sd.horasHomeOffice + 'h home office') + ') × R$ ' + fmtVal(sd.valorHora) + '/h' +
           ' = <strong style="color:var(--navy)">R$ ' + fmtVal(valorSemana) + '/semana</strong>' +
-          ' &nbsp;·&nbsp; estimativa <strong style="color:var(--navy)">R$ ' + fmtVal(subtotal) + '/mês</strong> (' + SEMANAS_POR_MES + ' semanas/mês)';
+          ' &nbsp;·&nbsp; estimativa <strong style="color:var(--navy)">R$ ' + fmtVal(subtotal) + '/mês</strong> (' + SEMANAS_POR_MES + ' semanas/mês)' +
+          (sd.homeOfficeSobDemanda ? ' &nbsp;·&nbsp; <span style="color:#7c3aed;font-weight:600">+ Home Office sob demanda</span> (sem valor fixo mensal)' : '');
       }
     } else {
       subtotal = ocItens.reduce(function(s, it) { return s + (parseFloat(it.qtd) || 0) * (parseFloat(it.valorUnit) || 0); }, 0);
@@ -9000,6 +9024,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     var vh = document.getElementById('oc-sd-valorhora'); if (vh) vh.value = '';
     var hp = document.getElementById('oc-sd-horas-presencial'); if (hp) hp.value = '';
     var hh = document.getElementById('oc-sd-horas-homeoffice'); if (hh) hh.value = '';
+    var hhsd = document.getElementById('oc-sd-homeoffice-sobdemanda'); if (hhsd) hhsd.checked = false;
+    var hhdesc = document.getElementById('oc-sd-homeoffice-desc'); if (hhdesc) hhdesc.value = '';
+    ocToggleHomeOfficeSobDemanda();
     ocAddItem('', 1, 'hora', 0);
     ocRenderNormasChips();
     ocSetTipo('fechado');
@@ -9021,6 +9048,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       data: hoje, validadeDias: parseInt(document.getElementById('oc-validade').value) || 15,
       norma: ocNormasSel.join(', '), objeto: objeto, itens: itensLimpos,
       tipo: ocTipo, valorHora: sd.valorHora, horasSemanaPresencial: sd.horasPresencial, horasSemanaHomeOffice: sd.horasHomeOffice,
+      homeOfficeSobDemanda: sd.homeOfficeSobDemanda, homeOfficeSobDemandaDescricao: sd.homeOfficeSobDemandaDescricao,
       descontoPct: calc.descPct, impostosPct: calc.impPct,
       prazoExecucao: document.getElementById('oc-prazo').value.trim(),
       vigenciaContrato: document.getElementById('oc-vigencia').value.trim(),
@@ -9029,7 +9057,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       subtotal: calc.subtotal, total: calc.total, status: document.getElementById('oc-status').value
     };
     var valido = ocTipo === 'sob_demanda'
-      ? (sd.valorHora > 0 && (sd.horasPresencial + sd.horasHomeOffice) > 0)
+      ? (sd.valorHora > 0 && (sd.horasPresencial + sd.horasHomeOffice > 0 || sd.homeOfficeSobDemanda))
       : itensLimpos.length > 0;
     return { cliente: cliente, objeto: objeto, itensLimpos: itensLimpos, valido: valido, obj: obj };
   }
@@ -9038,7 +9066,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function imprimirOrcamentoConsultoriaForm() {
     var f = _ocColetarForm();
     if (!f.cliente) { alert('Informe o cliente para gerar a proposta'); document.getElementById('oc-cliente').focus(); return; }
-    if (!f.valido) { alert(ocTipo === 'sob_demanda' ? 'Informe o valor da hora e ao menos uma hora semanal (presencial ou home office)' : 'Adicione ao menos um item para gerar a proposta'); return; }
+    if (!f.valido) { alert(ocTipo === 'sob_demanda' ? 'Informe o valor da hora e ao menos uma hora semanal (presencial ou home office), ou marque home office sob demanda' : 'Adicione ao menos um item para gerar a proposta'); return; }
     _ocGerarDocumentoOC(f.obj);
   }
 
@@ -9053,6 +9081,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       data: campoLocal.data, validade_dias: campoLocal.validadeDias, norma: campoLocal.norma, objeto: campoLocal.objeto,
       itens: campoLocal.itens, tipo: campoLocal.tipo, valor_hora: campoLocal.valorHora,
       horas_semana_presencial: campoLocal.horasSemanaPresencial, horas_semana_home_office: campoLocal.horasSemanaHomeOffice,
+      home_office_sob_demanda: campoLocal.homeOfficeSobDemanda, home_office_sob_demanda_descricao: campoLocal.homeOfficeSobDemandaDescricao,
       desconto_pct: campoLocal.descontoPct, impostos_pct: campoLocal.impostosPct,
       prazo_execucao: campoLocal.prazoExecucao, vigencia_contrato: campoLocal.vigenciaContrato, condicoes_pagamento: campoLocal.condicoesPagamento,
       observacoes: campoLocal.observacoes, subtotal: campoLocal.subtotal, total: campoLocal.total, status: campoLocal.status
@@ -9094,6 +9123,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('oc-sd-valorhora').value = o.valorHora || '';
     document.getElementById('oc-sd-horas-presencial').value = o.horasSemanaPresencial || '';
     document.getElementById('oc-sd-horas-homeoffice').value = o.horasSemanaHomeOffice || '';
+    document.getElementById('oc-sd-homeoffice-sobdemanda').checked = !!o.homeOfficeSobDemanda;
+    document.getElementById('oc-sd-homeoffice-desc').value = o.homeOfficeSobDemandaDescricao || '';
+    ocToggleHomeOfficeSobDemanda();
     ocNormasSel = (o.norma || '').split(',').map(function(s) { return s.trim(); }).filter(Boolean);
     ocItens = (o.itens || []).map(function(it) { return { descricao: it.descricao || '', qtd: it.qtd != null ? it.qtd : 1, unidade: it.unidade || 'hora', valorUnit: it.valorUnit != null ? it.valorUnit : 0 }; });
     if (!ocItens.length) ocItens = [{ descricao: '', qtd: 1, unidade: 'hora', valorUnit: 0 }];
@@ -9184,8 +9216,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       return '<tr class="' + (dest ? 'tot' : '') + '"><td colspan="3" class="r">' + l + '</td><td class="r">' + v + '</td></tr>';
     };
     var linhasSobDemanda = [
-      '<tr><td>Dedicação semanal — Presencial</td><td class="c">' + fmtVal(o.horasSemanaPresencial || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaPresencial) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>',
-      '<tr><td>Dedicação semanal — Home Office</td><td class="c">' + fmtVal(o.horasSemanaHomeOffice || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaHomeOffice) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>'
+      (parseFloat(o.horasSemanaPresencial) || 0) > 0
+        ? '<tr><td>Dedicação semanal — Presencial</td><td class="c">' + fmtVal(o.horasSemanaPresencial || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaPresencial) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>'
+        : '',
+      (parseFloat(o.horasSemanaHomeOffice) || 0) > 0
+        ? '<tr><td>Dedicação semanal — Home Office</td><td class="c">' + fmtVal(o.horasSemanaHomeOffice || 0) + ' h/semana</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">R$ ' + fmtVal((parseFloat(o.horasSemanaHomeOffice) || 0) * (parseFloat(o.valorHora) || 0)) + '/semana</td></tr>'
+        : '',
+      o.homeOfficeSobDemanda
+        ? '<tr><td>Dedicação — Home Office<div style="font-size:10.5px;color:#8a8aa0;font-weight:400">' + esc(o.homeOfficeSobDemandaDescricao || '') + '</div></td><td class="c">Sob demanda</td><td class="r">R$ ' + fmtVal(o.valorHora || 0) + '/h</td><td class="r">—</td></tr>'
+        : ''
     ].join('');
     var resumo = [
       linhaResumo(ehSobDemanda ? 'Subtotal (estimativa mensal, ' + SEMANAS_POR_MES + ' semanas/mês)' : 'Subtotal', 'R$ ' + fmtVal(subtotal)),
