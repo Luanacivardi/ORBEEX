@@ -9389,7 +9389,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '.objeto{line-height:1.3}' +
       'table.itens th,table.itens td{padding:4px 8px}' +
       '.cond div{margin-bottom:2px}' +
-      '.assina{padding:14px 24px 8px;gap:24px}' +
+      '.assina{padding:34px 24px 8px;gap:24px}' +
       '.foot{padding:5px 24px 6px}' +
       '}' +
       '</style></head><body><div class="doc">' +
@@ -10301,15 +10301,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     }
     if (o.treinamentoTotal > 0) {
       linhas.push(`Treinamento dos usuários${o.treinDescricao ? ' (' + o.treinDescricao + ')' : ''}: R$ ${fmtVal(o.treinamentoTotal)}`);
+      linhas.push('  Cobrança única, feita no fechamento do contrato.');
     }
     linhas.push(
       '',
       `Mensalidade (plano mensal): R$ ${fmtVal(o.mensalidadeMensal)}/mês`,
       `Mensalidade (plano anual, -${(o.descontoAnual * 100).toFixed(0)}%): R$ ${fmtVal(o.mensalidadeAnual)}/mês`,
       '',
-      `INVESTIMENTO TOTAL NO 1º ANO (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
-      `  Cálculo: (R$ ${fmtVal(o.mensalidadeMensal)}/mês × 12) + implantação + treinamento/dev. personalizado = R$ ${fmtVal(o.totalAno1Mensal)}`,
-      `INVESTIMENTO TOTAL NO 1º ANO (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
+      `Investimento total no 1º ano (plano mensal): R$ ${fmtVal(o.totalAno1Mensal)}`,
+      `Investimento total no 1º ano (plano anual): R$ ${fmtVal(o.totalAno1Anual)}`,
     );
     if (o.politicaSuporte) {
       linhas.push('', o.politicaSuporte);
@@ -10368,7 +10368,30 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   .doc-footer{padding:18px 32px;font-size:11px;color:#9a9ab0;border-top:1px solid #e2e2ee;text-align:center}
   .print-bar{max-width:680px;margin:0 auto 14px;text-align:right}
   .print-bar button{background:#E8B84B;color:#1a1a2e;border:none;border-radius:8px;padding:9px 18px;font-weight:700;font-size:13px;cursor:pointer}
-  @media print{.print-bar{display:none}body{background:#fff;padding:0;orphans:3;widows:3}.doc{box-shadow:none;border-radius:0}.totais,.politica-suporte,.doc-footer,table tr{page-break-inside:avoid}.intro,.doc-header{page-break-after:avoid}}
+  @media print{
+    @page{size:A4;margin:8mm 10mm}
+    .print-bar{display:none}
+    body{background:#fff;padding:0;font-size:11px;orphans:3;widows:3}
+    .doc{box-shadow:none;border-radius:0;max-width:none}
+    .doc-header{padding:8px 24px}
+    .doc-body{padding:8px 24px}
+    .meta{margin-bottom:8px}
+    .intro{padding:6px 24px}
+    .intro p{margin:0 0 5px;line-height:1.25;font-size:10.5px}
+    .intro-highlights{gap:10px}
+    .intro-highlights div{font-size:9.5px}
+    table{margin-bottom:6px;font-size:12px}
+    th,td{padding:3px 0}
+    table td ul{margin:2px 0 0 !important;padding-left:16px !important;font-size:9.5px !important;line-height:1.25 !important}
+    table td > div{font-size:11px !important}
+    .totais{padding:7px 14px;margin-top:6px}
+    .totais .linha{padding:2px 0}
+    .totais .linha.dest{margin-top:4px;padding-top:5px;font-size:13.5px}
+    .politica-suporte{margin-top:6px;padding:6px 10px}
+    .doc-footer{padding:5px 24px}
+    .totais,.politica-suporte,.doc-footer,table tr{page-break-inside:avoid}
+    .intro,.doc-header{page-break-after:avoid}
+  }
 </style></head>
 <body>
   <div class="print-bar"><button onclick="window.print()">Imprimir / Salvar PDF</button></div>
@@ -10401,12 +10424,12 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <div class="linha"><span>Implantação (única, não recorrente)</span><span>R$ ${fmtVal(o.implantacao)}</span></div>
         <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">${(o.modulos || []).length} módulo(s) × R$ ${fmtVal(o.implPorModulo)} + ${implUsuariosAdicionaisRel} usuário(s) além dos ${IMPL_USUARIOS_INCLUSOS} inclusos × R$ ${fmtVal(o.implPorUsuario)}</div>
         ${o.devPersonalizado > 0 ? `<div class="linha"><span>Desenvolvimento personalizado${o.devDescricao ? ' — ' + o.devDescricao : ''}</span><span>R$ ${fmtVal(o.devPersonalizado)}</span></div>` : ''}
-        ${o.treinamentoTotal > 0 ? `<div class="linha"><span>Treinamento dos usuários${o.treinDescricao ? ' — ' + o.treinDescricao : ''}</span><span>R$ ${fmtVal(o.treinamentoTotal)}</span></div>` : ''}
+        ${o.treinamentoTotal > 0 ? `<div class="linha"><span>Treinamento dos usuários${o.treinDescricao ? ' — ' + o.treinDescricao : ''}</span><span>R$ ${fmtVal(o.treinamentoTotal)}</span></div>
+        <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">Cobrança única, feita no fechamento do contrato.</div>` : ''}
         <div class="linha dest"><span>Mensalidade — plano mensal</span><span>R$ ${fmtVal(o.mensalidadeMensal)}/mês</span></div>
         <div class="linha dest"><span>Mensalidade — plano anual (-${(o.descontoAnual * 100).toFixed(0)}%)</span><span>R$ ${fmtVal(o.mensalidadeAnual)}/mês</span></div>
-        <div class="linha dest" style="background:#252538;color:#fff;border-radius:8px;margin-top:8px"><span>Investimento total — 1º ano (plano mensal)</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
-        <div style="font-size:11px;color:#6b6b8a;padding:0 0 8px">(R$ ${fmtVal(o.mensalidadeMensal)}/mês × 12) + implantação${o.devPersonalizado > 0 ? ' + desenvolvimento' : ''}${o.treinamentoTotal > 0 ? ' + treinamento' : ''} = R$ ${fmtVal(o.totalAno1Mensal)}</div>
-        <div class="linha dest" style="background:#252538;color:#fff;border-radius:8px"><span>Investimento total — 1º ano (plano anual)</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;margin-top:6px;border-top:1px dashed #d8d8e4;font-size:11px;color:#8a8aa0"><span>Investimento total — 1º ano (plano mensal)</span><span>R$ ${fmtVal(o.totalAno1Mensal)}</span></div>
+        <div style="display:flex;justify-content:space-between;padding:5px 0;font-size:11px;color:#8a8aa0"><span>Investimento total — 1º ano (plano anual)</span><span>R$ ${fmtVal(o.totalAno1Anual)}</span></div>
       </div>
       ${o.politicaSuporte ? `<div class="politica-suporte"><i>&#9432;</i> ${o.politicaSuporte}</div>` : ''}
     </div>
