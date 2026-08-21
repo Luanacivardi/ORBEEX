@@ -9243,6 +9243,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       linhaResumo(ehSobDemanda ? 'TOTAL ESTIMADO / MÊS' : 'TOTAL', 'R$ ' + fmtVal(total), true)
     ].join('');
 
+    var clienteInfo = clientes.find(function(c) { return c.id === o.clienteId; }) || clientes.find(function(c) { return c.nome === o.clienteNome; });
+
     var pInfo = [];
     if (OC_PRESTADOR.cnpj) pInfo.push('CNPJ: ' + esc(OC_PRESTADOR.cnpj));
     if (OC_PRESTADOR.contato) pInfo.push(esc(OC_PRESTADOR.contato));
@@ -9287,7 +9289,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       '<div class="sub">' + esc(OC_PRESTADOR.subtitulo) + '</div>' + (pInfo.length ? '<div class="pinfo">' + pInfo.join('<br>') + '</div>' : '') + '</div>' +
       '<div class="htitle"><div class="t">PROPOSTA COMERCIAL</div><div class="d">' + esc(ocCodigo(o)) + ' · Data: ' + dataFmt + '</div></div></div>' +
       '<div class="parties">' +
-      '<div class="party"><div class="cap">Cliente</div><div class="nm">' + esc(o.clienteNome) + '</div>' + (o.contato ? '<div class="ln">A/C: ' + esc(o.contato) + '</div>' : '') + '</div>' +
+      '<div class="party"><div class="cap">Cliente</div><div class="nm">' + esc(o.clienteNome) + '</div>' +
+      (o.contato ? '<div class="ln">A/C: ' + esc(o.contato) + '</div>' : '') +
+      (clienteInfo && clienteInfo.cnpj ? '<div class="ln">CNPJ: ' + esc(clienteInfo.cnpj) + '</div>' : '') +
+      (clienteInfo && clienteInfo.endereco ? '<div class="ln">' + esc(clienteInfo.endereco) + '</div>' : '') +
+      '</div>' +
       '<div class="party"><div class="cap">Status</div><div class="nm" style="text-transform:capitalize">' + esc(o.status || 'rascunho') + '</div><div class="ln">Validade: ' + (o.validadeDias || 15) + ' dias</div></div>' +
       '</div>' +
       '<div class="sec"><h3>Objeto</h3><div class="objeto">' + esc(o.objeto) + '</div></div>' +
