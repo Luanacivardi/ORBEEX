@@ -1501,6 +1501,10 @@
         <div class="form-group"><label>Projeto/Serviço</label><input type="text" id="cliente-projeto" placeholder="Ex: Implantação ISO 9001"></div>
       </div>
       <div class="form-row">
+        <div class="form-group"><label>CNPJ</label><input type="text" id="cliente-cnpj" placeholder="00.000.000/0001-00"></div>
+        <div class="form-group"><label>Endereço</label><input type="text" id="cliente-endereco" placeholder="Rua, número, bairro, cidade/UF"></div>
+      </div>
+      <div class="form-row">
         <div class="form-group"><label>Taxa Horária (R$)</label><input type="number" id="cliente-taxa" placeholder="150.00" step="10"></div>
         <div class="form-group"><label>Observações</label><input type="text" id="cliente-obs" placeholder="Informações adicionais"></div>
       </div>
@@ -2689,7 +2693,7 @@
     }
 
     var buscas = [
-      ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs'],
+      ['clientes',     'gh_clientes?select=id,nome,projeto,taxa,obs,cnpj,endereco'],
       ['planejamento', 'gh_planejamento?select=id,clienteId:cliente_id,clienteNome:cliente_nome,clienteProjeto:cliente_projeto,inicio,termino,entrada,saida,intervalo,modalidade,atividade,horas,taxa,valor,responsavel,status,obs,confirmado,projetoId:projeto_id'],
       ['tarefas',      'gh_tarefas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,entrada,saida,intervalo,modalidade,atividade,descricao,horas,taxa,valor,cobrado,recebido,dataRecebimento:data_recebimento,planejamentoId:planejamento_id,projetoId:projeto_id'],
       ['anotacoes',    'gh_anotacoes?select=id,titulo,clienteId:cliente_id,clienteNome:cliente_nome,data,hora,categoria,prioridade,descricao,status,concluida,visivelRelatorio:visivel_relatorio,visivelCobranca:visivel_cobranca,projetoId:projeto_id,responsavel,criadaEm:criada_em,numero,marco,tipoMarco:tipo_marco'],
@@ -2937,6 +2941,8 @@ let clienteEditandoId = null;
     const projeto = document.getElementById('cliente-projeto').value;
     const taxa = parseFloat(document.getElementById('cliente-taxa').value);
     const obs = document.getElementById('cliente-obs').value;
+    const cnpj = document.getElementById('cliente-cnpj').value.trim();
+    const endereco = document.getElementById('cliente-endereco').value.trim();
     if (!nome || !projeto || !taxa) { alert('Preencha todos os campos obrigatórios'); return; }
 
     if (clienteEditandoId) {
@@ -2946,9 +2952,9 @@ let clienteEditandoId = null;
       const c = clientes.find(c => c.id === clienteEditandoId);
       if (c) {
         const anterior = Object.assign({}, c);
-        Object.assign(c, { nome, projeto, taxa, obs });
+        Object.assign(c, { nome, projeto, taxa, obs, cnpj, endereco });
         persistir(
-          sbTable('gh_clientes').update(c.id, { nome, projeto, taxa, obs }),
+          sbTable('gh_clientes').update(c.id, { nome, projeto, taxa, obs, cnpj, endereco }),
           function() { Object.assign(c, anterior); renderizarClientes(); atualizarSelectsClientes(); }
         );
       }
@@ -2958,13 +2964,13 @@ let clienteEditandoId = null;
       return;
     }
 
-    const novo = { id: crypto.randomUUID(), nome, projeto, taxa, obs };
+    const novo = { id: crypto.randomUUID(), nome, projeto, taxa, obs, cnpj, endereco };
     clientes.push(novo);
     persistir(
       sbTable('gh_clientes').insert(novo),
       function() { clientes = clientes.filter(c => c.id !== novo.id); renderizarClientes(); atualizarSelectsClientes(); }
     );
-    ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs'].forEach(id => document.getElementById(id).value = '');
+    ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs','cliente-cnpj','cliente-endereco'].forEach(id => document.getElementById(id).value = '');
     renderizarClientes(); atualizarSelectsClientes();
   }
 
@@ -2976,6 +2982,8 @@ let clienteEditandoId = null;
     document.getElementById('cliente-projeto').value = c.projeto;
     document.getElementById('cliente-taxa').value    = c.taxa;
     document.getElementById('cliente-obs').value     = c.obs || '';
+    document.getElementById('cliente-cnpj').value     = c.cnpj || '';
+    document.getElementById('cliente-endereco').value = c.endereco || '';
     const btn = document.getElementById('cliente-btn-salvar');
     btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Alterações';
     document.getElementById('cliente-btn-cancelar').style.display = '';
@@ -2984,7 +2992,7 @@ let clienteEditandoId = null;
 
   function cancelarEdicaoCliente() {
     clienteEditandoId = null;
-    ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs'].forEach(id => document.getElementById(id).value = '');
+    ['cliente-nome','cliente-projeto','cliente-taxa','cliente-obs','cliente-cnpj','cliente-endereco'].forEach(id => document.getElementById(id).value = '');
     const btn = document.getElementById('cliente-btn-salvar');
     btn.innerHTML = '<i class="ti ti-plus"></i> Adicionar Cliente';
     document.getElementById('cliente-btn-cancelar').style.display = 'none';
@@ -3007,6 +3015,8 @@ let clienteEditandoId = null;
     document.getElementById('modal-cliente-nome').textContent = c.nome;
     document.getElementById('modal-cliente-projeto').textContent = c.projeto || '—';
     document.getElementById('modal-cliente-taxa').textContent = 'R$ ' + fmtVal(c.taxa) + '/h';
+    document.getElementById('modal-cliente-cnpj').textContent = c.cnpj || '—';
+    document.getElementById('modal-cliente-endereco').textContent = c.endereco || '—';
     document.getElementById('modal-cliente-obs').value = c.obs || '';
 
     const projetosCliente = projetos.filter(p => p.clienteId === id)
@@ -10322,6 +10332,8 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       'ID':        c.id,
       'Nome':      c.nome,
       'Projeto':   c.projeto,
+      'CNPJ':      c.cnpj || '',
+      'Endereço':  c.endereco || '',
       'Taxa R$/h': c.taxa,
       'Obs':       c.obs || ''
     })));
@@ -10533,11 +10545,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           const rows = XLSX.utils.sheet_to_json(wb.Sheets['Clientes']);
           if (rows.length) {
             clientes = rows.map(r => ({
-              id:      r['ID']        || crypto.randomUUID(),
-              nome:    r['Nome']      || '',
-              projeto: r['Projeto']   || '',
-              taxa:    parseFloat(r['Taxa R$/h']) || 0,
-              obs:     r['Obs']       || ''
+              id:       r['ID']        || crypto.randomUUID(),
+              nome:     r['Nome']      || '',
+              projeto:  r['Projeto']   || '',
+              cnpj:     r['CNPJ']      || '',
+              endereco: r['Endereço']  || '',
+              taxa:     parseFloat(r['Taxa R$/h']) || 0,
+              obs:      r['Obs']       || ''
             }));
           }
         }
@@ -11287,6 +11301,14 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
             <span id="modal-cliente-taxa" class="taxa-oculta" data-visivel="0" style="font-size:13px;font-weight:600;color:var(--navy);filter:blur(5px);user-select:none;transition:filter .15s"></span>
             <i class="ti ti-eye" style="cursor:pointer;color:var(--text-secondary);font-size:14px" title="Mostrar/ocultar valor/hora" onclick="toggleTaxaCliente(this)"></i>
           </div>
+        </div>
+        <div>
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">CNPJ</div>
+          <div id="modal-cliente-cnpj" style="font-size:13px;font-weight:600;color:var(--navy)"></div>
+        </div>
+        <div style="grid-column:1 / -1">
+          <div style="font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--text-secondary);margin-bottom:3px">Endereço</div>
+          <div id="modal-cliente-endereco" style="font-size:13px;font-weight:600;color:var(--navy)"></div>
         </div>
       </div>
       <div style="background:var(--gold-bg);border-radius:10px;padding:12px 14px;margin-bottom:14px">
