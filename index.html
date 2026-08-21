@@ -6384,14 +6384,13 @@ ${corpoHTML}
       <div class="sec-titulo"><i>📋</i> Serviços Prestados</div>
       <table class="srv-table">
         <thead><tr><th class="dt-cel" style="width:84px">Data</th><th>Descrição da Atividade</th><th class="tc" style="width:76px">Horário</th>${ctx.thModalidade}<th class="tr" style="width:56px">Horas</th><th class="tr" style="width:86px">Valor R$</th></tr></thead>
-        <tbody>${linhas}</tbody>
-        <tfoot>
+        <tbody>${linhas}
           <tr class="total-row">
             <td colspan="${ctx.colspanTotal}"><strong>TOTAL GERAL</strong></td>
             <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
             <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
           </tr>
-        </tfoot>
+        </tbody>
       </table>
       ${blocoConcluidas}
       <div class="resumo">
@@ -6445,8 +6444,8 @@ ${corpoHTML}
   .srv-table thead tr{background:#252538}
   .srv-table th{padding:9px 12px;text-align:left;color:rgba(255,255,255,.8);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
   .srv-table td{padding:8px 12px;border-bottom:1px solid #f0f0f6;vertical-align:middle}
-  .srv-table tbody tr:nth-child(even) td{background:#fafafa}
-  .srv-table tfoot .total-row td{padding:10px 12px;background:#f4f4f8;border-top:2px solid #252538;font-size:12px}
+  .srv-table tbody tr:nth-child(even):not(.total-row) td{background:#fafafa}
+  .srv-table tbody .total-row td{padding:10px 12px;background:#f4f4f8;border-top:2px solid #252538;font-size:12px}
   .ln-anot{margin-top:4px;font-size:10px;color:#6b6b8a;line-height:1.5}
   .total-valor{font-size:14px;font-weight:800;color:#252538}
   .valor-cel{font-weight:600}
@@ -6472,7 +6471,7 @@ ${corpoHTML}
     body{background:#fff;orphans:3;widows:3}
     .fatura{box-shadow:none;margin:0;max-width:100%;border-radius:0}
     .quebra{page-break-before:always}
-    .resumo,.resumo-item,.rodape,.srv-table tr,.srv-table tfoot,thead{page-break-inside:avoid}
+    .resumo,.resumo-item,.rodape,.srv-table tr,thead{page-break-inside:avoid}
     @page{margin:10mm 12mm;size:A4}
   }
 </style></head><body>${blocosHtml}</body></html>`);
