@@ -3025,10 +3025,15 @@ let clienteEditandoId = null;
       .filter(o => o.clienteId === id || o.clienteNome === c.nome)
       .sort((a, b) => (b.data || '').localeCompare(a.data || ''));
 
-    const aprovados = ocsCliente.filter(o => o.status === 'aprovado');
+    // Conta como "acordada" tanto a proposta formalmente aprovada quanto a que já tem um contrato
+    // gerado a partir dela — sem isso, um contrato "Enviado"/"Assinado" amarrado a uma proposta que
+    // segue como "Enviado" fazia o valor acordado mostrar "nenhuma proposta aprovada", contradizendo
+    // o contrato exibido logo abaixo no mesmo modal.
+    const contratoClienteAtual = contratoDoCliente(id);
+    const aprovados = ocsCliente.filter(o => o.status === 'aprovado' || (contratoClienteAtual && contratoClienteAtual.orcamentoId === o.id));
     const valorAcordado = aprovados.reduce((s, o) => s + (parseFloat(o.total) || 0), 0);
     document.getElementById('modal-cliente-valor-acordado').innerHTML = aprovados.length
-      ? 'R$ ' + fmtVal(valorAcordado) + (aprovados.length > 1 ? ` <span style="font-size:11px;color:var(--text-secondary);font-weight:400">(${aprovados.length} propostas aprovadas)</span>` : '')
+      ? 'R$ ' + fmtVal(valorAcordado) + (aprovados.length > 1 ? ` <span style="font-size:11px;color:var(--text-secondary);font-weight:400">(${aprovados.length} propostas)</span>` : '')
       : '<span style="color:var(--text-secondary);font-weight:400;font-size:13px">Nenhuma proposta aprovada ainda</span>';
 
     const badge = (s) => {
