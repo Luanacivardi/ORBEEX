@@ -15,7 +15,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1962,7 +1961,6 @@
           <button class="agenda-view-btn" id="btn-view-mes" onclick="mudarVistaAgenda('mes')">Mês</button>
           <button class="agenda-view-btn" id="btn-view-lista" onclick="mudarVistaAgenda('lista')">Lista</button>
           <button class="agenda-today-btn" onclick="imprimirAgenda()"><i class="ti ti-printer"></i> Imprimir</button>
-          <button class="agenda-today-btn" onclick="gerarPdfAgenda(event)" style="background:#b91c1c;color:#fff;border-color:#b91c1c"><i class="ti ti-file-type-pdf"></i> Gerar PDF</button>
           <button class="agenda-today-btn" onclick="abrirModalAgendamentoMassa()" style="background:#3730a3;color:#fff;border-color:#3730a3"><i class="ti ti-calendar-plus"></i> Agendamento em Massa</button>
         </div>
       </div>
@@ -6236,49 +6234,6 @@ ${corpoHTML}
     janela.document.write(htmlDoc);
     janela.document.close();
     setTimeout(() => janela.print(), 400);
-  }
-
-  /* ---- Gerar PDF da Agenda direto (sem passar pela caixa de impressão) ----
-     Gera um arquivo .pdf pronto para baixar e enviar por e-mail/WhatsApp ao cliente. */
-  function gerarPdfAgenda(ev) {
-    const { titulo, dataInicio, dataFim, filtroCliente } = obterParametrosImpressaoAgenda();
-    const corpoHTML = construirCorpoAgendaImpressao(dataInicio, dataFim, filtroCliente);
-    const htmlDoc = construirHtmlDocumentoAgenda(titulo, corpoHTML);
-
-    if (typeof html2pdf === 'undefined') {
-      alert('Não foi possível carregar o gerador de PDF (sem conexão com a internet?). Use "Imprimir" e escolha "Salvar como PDF".');
-      return;
-    }
-
-    const btn = ev?.target?.closest ? ev.target.closest('button') : null;
-    const textoOriginal = btn ? btn.innerHTML : null;
-    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Gerando PDF...'; }
-
-    const iframe = document.createElement('iframe');
-    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1050px;height:100px;border:0;visibility:hidden';
-    document.body.appendChild(iframe);
-    iframe.srcdoc = htmlDoc;
-
-    iframe.onload = () => {
-      const nomeCliente = filtroCliente ? '-' + filtroCliente.replace(/[^\p{L}\p{N}]+/gu, '_') : '';
-      const nomeArquivo = `Agenda-ORBEEX-${dataInicio}_a_${dataFim}${nomeCliente}.pdf`;
-      html2pdf()
-        .set({
-          margin: [8, 6],
-          filename: nomeArquivo,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, windowWidth: 1050 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-          pagebreak: { mode: ['css', 'legacy'], avoid: '.dia-bloco' }
-        })
-        .from(iframe.contentDocument.body)
-        .save()
-        .catch(() => alert('Não foi possível gerar o PDF. Tente novamente ou use "Imprimir" > "Salvar como PDF".'))
-        .finally(() => {
-          document.body.removeChild(iframe);
-          if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
-        });
-    };
   }
 
   // ===== COBRANÇA =====
