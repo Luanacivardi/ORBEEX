@@ -15,6 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -522,6 +523,11 @@
     }
     .agenda-filtro label { margin: 0; font-size: 12px; }
     .agenda-filtro select { width: auto; padding: 5px 8px; font-size: 12px; }
+    .agenda-filtro input[type="date"] { width: auto; padding: 4px 7px; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; color: var(--text-primary); }
+    .agenda-filtro-periodo { display: flex; align-items: center; gap: 6px; }
+    .agenda-filtro-periodo span { font-size: 12px; color: var(--text-secondary); }
+    .agenda-filtro-limpar { background: none; border: none; color: var(--text-secondary); font-size: 11px; text-decoration: underline; cursor: pointer; padding: 0; }
+    .agenda-filtro-limpar:hover { color: var(--navy); }
 
     /* ---- VISTA DIA ---- */
     .outlook-day-view { display: flex; flex-direction: column; }
@@ -1956,6 +1962,7 @@
           <button class="agenda-view-btn" id="btn-view-mes" onclick="mudarVistaAgenda('mes')">Mês</button>
           <button class="agenda-view-btn" id="btn-view-lista" onclick="mudarVistaAgenda('lista')">Lista</button>
           <button class="agenda-today-btn" onclick="imprimirAgenda()"><i class="ti ti-printer"></i> Imprimir</button>
+          <button class="agenda-today-btn" onclick="gerarPdfAgenda(event)" style="background:#b91c1c;color:#fff;border-color:#b91c1c"><i class="ti ti-file-type-pdf"></i> Gerar PDF</button>
           <button class="agenda-today-btn" onclick="abrirModalAgendamentoMassa()" style="background:#3730a3;color:#fff;border-color:#3730a3"><i class="ti ti-calendar-plus"></i> Agendamento em Massa</button>
         </div>
       </div>
@@ -1966,6 +1973,13 @@
         <select id="agenda-filtro-cliente" onchange="renderizarAgenda()">
           <option value="">Todos os clientes</option>
         </select>
+        <div class="agenda-filtro-periodo">
+          <label>Período p/ Imprimir/PDF (opcional):</label>
+          <input type="date" id="agenda-filtro-data-ini" title="Data início">
+          <span>até</span>
+          <input type="date" id="agenda-filtro-data-fim" title="Data fim">
+          <button class="agenda-filtro-limpar" onclick="limparPeriodoAgendaImpressao()">Limpar período</button>
+        </div>
       </div>
 
       <!-- Legenda -->
@@ -5998,30 +6012,53 @@ let clienteEditandoId = null;
     );
   }
 
-  /* ---- Imprimir Agenda ---- */
-  function imprimirAgenda() {
-    const titulo = document.getElementById('agenda-titulo').textContent;
-    const filtroCliente = document.getElementById('agenda-filtro-cliente').value;
+  /* ---- Limpar período livre de impressão/PDF da agenda ---- */
+  function limparPeriodoAgendaImpressao() {
+    const ini = document.getElementById('agenda-filtro-data-ini');
+    const fim = document.getElementById('agenda-filtro-data-fim');
+    if (ini) ini.value = '';
+    if (fim) fim.value = '';
+  }
 
-    // Determina intervalo de datas conforme a vista atual
-    let dataInicio, dataFim;
-    if (agendaVista === 'dia') {
-      dataInicio = dataFim = isoData(agendaData);
-    } else if (agendaVista === 'semana') {
-      const ini = new Date(agendaData);
-      ini.setDate(ini.getDate() - ini.getDay());
-      const fim = new Date(ini); fim.setDate(fim.getDate() + 6);
-      dataInicio = isoData(ini); dataFim = isoData(fim);
-    } else if (agendaVista === 'mes') {
-      const ini = new Date(agendaData.getFullYear(), agendaData.getMonth(), 1);
-      const fim = new Date(agendaData.getFullYear(), agendaData.getMonth() + 1, 0);
-      dataInicio = isoData(ini); dataFim = isoData(fim);
+  /* ---- Determina título + intervalo de datas + filtro de cliente para Imprimir/PDF ----
+     Se o usuário preencher os campos de período livre (data início/fim), eles têm
+     prioridade sobre a vista atual (dia/semana/mês/lista). */
+  function obterParametrosImpressaoAgenda() {
+    const filtroCliente = document.getElementById('agenda-filtro-cliente').value;
+    const iniInput = document.getElementById('agenda-filtro-data-ini')?.value || '';
+    const fimInput = document.getElementById('agenda-filtro-data-fim')?.value || '';
+
+    let dataInicio, dataFim, titulo;
+
+    if (iniInput && fimInput) {
+      dataInicio = iniInput <= fimInput ? iniInput : fimInput;
+      dataFim    = iniInput <= fimInput ? fimInput : iniInput;
+      titulo = `${fmtData(dataInicio)} – ${fmtData(dataFim)}`;
     } else {
-      dataInicio = isoData(agendaData);
-      const fim = new Date(agendaData); fim.setDate(fim.getDate() + 30);
-      dataFim = isoData(fim);
+      titulo = document.getElementById('agenda-titulo').textContent;
+      if (agendaVista === 'dia') {
+        dataInicio = dataFim = isoData(agendaData);
+      } else if (agendaVista === 'semana') {
+        const ini = new Date(agendaData);
+        ini.setDate(ini.getDate() - ini.getDay());
+        const fim = new Date(ini); fim.setDate(fim.getDate() + 6);
+        dataInicio = isoData(ini); dataFim = isoData(fim);
+      } else if (agendaVista === 'mes') {
+        const ini = new Date(agendaData.getFullYear(), agendaData.getMonth(), 1);
+        const fim = new Date(agendaData.getFullYear(), agendaData.getMonth() + 1, 0);
+        dataInicio = isoData(ini); dataFim = isoData(fim);
+      } else {
+        dataInicio = isoData(agendaData);
+        const fim = new Date(agendaData); fim.setDate(fim.getDate() + 30);
+        dataFim = isoData(fim);
+      }
     }
 
+    return { titulo, dataInicio, dataFim, filtroCliente };
+  }
+
+  /* ---- Monta o HTML dos blocos de dia (compartilhado entre Imprimir e Gerar PDF) ---- */
+  function construirCorpoAgendaImpressao(dataInicio, dataFim, filtroCliente) {
     // Filtra e agrupa por data (compromissos de vários dias entram em cada dia do intervalo)
     let dados = planejamento.filter(p => p.inicio <= dataFim && (p.termino || p.inicio) >= dataInicio);
     if (filtroCliente) dados = dados.filter(p => p.clienteNome === filtroCliente);
@@ -6100,10 +6137,13 @@ let clienteEditandoId = null;
     });
 
     if (!corpoHTML) corpoHTML = '<p class="vazio">Nenhuma atividade encontrada para o período selecionado.</p>';
+    return corpoHTML;
+  }
 
+  /* ---- Monta o documento HTML completo (cabeçalho ORBEEX + corpo + rodapé) ---- */
+  function construirHtmlDocumentoAgenda(titulo, corpoHTML) {
     const agora = new Date();
-    const janela = window.open('', '', 'width=1050,height=800');
-    janela.document.write(`<!DOCTYPE html>
+    return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <title>Agenda ORBEEX — ${titulo}</title>
 <style>
@@ -6183,9 +6223,62 @@ ${corpoHTML}
   <span>Impresso em ${agora.toLocaleDateString('pt-BR')}</span>
 </div>
 
-</body></html>`);
+</body></html>`;
+  }
+
+  /* ---- Imprimir Agenda (abre a caixa de impressão do navegador) ---- */
+  function imprimirAgenda() {
+    const { titulo, dataInicio, dataFim, filtroCliente } = obterParametrosImpressaoAgenda();
+    const corpoHTML = construirCorpoAgendaImpressao(dataInicio, dataFim, filtroCliente);
+    const htmlDoc = construirHtmlDocumentoAgenda(titulo, corpoHTML);
+
+    const janela = window.open('', '', 'width=1050,height=800');
+    janela.document.write(htmlDoc);
     janela.document.close();
     setTimeout(() => janela.print(), 400);
+  }
+
+  /* ---- Gerar PDF da Agenda direto (sem passar pela caixa de impressão) ----
+     Gera um arquivo .pdf pronto para baixar e enviar por e-mail/WhatsApp ao cliente. */
+  function gerarPdfAgenda(ev) {
+    const { titulo, dataInicio, dataFim, filtroCliente } = obterParametrosImpressaoAgenda();
+    const corpoHTML = construirCorpoAgendaImpressao(dataInicio, dataFim, filtroCliente);
+    const htmlDoc = construirHtmlDocumentoAgenda(titulo, corpoHTML);
+
+    if (typeof html2pdf === 'undefined') {
+      alert('Não foi possível carregar o gerador de PDF (sem conexão com a internet?). Use "Imprimir" e escolha "Salvar como PDF".');
+      return;
+    }
+
+    const btn = ev?.target?.closest ? ev.target.closest('button') : null;
+    const textoOriginal = btn ? btn.innerHTML : null;
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="ti ti-loader-2"></i> Gerando PDF...'; }
+
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:1050px;height:100px;border:0;visibility:hidden';
+    document.body.appendChild(iframe);
+    iframe.srcdoc = htmlDoc;
+
+    iframe.onload = () => {
+      const nomeCliente = filtroCliente ? '-' + filtroCliente.replace(/[^\p{L}\p{N}]+/gu, '_') : '';
+      const nomeArquivo = `Agenda-ORBEEX-${dataInicio}_a_${dataFim}${nomeCliente}.pdf`;
+      html2pdf()
+        .set({
+          margin: [8, 6],
+          filename: nomeArquivo,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, windowWidth: 1050 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+          pagebreak: { mode: ['css', 'legacy'], avoid: '.dia-bloco' }
+        })
+        .from(iframe.contentDocument.body)
+        .save()
+        .catch(() => alert('Não foi possível gerar o PDF. Tente novamente ou use "Imprimir" > "Salvar como PDF".'))
+        .finally(() => {
+          document.body.removeChild(iframe);
+          if (btn) { btn.disabled = false; btn.innerHTML = textoOriginal; }
+        });
+    };
   }
 
   // ===== COBRANÇA =====
