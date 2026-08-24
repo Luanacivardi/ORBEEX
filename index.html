@@ -5548,7 +5548,7 @@ let clienteEditandoId = null;
         diaCol.className = 'semana-turno-dia' + (iso === hoje ? ' hoje' : '');
         diaCol.onclick = () => mostrarDetalhe(iso);
 
-        const doDia = obterPlanFiltrado().filter(p => p.inicio === iso);
+        const doDia = obterPlanFiltrado().filter(p => p.inicio <= iso && (p.termino || p.inicio) >= iso);
         let doTurno;
         if (turno.ehTarde) {
           doTurno = doDia.filter(p => p.entrada && p.saida && p.entrada >= '12:00')
@@ -5661,7 +5661,7 @@ let clienteEditandoId = null;
     num.className = 'month-cell-num'; num.textContent = d.getDate();
     cell.appendChild(num);
 
-    const eventosDia = obterPlanFiltrado().filter(p => p.inicio === iso);
+    const eventosDia = obterPlanFiltrado().filter(p => p.inicio <= iso && (p.termino || p.inicio) >= iso);
     const eventos = eventosDia.filter(p => p.entrada && p.saida).sort((a,b) => a.entrada.localeCompare(b.entrada))
       .concat(eventosDia.filter(p => !(p.entrada && p.saida)));
     const totalSlots = 3;
@@ -5702,8 +5702,9 @@ let clienteEditandoId = null;
     document.getElementById('agenda-titulo').textContent =
       prim.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 
+    const primISO = isoData(prim), ultISO = isoData(ult);
     const dados = obterPlanFiltrado()
-      .filter(p => { const d = new Date(p.inicio); return d >= prim && d <= ult; })
+      .filter(p => p.inicio <= ultISO && (p.termino || p.inicio) >= primISO)
       .sort((a, b) => a.inicio.localeCompare(b.inicio));
 
     const wrap = document.createElement('div');
@@ -5714,9 +5715,20 @@ let clienteEditandoId = null;
       cont.innerHTML = ''; cont.appendChild(wrap); return;
     }
 
-    // Agrupar por dia (planejamento + anotações)
+    // Agrupar por dia (planejamento + anotações) — compromissos de vários dias aparecem em cada dia do intervalo
     const porDia = {};
-    dados.forEach(t => { if (!porDia[t.inicio]) porDia[t.inicio] = []; porDia[t.inicio].push(t); });
+    dados.forEach(t => {
+      const iniIso = t.inicio > primISO ? t.inicio : primISO;
+      const fimIso = (t.termino || t.inicio) < ultISO ? (t.termino || t.inicio) : ultISO;
+      let cur = new Date(iniIso + 'T00:00:00');
+      const fimD = new Date(fimIso + 'T00:00:00');
+      while (cur <= fimD) {
+        const iso = isoData(cur);
+        if (!porDia[iso]) porDia[iso] = [];
+        porDia[iso].push(t);
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
     // Incluir dias que só têm anotações (respeitando o filtro de cliente)
     const fClienteLista = document.getElementById('agenda-filtro-cliente')?.value || '';
     anotacoes.filter(a => !a.concluida && a.data >= isoData(prim) && a.data <= isoData(ult) && (!fClienteLista || a.clienteNome === fClienteLista))
@@ -5831,7 +5843,7 @@ let clienteEditandoId = null;
   /* ---- Detalhe do dia ---- */
   function mostrarDetalhe(iso) {
     const d = new Date(iso + 'T00:00:00');
-    const eventos = obterPlanFiltrado().filter(p => p.inicio === iso);
+    const eventos = obterPlanFiltrado().filter(p => p.inicio <= iso && (p.termino || p.inicio) >= iso);
     const panel = document.getElementById('detalhe-dia-panel');
     const titulo = document.getElementById('detalhe-dia-titulo');
     const corpo = document.getElementById('detalhe-dia-corpo');
@@ -6010,13 +6022,24 @@ let clienteEditandoId = null;
       dataFim = isoData(fim);
     }
 
-    // Filtra e agrupa por data
-    let dados = planejamento.filter(p => p.inicio >= dataInicio && p.inicio <= dataFim);
+    // Filtra e agrupa por data (compromissos de vários dias entram em cada dia do intervalo)
+    let dados = planejamento.filter(p => p.inicio <= dataFim && (p.termino || p.inicio) >= dataInicio);
     if (filtroCliente) dados = dados.filter(p => p.clienteNome === filtroCliente);
     dados.sort((a, b) => a.inicio.localeCompare(b.inicio));
 
     const porData = {};
-    dados.forEach(p => { if (!porData[p.inicio]) porData[p.inicio] = []; porData[p.inicio].push(p); });
+    dados.forEach(p => {
+      const iniIso = p.inicio > dataInicio ? p.inicio : dataInicio;
+      const fimIso = (p.termino || p.inicio) < dataFim ? (p.termino || p.inicio) : dataFim;
+      let cur = new Date(iniIso + 'T00:00:00');
+      const fimD = new Date(fimIso + 'T00:00:00');
+      while (cur <= fimD) {
+        const iso = isoData(cur);
+        if (!porData[iso]) porData[iso] = [];
+        porData[iso].push(p);
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
     // Incluir datas que só têm anotações (respeitando o filtro de cliente)
     anotacoes.filter(a => !a.concluida && a.data >= dataInicio && a.data <= dataFim && (!filtroCliente || a.clienteNome === filtroCliente))
       .forEach(a => { if (!porData[a.data]) porData[a.data] = []; });
