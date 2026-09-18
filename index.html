@@ -783,11 +783,20 @@
       grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
       gap: 1rem; margin-bottom: 1.5rem;
     }
+    .dash-kpis-grandes {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+    }
     .dash-kpi {
       background: var(--navy); border-radius: var(--radius);
       padding: 1.1rem 1rem; border-left: 4px solid var(--gold);
       box-shadow: 0 2px 8px rgba(37,37,56,0.12);
     }
+    .dash-kpi-lg { padding: 1.6rem 1.4rem; border-left-width: 6px; box-shadow: 0 4px 16px rgba(37,37,56,0.18); }
+    .dash-kpi-lg .dash-kpi-label { font-size: 12.5px; }
+    .dash-kpi-lg .dash-kpi-value { font-size: 34px; }
+    .dash-kpi-lg .dash-kpi-sub { font-size: 12px; }
     .dash-kpi-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
     .dash-kpi-value { font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.1; }
     .dash-kpi-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
@@ -2347,6 +2356,7 @@
     </div>
 
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
+    <div class="dash-kpis-grandes" id="dash-kpis-grandes" style="margin-bottom:1rem"></div>
     <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
 
     <!-- Tabela resumo mensal (substitui o gráfico de evolução de faturamento mensal) -->
@@ -6379,7 +6389,8 @@ ${corpoHTML}
     // No modo "relatorio" os itens acabaram de ser marcados como cobrados agora mesmo — para o cliente,
     // o valor todo ainda está para pagar. Nos outros modos, mostramos o que já foi cobrado antes.
     const cobrado  = ctx.modo === 'relatorio' ? 0 : ts.filter(t => t.cobrado).reduce((s, t) => s + (parseFloat(t.valor)||0), 0);
-    const desconto = ctx.descontoTotal / ctx.nClientes;
+    // Desconto proporcional ao valor de cada lançamento deste cliente (não dividido igualmente entre clientes)
+    const desconto = ts.reduce((s, t) => { const d = ctx.descontosPorId && ctx.descontosPorId.get(t.id); return s + (d ? d.desconto : 0); }, 0);
     const saldo    = Math.max(0, totalV - cobrado - desconto);
     const cliObj   = clientes.find(c => c.nome === nomeCliente) || {};
 
@@ -6565,8 +6576,9 @@ ${corpoHTML}
       ? `${fmtData(datasSel[0])} a ${fmtData(datasSel[datasSel.length - 1])}`
       : 'Período selecionado';
 
-    const descontoTotal = getDesconto();
-    const nClientes = Object.keys(porcl).length;
+    // Proporcional ao valor de cada cliente/lançamento — não dividido igualmente entre clientes.
+    // Reaproveita o mapa se já veio pronto (gerarRelatorioCobranca precisa dele também para gravar o valor final).
+    const descontosPorId = opts.descontosPorId || distribuirDescontoPorTarefa(dados);
     const comModalidade = incluirModalidadeCobranca();
     const thModalidade = comModalidade ? '<th class="tc" style="width:80px">Modalidade</th>' : '';
     const colspanTotal = comModalidade ? 4 : 3;
@@ -6575,7 +6587,7 @@ ${corpoHTML}
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       blocos += construirBlocoFaturaCobranca(nomeCliente, ts, {
         dataEmissao, dataVencimento, periodoFmt, comModalidade, thModalidade, colspanTotal,
-        descontoTotal, nClientes, modo: opts.modo, idx, projetoId: opts.projetoId || null,
+        descontosPorId, modo: opts.modo, idx, projetoId: opts.projetoId || null,
         numeroDoc: proximoNumeroRelatorio(), tituloDoc: opts.tituloDoc
       });
     });
@@ -6589,6 +6601,9 @@ ${corpoHTML}
     if (!confirm(`Gerar relatório e marcar ${ids.length} registro(s) como Cobrado?`)) return;
 
     const selecionados = ids.map(id => tarefas.find(t => t.id === id)).filter(Boolean);
+    // Calculado com os valores originais, antes de qualquer alteração abaixo — usado tanto
+    // para o documento impresso quanto para gravar o valor com desconto já aplicado.
+    const descontosPorId = distribuirDescontoPorTarefa(selecionados);
 
     // Marcar como cobrado
     ids.forEach(id => { const t = tarefas.find(t => t.id === id); if (t) t.cobrado = true; });
@@ -6597,7 +6612,23 @@ ${corpoHTML}
       renderizarTarefas();
     });
 
-    imprimirDocumentoCobranca(selecionados, { modo: 'relatorio', tituloDoc: 'RELATÓRIO DE COBRANÇA', projetoId: document.getElementById('cobranca-projeto')?.value || null });
+    imprimirDocumentoCobranca(selecionados, { modo: 'relatorio', tituloDoc: 'RELATÓRIO DE COBRANÇA', projetoId: document.getElementById('cobranca-projeto')?.value || null, descontosPorId });
+
+    // Se houve desconto, grava o valor já descontado em cada lançamento — para que o que fica
+    // registrado como cobrado/a receber bata com o que foi de fato faturado ao cliente no documento acima.
+    const comDesconto = selecionados.filter(t => { const d = descontosPorId.get(t.id); return d && d.desconto > 0; });
+    if (comDesconto.length) {
+      const anteriores = comDesconto.map(t => ({ id: t.id, valor: t.valor }));
+      comDesconto.forEach(t => { t.valor = descontosPorId.get(t.id).valorFinal; });
+      renderizarTarefas();
+      persistir(
+        Promise.all(comDesconto.map(t => sbTable('gh_tarefas').update(t.id, { valor: t.valor }))),
+        function() {
+          anteriores.forEach(a => { const t = tarefas.find(x => x.id === a.id); if (t) t.valor = a.valor; });
+          renderizarTarefas();
+        }
+      );
+    }
 
     desmarcarTodosCobranca();
     filtrarCobranca();
@@ -6625,6 +6656,47 @@ ${corpoHTML}
 
   function getDesconto() {
     return Math.max(0, parseFloat(document.getElementById('cob-desconto')?.value || 0) || 0);
+  }
+
+  // Distribui o desconto total entre as tarefas selecionadas: primeiro por cliente
+  // (proporcional ao valor total de cada um, não dividido igualmente) e, dentro de
+  // cada cliente, proporcional ao valor de cada lançamento. Arredonda em centavos e
+  // joga a sobra de arredondamento no último item (do último cliente) para o total
+  // bater certinho. Retorna um Map id -> { valorOriginal, desconto, valorFinal }.
+  function distribuirDescontoPorTarefa(dados) {
+    const resultado = new Map();
+    dados.forEach(t => resultado.set(t.id, { valorOriginal: parseFloat(t.valor) || 0, desconto: 0, valorFinal: parseFloat(t.valor) || 0 }));
+    const totalGeral = dados.reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
+    const descontoTotal = Math.min(getDesconto(), totalGeral);
+    if (descontoTotal <= 0 || totalGeral <= 0) return resultado;
+
+    const porCliente = {};
+    dados.forEach(t => { (porCliente[t.clienteNome] = porCliente[t.clienteNome] || []).push(t); });
+    const nomesClientes = Object.keys(porCliente);
+
+    let descontoAcumulado = 0;
+    nomesClientes.forEach((nome, idxCliente) => {
+      const ts = porCliente[nome];
+      const totalCliente = ts.reduce((s, t) => s + (parseFloat(t.valor) || 0), 0);
+      const ultimoCliente = idxCliente === nomesClientes.length - 1;
+      const descontoCliente = ultimoCliente
+        ? Math.round((descontoTotal - descontoAcumulado) * 100) / 100
+        : Math.round((descontoTotal * (totalCliente / totalGeral)) * 100) / 100;
+      descontoAcumulado += descontoCliente;
+
+      let descontoLinhasAcumulado = 0;
+      ts.forEach((t, idxLinha) => {
+        const valorLinha = parseFloat(t.valor) || 0;
+        const ultimaLinha = idxLinha === ts.length - 1;
+        const descontoLinhaBruto = ultimaLinha
+          ? descontoCliente - descontoLinhasAcumulado
+          : (totalCliente > 0 ? Math.round((descontoCliente * (valorLinha / totalCliente)) * 100) / 100 : 0);
+        const descontoLinha = Math.max(0, Math.min(valorLinha, Math.round(descontoLinhaBruto * 100) / 100));
+        descontoLinhasAcumulado += descontoLinha;
+        resultado.set(t.id, { valorOriginal: valorLinha, desconto: descontoLinha, valorFinal: Math.round((valorLinha - descontoLinha) * 100) / 100 });
+      });
+    });
+    return resultado;
   }
 
   function incluirModalidadeCobranca() {
@@ -6878,10 +6950,10 @@ function imprimirCobranca() {
     const mesHorasRecebido = _tMes.filter(t=>t.recebido).reduce((s,t)=>s+_nvMes(t.valor),0);
 
     // ── Faturamento Total do mês: soma de tudo que compõe a receita —
-    // consultoria (horas faturadas no mês), produtos (parcelas com vencimento no mês)
-    // e assinaturas (MRR ativo). Serve de base também para o detalhamento percentual.
-    const vFaturamentoTotalMes = mesFat + vProdutosMesTotal + mrrStrategya;
-    const pctConsultoria  = vFaturamentoTotalMes > 0 ? (mesFat / vFaturamentoTotalMes * 100) : 0;
+    // consultoria CONFIRMADA no mês (não só o que já foi cobrado), produtos (parcelas
+    // com vencimento no mês) e assinaturas (MRR ativo). Serve de base também para o detalhamento percentual.
+    const vFaturamentoTotalMes = mesConf + vProdutosMesTotal + mrrStrategya;
+    const pctConsultoria  = vFaturamentoTotalMes > 0 ? (mesConf / vFaturamentoTotalMes * 100) : 0;
     const pctProdutosFat  = vFaturamentoTotalMes > 0 ? (vProdutosMesTotal / vFaturamentoTotalMes * 100) : 0;
     const pctAssinFat     = vFaturamentoTotalMes > 0 ? (mrrStrategya / vFaturamentoTotalMes * 100) : 0;
 
@@ -6892,7 +6964,7 @@ function imprimirCobranca() {
       <details class="dash-kpi-breakdown">
         <summary>Ver percentual por item</summary>
         <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>Consultoria</span><b>R$ ${fmtVal(mesFat)} · ${pctConsultoria.toFixed(1)}%</b></div>
+          <div class="dkb-linha"><span>Consultoria (confirmado)</span><b>R$ ${fmtVal(mesConf)} · ${pctConsultoria.toFixed(1)}%</b></div>
           <div class="dash-kpi-breakdown-bar"><span style="width:${pctConsultoria.toFixed(1)}%;background:#10b981"></span></div>
         </div>
         <div class="dash-kpi-breakdown-item">
@@ -6966,22 +7038,30 @@ function imprimirCobranca() {
         </div>
       </details>`;
 
-    document.getElementById('dash-kpis').innerHTML = [
-      { label:'Valor Planejado — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub: 'Tudo que está programado para o mês (planejamento + registrado + histórico)', cor:'#93c5fd' },
-      { label:'Valor Confirmado até o Momento', value:'R$ '+fmtVal(mesConf), sub: fmtVal(mesHConf)+'h confirmadas no mês', cor:'#E8B84B' },
-      { label:'Valor Faturado até o Dia',      value:'R$ '+fmtVal(mesFat),         sub: `${fmtVal(mesHFat)}h faturadas · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
-      { label:'Ticket Médio Geral / Hora',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
+    // Destaque: Faturamento Total do mês (consultoria confirmada + produtos + assinaturas) e os
+    // três componentes que o formam — em cards grandes. O resto (planejado, ticket médio, despesas,
+    // lucro etc.) segue em cards menores.
+    const kpisGrandes = [
+      { label:'Faturamento Total do Mês — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(vFaturamentoTotalMes), sub: 'Consultoria (confirmado) + Produtos + Assinaturas', cor:'#E8B84B', extra: breakdownFaturamento },
+      { label:'Consultoria Confirmada',        value:'R$ '+fmtVal(mesConf),        sub: fmtVal(mesHConf)+'h confirmadas no mês', cor:'#10b981' },
       { label:'Valor em Venda de Produtos',    value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
       { label:'Valor Assinaturas',             value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s) — STRATEGYA', cor:'#0891b2' },
-      { label:'Faturamento Total do Mês',      value:'R$ '+fmtVal(vFaturamentoTotalMes), sub: 'Consultoria + Produtos + Assinaturas', cor:'#E8B84B', extra: breakdownFaturamento },
+    ];
+    const kpisPequenos = [
+      { label:'Valor Planejado — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub: 'Tudo que está programado para o mês (planejamento + registrado + histórico)', cor:'#93c5fd' },
+      { label:'Valor Faturado até o Dia',      value:'R$ '+fmtVal(mesFat),         sub: `${fmtVal(mesHFat)}h faturadas · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
+      { label:'Ticket Médio Geral / Hora',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444', extra: breakdownDespesas },
       { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Valor Confirmado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444', extra: breakdownLucro },
-    ].map(k=>`<div class="dash-kpi" style="border-left-color:${k.cor}">
+    ];
+    const renderKpi = (tamanho) => (k) => `<div class="dash-kpi ${tamanho}" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
       <div class="dash-kpi-sub">${k.sub}</div>
       ${k.extra || ''}
-    </div>`).join('');
+    </div>`;
+    document.getElementById('dash-kpis-grandes').innerHTML = kpisGrandes.map(renderKpi('dash-kpi-lg')).join('');
+    document.getElementById('dash-kpis').innerHTML = kpisPequenos.map(renderKpi('')).join('');
 
     // ── Dados mensais (inclui histórico manual) ───────────────
     const dadosMensais = MESES.map((_,m) => {
@@ -6993,6 +7073,11 @@ function imprimirCobranca() {
       const histM = historico.filter(h => h.ano === ano && h.mes === m+1);
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
+      // Vendas de produtos: contam no mês do VENCIMENTO DA PARCELA (não da data da venda) — uma
+      // venda em 3x aparece com o valor certo no mês de cada parcela. A venda em si já é um negócio
+      // fechado (equivalente a "faturado"), por isso soma em vPlan/vConf/vFat, igual ao histórico manual.
+      const parcelasM  = vendasParcelas.filter(p => p.dataPrevista && p.dataPrevista.startsWith(pref));
+      const vProdutosM = parcelasM.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
       // Deduplicação no nível do ANO: um planejamento já registrado (em qualquer mês)
       // não aparece mais como "pendente" no mês do inicio; o valor entra no mês do registro (tM).
       const pMPendente  = pM.filter(p => !idsRegAno.has(p.id));
@@ -7002,10 +7087,11 @@ function imprimirCobranca() {
         hPlan: pMPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
         hConf: pMCPendente.reduce((s,p)=>s+p.horas,0) + tM.reduce((s,t)=>s+t.horas,0) + hHistM,
         hReal: tM .reduce((s,t)=>s+t.horas,0) + hHistM,
-        vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM,
-        vConf: pMCPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM,
-        vFat:  tM .filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0) + vHistM,
+        vPlan: pMPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM + vProdutosM,
+        vConf: pMCPendente.reduce((s,p)=>s+(parseFloat(p.valor)||0),0) + tM.reduce((s,t)=>s+(parseFloat(t.valor)||0),0) + vHistM + vProdutosM,
+        vFat:  tM .filter(t=>t.cobrado).reduce((s,t)=>s+t.valor,0) + vHistM + vProdutosM,
         vPend: tM .filter(t=>!t.cobrado).reduce((s,t)=>s+t.valor,0),
+        vProdutos: vProdutosM,
       };
     });
    // ── Gráfico horas ─────────────────────────────────────────
@@ -7163,6 +7249,16 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           cliMes[n].vConf += v;
           cliMes[n].vFat  += v;
         });
+        // Vendas de produtos: entram no mês do vencimento de cada parcela, atribuídas ao cliente da venda
+        vendasParcelas.filter(function(p){ return p.dataPrevista && p.dataPrevista.startsWith(pref); }).forEach(function(p) {
+          var venda = vendas.find(function(v){ return v.id === p.vendaId; });
+          var n = (venda && venda.clienteNome) || 'Sem cliente';
+          if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
+          var v = parseFloat(p.valor) || 0;
+          cliMes[n].vPlan += v;
+          cliMes[n].vConf += v;
+          cliMes[n].vFat  += v;
+        });
         var subLinhas = '';
         Object.keys(cliMes).forEach(function(nome) {
           var cv = cliMes[nome];
@@ -7253,6 +7349,17 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       porCliTabela[n].hPlan += hh; porCliTabela[n].vPlan += vv;
       porCliTabela[n].hConf += hh; porCliTabela[n].vConf += vv;
       porCliTabela[n].hFat  += hh; porCliTabela[n].vFat  += vv;
+    });
+    // Vendas de produtos do ano: mesma lógica (entram como planejado + confirmado + faturado, sem horas),
+    // atribuídas ao mês de vencimento de cada parcela e ao cliente da venda.
+    vendasParcelas.filter(p => p.dataPrevista && p.dataPrevista.startsWith(prefAno)).forEach(p => {
+      const venda = vendas.find(v => v.id === p.vendaId);
+      const n = (venda && venda.clienteNome) || 'Sem cliente';
+      if (!porCliTabela[n]) porCliTabela[n] = { hPlan:0, vPlan:0, hConf:0, vConf:0, hFat:0, vFat:0 };
+      const vv = parseFloat(p.valor) || 0;
+      porCliTabela[n].vPlan += vv;
+      porCliTabela[n].vConf += vv;
+      porCliTabela[n].vFat  += vv;
     });
 
  const linhasCli = Object.entries(porCliTabela).sort((a,b) => b[1].vPlan - a[1].vPlan).map(([nome, d]) => {
@@ -9981,6 +10088,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
         <td>${resumoParcelas}</td>
         <td>
           <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="imprimirReciboVenda('${v.id}')" title="Imprimir recibo desta venda" style="background:#2563eb;color:#fff"><i class="ti ti-printer"></i></button>
             <button class="btn btn-icon" onclick="editarVenda('${v.id}')" title="Editar" style="background:#6b7280;color:#fff"><i class="ti ti-pencil"></i></button>
             <button class="btn btn-icon btn-danger" onclick="deletarVenda('${v.id}')" title="Excluir"><i class="ti ti-trash"></i></button>
           </div>
@@ -10141,6 +10249,13 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
 
     abrirJanelaCobranca(opts.tituloDoc, blocos);
+  }
+
+  // Recibo individual — botão na lateral de cada venda, para gerar/enviar ao cliente daquela venda específica.
+  function imprimirReciboVenda(id) {
+    const venda = vendas.find(v => v.id === id);
+    if (!venda) return;
+    imprimirDocumentoVendas([venda], { tituloDoc: 'RECIBO DE VENDA' });
   }
 
   function imprimirVendasSelecionadas() {
