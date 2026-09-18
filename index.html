@@ -785,14 +785,20 @@
     }
     .dash-kpis-grandes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
-      gap: .7rem;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: .8rem;
     }
     .dash-kpi {
       background: var(--navy); border-radius: var(--radius);
       padding: .7rem .75rem; border-left: 3px solid var(--gold);
       box-shadow: 0 2px 8px rgba(37,37,56,0.12);
     }
+    /* Os 4 indicadores principais (Faturamento Total, Consultoria, Produtos, Assinaturas) —
+       um pouco maiores que o resto dos KPIs, para se destacarem sem voltar ao tamanho grande de antes. */
+    .dash-kpis-grandes .dash-kpi { padding: .95rem 1rem; border-left-width: 4px; }
+    .dash-kpis-grandes .dash-kpi-label { font-size: 11px; }
+    .dash-kpis-grandes .dash-kpi-value { font-size: 21px; }
+    .dash-kpis-grandes .dash-kpi-sub { font-size: 10.5px; }
     .dash-kpi-label { font-size: 9.5px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .dash-kpi-value { font-size: 16px; font-weight: 700; color: var(--gold); line-height: 1.1; }
     .dash-kpi-sub { font-size: 9.5px; color: rgba(255,255,255,0.35); margin-top: 3px; }
