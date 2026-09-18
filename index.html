@@ -780,26 +780,22 @@
     /* ===== DASHBOARD ===== */
     .dash-kpis {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(205px, 1fr));
-      gap: 1rem; margin-bottom: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: .7rem; margin-bottom: 1.1rem;
     }
     .dash-kpis-grandes {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: 1rem;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: .7rem;
     }
     .dash-kpi {
       background: var(--navy); border-radius: var(--radius);
-      padding: 1.1rem 1rem; border-left: 4px solid var(--gold);
+      padding: .7rem .75rem; border-left: 3px solid var(--gold);
       box-shadow: 0 2px 8px rgba(37,37,56,0.12);
     }
-    .dash-kpi-lg { padding: 1.6rem 1.4rem; border-left-width: 6px; box-shadow: 0 4px 16px rgba(37,37,56,0.18); }
-    .dash-kpi-lg .dash-kpi-label { font-size: 12.5px; }
-    .dash-kpi-lg .dash-kpi-value { font-size: 34px; }
-    .dash-kpi-lg .dash-kpi-sub { font-size: 12px; }
-    .dash-kpi-label { font-size: 11px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
-    .dash-kpi-value { font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.1; }
-    .dash-kpi-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; }
+    .dash-kpi-label { font-size: 9.5px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+    .dash-kpi-value { font-size: 16px; font-weight: 700; color: var(--gold); line-height: 1.1; }
+    .dash-kpi-sub { font-size: 9.5px; color: rgba(255,255,255,0.35); margin-top: 3px; }
     .dash-kpi-trend { font-size: 12px; font-weight: 600; margin-top: 4px; }
     .dash-kpi-trend.up { color: #10b981; }
     .dash-kpi-trend.down { color: #ef4444; }
@@ -7227,14 +7223,15 @@ function imprimirCobranca() {
       { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444', extra: breakdownDespesas },
       { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Valor Confirmado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444', extra: breakdownLucro },
     ];
-    const renderKpi = (tamanho) => (k) => `<div class="dash-kpi ${tamanho}" style="border-left-color:${k.cor}">
+    const renderKpi = (k) => `<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
       <div class="dash-kpi-value" style="color:${k.cor}">${k.value}</div>
       <div class="dash-kpi-sub">${k.sub}</div>
       ${k.extra || ''}
     </div>`;
-    document.getElementById('dash-kpis-grandes').innerHTML = kpisGrandes.map(renderKpi('dash-kpi-lg')).join('');
-    document.getElementById('dash-kpis').innerHTML = kpisPequenos.map(renderKpi('')).join('');
+    // Todos no mesmo tamanho (menor) — a pedido, sem destaque grande para nenhum grupo.
+    document.getElementById('dash-kpis-grandes').innerHTML = kpisGrandes.map(renderKpi).join('');
+    document.getElementById('dash-kpis').innerHTML = kpisPequenos.map(renderKpi).join('');
 
     // ── Dados mensais (inclui histórico manual) ───────────────
     const dadosMensais = MESES.map((_,m) => {
