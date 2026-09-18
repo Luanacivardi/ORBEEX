@@ -4,7 +4,7 @@
 // cache como reserva quando está sem internet. Chamadas ao Supabase NUNCA são
 // cacheadas, pra não mostrar dados desatualizados.
 
-const CACHE_NAME = 'gestor-horas-v2';
+const CACHE_NAME = 'gestor-horas-v3';
 const APP_SHELL = [
   './index.html',
   './login.html',

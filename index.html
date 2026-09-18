@@ -1457,6 +1457,7 @@
     <button class="tab-btn" data-tab="anotacoes" onclick="trocarAba(this,'anotacoes')"><i class="ti ti-notebook"></i> Anotações</button>
     <button class="tab-btn" data-tab="clientes" onclick="trocarAba(this,'clientes')"><i class="ti ti-users"></i> Clientes</button>
     <button class="tab-btn" data-tab="strategya" onclick="trocarAba(this,'strategya')"><i class="ti ti-chart-bar"></i> Strategya</button>
+    <button class="tab-btn" data-tab="digital" onclick="trocarAba(this,'digital')"><i class="ti ti-rocket"></i> Transformação Digital</button>
   </div>
   </div>
 
@@ -1671,6 +1672,167 @@
           <table class="table">
             <thead><tr><th>Nº</th><th>Cliente</th><th>Data</th><th>Módulos</th><th>Usuários</th><th>Mensalidade</th><th>Implantação</th><th>Total Ano 1</th><th>Ação</th></tr></thead>
             <tbody id="tbody-orcamentos"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA TRANSFORMAÇÃO DIGITAL (métricas do objetivo estratégico "Transformação Digital do Modelo
+       de Negócio" no STRATEGYA — satisfação/NPS, leads digitais, ferramentas padronizadas, TI e
+       segurança — nada disso tinha onde ser lançado até aqui) -->
+  <div id="digital" class="tab-content">
+
+    <div class="card" style="background:var(--navy);border:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px">
+        <div style="width:30px;height:30px;border-radius:8px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--navy);font-size:13px;flex-shrink:0"><i class="ti ti-rocket"></i></div>
+        <div style="color:#fff;font-weight:600;font-size:15px">Transformação Digital</div>
+        <span style="color:rgba(255,255,255,.45);font-size:11px;text-transform:uppercase;letter-spacing:.4px">Métricas do STRATEGYA</span>
+      </div>
+      <div style="color:rgba(255,255,255,.55);font-size:12.5px;margin-top:4px">Satisfação/NPS, leads digitais, ferramentas padronizadas e TI &amp; segurança — alimenta os indicadores do objetivo "Transformação Digital do Modelo de Negócio" no Planejamento Estratégico.</div>
+    </div>
+
+    <div class="filters" style="margin-bottom:1.25rem">
+      <button class="filter-btn active" id="digital-subtab-btn-satisfacao" onclick="trocarSubAbaDigital('satisfacao')"><i class="ti ti-mood-smile" style="margin-right:4px"></i>Satisfação/NPS</button>
+      <button class="filter-btn" id="digital-subtab-btn-leads" onclick="trocarSubAbaDigital('leads')"><i class="ti ti-target-arrow" style="margin-right:4px"></i>Leads Digitais</button>
+      <button class="filter-btn" id="digital-subtab-btn-ferramentas" onclick="trocarSubAbaDigital('ferramentas')"><i class="ti ti-tool" style="margin-right:4px"></i>Ferramentas Padronizadas</button>
+      <button class="filter-btn" id="digital-subtab-btn-ti" onclick="trocarSubAbaDigital('ti')"><i class="ti ti-shield-lock" style="margin-right:4px"></i>TI &amp; Segurança</button>
+    </div>
+
+    <!-- SUB-ABA: SATISFAÇÃO/NPS -->
+    <div id="digital-subtab-satisfacao" class="strat-subtab">
+      <div class="dashboard-grid" id="digital-satisfacao-resumo" style="margin-bottom:1.25rem"></div>
+      <div class="card">
+        <div class="card-header"><i class="ti ti-mood-smile"></i> Nova Avaliação</div>
+        <div class="form-row">
+          <div class="form-group"><label>Cliente</label><input type="text" id="sat-cliente" list="orc-clientes-datalist" placeholder="Nome do cliente" autocomplete="off"></div>
+          <div class="form-group"><label>Tipo</label>
+            <select id="sat-tipo">
+              <option value="atendimento_remoto">Atendimento Remoto</option>
+              <option value="entrega_final">Entrega Final (NPS)</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Nota (0 a 10)</label><input type="number" id="sat-nota" min="0" max="10" step="0.5" placeholder="Ex: 9"></div>
+          <div class="form-group"><label>Data</label><input type="date" id="sat-data"></div>
+        </div>
+        <div class="form-group"><label>Comentário</label><input type="text" id="sat-comentario" placeholder="Opcional"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="sat-btn-salvar" onclick="salvarSatisfacao()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Avaliação</button>
+          <button class="btn btn-sm" id="sat-btn-cancelar" onclick="cancelarEdicaoSatisfacao()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Data</th><th>Cliente</th><th>Tipo</th><th>Nota</th><th>Comentário</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-satisfacao"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-ABA: LEADS DIGITAIS -->
+    <div id="digital-subtab-leads" class="strat-subtab" style="display:none">
+      <div class="dashboard-grid" id="digital-leads-resumo" style="margin-bottom:1.25rem"></div>
+      <div class="card">
+        <div class="card-header"><i class="ti ti-target-arrow"></i> Novo Lead</div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome / Empresa</label><input type="text" id="lead-nome" placeholder="Ex: Empresa X"></div>
+          <div class="form-group"><label>Origem</label><input type="text" id="lead-origem" placeholder="Ex: Instagram, Google, Indicação"></div>
+          <div class="form-group"><label>Data</label><input type="date" id="lead-data"></div>
+          <div class="form-group"><label>Convertido?</label>
+            <select id="lead-convertido">
+              <option value="nao">Ainda não</option>
+              <option value="sim">Sim, virou cliente</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Observação</label><input type="text" id="lead-observacao" placeholder="Opcional"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="lead-btn-salvar" onclick="salvarLead()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Lead</button>
+          <button class="btn btn-sm" id="lead-btn-cancelar" onclick="cancelarEdicaoLead()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Data</th><th>Nome</th><th>Origem</th><th>Convertido</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-leads"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-ABA: FERRAMENTAS PADRONIZADAS -->
+    <div id="digital-subtab-ferramentas" class="strat-subtab" style="display:none">
+      <div class="dashboard-grid" id="digital-ferramentas-resumo" style="margin-bottom:1.25rem"></div>
+      <div class="card">
+        <div class="card-header"><i class="ti ti-tool"></i> Nova Ferramenta/Template</div>
+        <div class="form-row">
+          <div class="form-group"><label>Nome</label><input type="text" id="ferr-nome" placeholder="Ex: Template de relatório de auditoria remota"></div>
+          <div class="form-group"><label>Categoria</label><input type="text" id="ferr-categoria" placeholder="Ex: Relatório, Checklist, Apresentação"></div>
+          <div class="form-group"><label>Ativo?</label>
+            <select id="ferr-ativo">
+              <option value="sim">Sim</option>
+              <option value="nao">Não (descontinuado)</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Descrição</label><input type="text" id="ferr-descricao" placeholder="Opcional"></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="btn btn-primary" id="ferr-btn-salvar" onclick="salvarFerramenta()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Ferramenta</button>
+          <button class="btn btn-sm" id="ferr-btn-cancelar" onclick="cancelarEdicaoFerramenta()" style="display:none;background:#6b7280;color:#fff"><i class="ti ti-x"></i> Cancelar</button>
+        </div>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Nome</th><th>Categoria</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-ferramentas"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- SUB-ABA: TI & SEGURANÇA -->
+    <div id="digital-subtab-ti" class="strat-subtab" style="display:none">
+      <div class="dashboard-grid" id="digital-ti-resumo" style="margin-bottom:1.25rem"></div>
+
+      <div class="card">
+        <div class="card-header"><i class="ti ti-server"></i> Uptime Mensal</div>
+        <div class="form-row">
+          <div class="form-group"><label>Mês</label><input type="month" id="uptime-mes"></div>
+          <div class="form-group"><label>Uptime (%)</label><input type="number" id="uptime-percentual" min="0" max="100" step="0.01" placeholder="Ex: 99,9"></div>
+        </div>
+        <div class="form-group"><label>Observação</label><input type="text" id="uptime-observacao" placeholder="Opcional"></div>
+        <button class="btn btn-primary" id="uptime-btn-salvar" onclick="salvarUptime()" style="width:auto"><i class="ti ti-device-floppy"></i> Salvar Uptime do Mês</button>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Mês</th><th>Uptime</th><th>Observação</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-uptime"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><i class="ti ti-alert-triangle"></i> Incidentes de Segurança</div>
+        <div class="form-row">
+          <div class="form-group"><label>Data</label><input type="date" id="inc-data"></div>
+          <div class="form-group"><label>Severidade</label>
+            <select id="inc-severidade">
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+              <option value="critica">Crítica</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Resolvido?</label>
+            <select id="inc-resolvido">
+              <option value="nao">Ainda não</option>
+              <option value="sim">Sim</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group"><label>Descrição</label><input type="text" id="inc-descricao" placeholder="O que aconteceu"></div>
+        <button class="btn btn-primary" id="inc-btn-salvar" onclick="salvarIncidente()" style="width:auto"><i class="ti ti-device-floppy"></i> Registrar Incidente</button>
+        <div style="overflow-x:auto;margin-top:1rem">
+          <table class="table">
+            <thead><tr><th>Data</th><th>Descrição</th><th>Severidade</th><th>Status</th><th>Ação</th></tr></thead>
+            <tbody id="tbody-incidentes"></tbody>
           </table>
         </div>
       </div>
@@ -2582,6 +2744,7 @@
         else if (tabName === 'despesas') { renderizarDespesas(); renderizarDespesasRecorrentes(); }
         else if (tabName === 'clientes') { renderizarClientes(); }
         else if (tabName === 'strategya') { renderizarOrcamentos(); renderizarStrategya(); }
+        else if (tabName === 'digital') { renderizarTransformacaoDigital(); }
         else if (tabName === 'financeiro') { mudarSubFin(_finSub || 'cobranca'); }
       } catch(e2) { console.error('Erro ao renderizar aba ' + tabName + ':', e2); }
     } catch(e) { console.error('Erro ao trocar aba:', e); }
@@ -2691,7 +2854,7 @@
   }
 
   // ===== CARREGAMENTO DE DADOS (banco de dados Supabase, tabelas relacionais) =====
-  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [], vendasParcelas: [], contratos: [], config: [] };
+  window.__SRV__ = { clientes: [], tarefas: [], planejamento: [], anotacoes: [], historico: [], despesas: [], despesasRecorrentes: [], diario: [], orcamentos: [], strategyaAssinaturas: [], orcamentosConsult: [], vendas: [], vendasParcelas: [], contratos: [], config: [], satisfacao: [], leads: [], ferramentasDigitais: [], incidentesSeguranca: [], uptimeMensal: [] };
   window.__SRV_ERRO__ = false;
 
   function carregarDadosServidor() {
@@ -2723,7 +2886,12 @@
       ['vendas',       'gh_vendas?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,descricao,valor,recebido,dataRecebimento:data_recebimento'],
       ['vendasParcelas', 'gh_vendas_parcelas?select=id,vendaId:venda_id,numero,valor,dataPrevista:data_prevista,recebido,dataRecebimento:data_recebimento'],
       ['contratos',    'gh_contratos?select=id,clienteId:cliente_id,orcamentoId:orcamento_id,razaoSocial:razao_social,cnpj,endereco,representanteLegal:representante_legal,vigencia,horasMultaRescisao:horas_multa_rescisao,status,dataGeracao:data_geracao,dataEnvio:data_envio,dataAssinatura:data_assinatura,dataVencimento:data_vencimento,arquivoPath:arquivo_path,arquivoNome:arquivo_nome,observacoes'],
-      ['config',       'gh_config?select=chave,valor']
+      ['config',       'gh_config?select=chave,valor'],
+      ['satisfacao',   'gh_satisfacao?select=id,clienteId:cliente_id,clienteNome:cliente_nome,data,tipo,nota,comentario'],
+      ['leads',        'gh_leads?select=id,nome,origem,data,convertido,clienteId:cliente_id,observacao'],
+      ['ferramentasDigitais', 'gh_ferramentas_digitais?select=id,nome,categoria,descricao,ativo'],
+      ['incidentesSeguranca', 'gh_incidentes_seguranca?select=id,data,descricao,severidade,resolvido'],
+      ['uptimeMensal', 'gh_uptime_mensal?select=id,mes,percentual,observacao']
     ];
 
     return pronto.then(function() {
@@ -2772,6 +2940,11 @@
   let vendasParcelas = [];
   let contratos   = [];
   let configApp   = [];
+  let satisfacao  = [];
+  let leads       = [];
+  let ferramentasDigitais = [];
+  let incidentesSeguranca = [];
+  let uptimeMensal = [];
   let _finSub = 'cobranca';
   let _ocIniciado = false;
   let ocEditandoId = null;
@@ -10289,12 +10462,22 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const parcelasReceber = vendasParcelas.filter(p => !p.recebido);
     const totHoras  = horasReceber.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
     const totVendas = parcelasReceber.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    // Inadimplência: só dá pra calcular com precisão sobre as parcelas de vendas (têm data prevista
+    // de vencimento) — horas faturadas não têm campo de vencimento próprio, então ficam de fora
+    // desse cálculo pra não misturar "ainda não venceu" com "atrasado de verdade".
+    const hoje = hojeISO();
+    const parcelasVencidas = vendasParcelas.filter(p => p.dataPrevista && p.dataPrevista < hoje);
+    const parcelasVencidasNaoRecebidas = parcelasVencidas.filter(p => !p.recebido);
+    const totVencido = parcelasVencidas.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const totInadimplente = parcelasVencidasNaoRecebidas.reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
+    const pctInadimplencia = totVencido > 0 ? (totInadimplente / totVencido * 100) : null;
     const resumoEl = document.getElementById('receber-resumo');
     if (resumoEl) {
       resumoEl.innerHTML = `
         <div class="dashboard-card"><div class="dashboard-card-label">🕐 Horas Faturadas (a receber)</div><div class="dashboard-card-value">R$ ${fmtVal(totHoras)}</div></div>
         <div class="dashboard-card"><div class="dashboard-card-label">🛍️ Produtos Vendidos (a receber)</div><div class="dashboard-card-value">R$ ${fmtVal(totVendas)}</div></div>
-        <div class="dashboard-card" style="border-left-color:#059669"><div class="dashboard-card-label">💰 Total a Receber</div><div class="dashboard-card-value">R$ ${fmtVal(totHoras+totVendas)}</div></div>`;
+        <div class="dashboard-card" style="border-left-color:#059669"><div class="dashboard-card-label">💰 Total a Receber</div><div class="dashboard-card-value">R$ ${fmtVal(totHoras+totVendas)}</div></div>
+        <div class="dashboard-card" style="border-left-color:#dc2626" title="Parcelas de vendas já vencidas e ainda não recebidas, sobre o total de parcelas já vencidas. Horas faturadas não entram (não têm data de vencimento própria)."><div class="dashboard-card-label">⚠️ Inadimplência (produtos)</div><div class="dashboard-card-value">${pctInadimplencia !== null ? pctInadimplencia.toFixed(1) + '%' : '—'}</div></div>`;
     }
     const linhasHoras = horasReceber.map(t => `
       <tr>
@@ -10439,6 +10622,381 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
       sbTable('gh_strategya_assinaturas').remove(id),
       function () { if (removida) strategyaAssinaturas.push(removida); renderizarStrategya(); }
     );
+  }
+
+  // ===== TRANSFORMAÇÃO DIGITAL (Satisfação/NPS, Leads, Ferramentas Padronizadas, TI & Segurança) =====
+  let satisfacaoEditandoId = null;
+  let leadEditandoId = null;
+  let ferramentaEditandoId = null;
+
+  function trocarSubAbaDigital(nome) {
+    ['satisfacao', 'leads', 'ferramentas', 'ti'].forEach(function(n) {
+      document.getElementById('digital-subtab-' + n).style.display = (n === nome) ? '' : 'none';
+      document.getElementById('digital-subtab-btn-' + n).classList.toggle('active', n === nome);
+    });
+  }
+
+  function renderizarTransformacaoDigital() {
+    renderizarSatisfacao();
+    renderizarLeads();
+    renderizarFerramentas();
+    renderizarTi();
+  }
+
+  // ---- Satisfação/NPS ----
+  function salvarSatisfacao() {
+    const cliente = document.getElementById('sat-cliente').value.trim();
+    const tipo = document.getElementById('sat-tipo').value;
+    const nota = parseFloat(document.getElementById('sat-nota').value);
+    const data = document.getElementById('sat-data').value || hojeISO();
+    const comentario = document.getElementById('sat-comentario').value.trim();
+    if (isNaN(nota) || nota < 0 || nota > 10) { alert('Informe uma nota entre 0 e 10'); return; }
+
+    const payload = { cliente_nome: cliente || null, tipo, nota, data, comentario: comentario || null };
+    const campoLocal = { clienteNome: cliente || null, tipo, nota, data, comentario: comentario || null };
+
+    if (satisfacaoEditandoId) {
+      const s = satisfacao.find(s => s.id === satisfacaoEditandoId);
+      if (s) {
+        const anterior = Object.assign({}, s);
+        Object.assign(s, campoLocal);
+        persistir(sbTable('gh_satisfacao').update(s.id, payload), function () { Object.assign(s, anterior); renderizarSatisfacao(); });
+      }
+    } else {
+      const nova = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      satisfacao.push(nova);
+      persistir(sbTable('gh_satisfacao').insert(Object.assign({ id: nova.id }, payload)), function () { satisfacao = satisfacao.filter(s => s.id !== nova.id); renderizarSatisfacao(); });
+    }
+    cancelarEdicaoSatisfacao();
+    renderizarSatisfacao();
+  }
+  function editarSatisfacao(id) {
+    const s = satisfacao.find(s => s.id === id);
+    if (!s) return;
+    satisfacaoEditandoId = id;
+    document.getElementById('sat-cliente').value = s.clienteNome || '';
+    document.getElementById('sat-tipo').value = s.tipo;
+    document.getElementById('sat-nota').value = s.nota;
+    document.getElementById('sat-data').value = s.data;
+    document.getElementById('sat-comentario').value = s.comentario || '';
+    document.getElementById('sat-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição';
+    document.getElementById('sat-btn-cancelar').style.display = '';
+  }
+  function cancelarEdicaoSatisfacao() {
+    satisfacaoEditandoId = null;
+    document.getElementById('sat-cliente').value = '';
+    document.getElementById('sat-tipo').value = 'atendimento_remoto';
+    document.getElementById('sat-nota').value = '';
+    document.getElementById('sat-data').value = '';
+    document.getElementById('sat-comentario').value = '';
+    document.getElementById('sat-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Avaliação';
+    document.getElementById('sat-btn-cancelar').style.display = 'none';
+  }
+  function deletarSatisfacao(id) {
+    if (!confirm('Remover esta avaliação?')) return;
+    const removida = satisfacao.find(s => s.id === id);
+    satisfacao = satisfacao.filter(s => s.id !== id);
+    renderizarSatisfacao();
+    persistir(sbTable('gh_satisfacao').remove(id), function () { if (removida) satisfacao.push(removida); renderizarSatisfacao(); });
+  }
+  function renderizarSatisfacao() {
+    const tbody = document.getElementById('tbody-satisfacao');
+    if (!tbody) return;
+    const lista = [...satisfacao].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const tipoLabel = { atendimento_remoto: 'Atendimento Remoto', entrega_final: 'Entrega Final (NPS)' };
+    tbody.innerHTML = lista.length ? lista.map(s => `
+      <tr>
+        <td>${fmtData(s.data)}</td>
+        <td>${s.clienteNome || '—'}</td>
+        <td>${tipoLabel[s.tipo] || s.tipo}</td>
+        <td><strong>${s.nota}</strong></td>
+        <td>${s.comentario || '—'}</td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="editarSatisfacao('${s.id}')" title="Editar" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon" onclick="deletarSatisfacao('${s.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma avaliação lançada ainda</td></tr>`;
+
+    const remotos = satisfacao.filter(s => s.tipo === 'atendimento_remoto');
+    const entregas = satisfacao.filter(s => s.tipo === 'entrega_final');
+    const media = arr => arr.length ? (arr.reduce((s, x) => s + (parseFloat(x.nota) || 0), 0) / arr.length) : null;
+    const mediaRemoto = media(remotos);
+    const mediaNps = media(entregas);
+    const resumo = document.getElementById('digital-satisfacao-resumo');
+    if (resumo) resumo.innerHTML = `
+      <div class="dashboard-card"><div class="dashboard-card-label">Nota Média — Atendimento Remoto</div><div class="dashboard-card-value">${mediaRemoto !== null ? mediaRemoto.toFixed(1) : '—'}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Nota Média — Entrega Final (NPS)</div><div class="dashboard-card-value">${mediaNps !== null ? mediaNps.toFixed(1) : '—'}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Avaliações Lançadas</div><div class="dashboard-card-value">${satisfacao.length}</div></div>
+    `;
+  }
+
+  // ---- Leads Digitais ----
+  function salvarLead() {
+    const nome = document.getElementById('lead-nome').value.trim();
+    const origem = document.getElementById('lead-origem').value.trim();
+    const data = document.getElementById('lead-data').value || hojeISO();
+    const convertido = document.getElementById('lead-convertido').value === 'sim';
+    const observacao = document.getElementById('lead-observacao').value.trim();
+    if (!nome) { alert('Informe o nome/empresa do lead'); document.getElementById('lead-nome').focus(); return; }
+
+    const payload = { nome, origem: origem || null, data, convertido, observacao: observacao || null };
+    const campoLocal = { nome, origem: origem || null, data, convertido, observacao: observacao || null };
+
+    if (leadEditandoId) {
+      const l = leads.find(l => l.id === leadEditandoId);
+      if (l) {
+        const anterior = Object.assign({}, l);
+        Object.assign(l, campoLocal);
+        persistir(sbTable('gh_leads').update(l.id, payload), function () { Object.assign(l, anterior); renderizarLeads(); });
+      }
+    } else {
+      const novo = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      leads.push(novo);
+      persistir(sbTable('gh_leads').insert(Object.assign({ id: novo.id }, payload)), function () { leads = leads.filter(l => l.id !== novo.id); renderizarLeads(); });
+    }
+    cancelarEdicaoLead();
+    renderizarLeads();
+  }
+  function editarLead(id) {
+    const l = leads.find(l => l.id === id);
+    if (!l) return;
+    leadEditandoId = id;
+    document.getElementById('lead-nome').value = l.nome;
+    document.getElementById('lead-origem').value = l.origem || '';
+    document.getElementById('lead-data').value = l.data;
+    document.getElementById('lead-convertido').value = l.convertido ? 'sim' : 'nao';
+    document.getElementById('lead-observacao').value = l.observacao || '';
+    document.getElementById('lead-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição';
+    document.getElementById('lead-btn-cancelar').style.display = '';
+  }
+  function cancelarEdicaoLead() {
+    leadEditandoId = null;
+    document.getElementById('lead-nome').value = '';
+    document.getElementById('lead-origem').value = '';
+    document.getElementById('lead-data').value = '';
+    document.getElementById('lead-convertido').value = 'nao';
+    document.getElementById('lead-observacao').value = '';
+    document.getElementById('lead-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Lead';
+    document.getElementById('lead-btn-cancelar').style.display = 'none';
+  }
+  function deletarLead(id) {
+    if (!confirm('Remover este lead?')) return;
+    const removido = leads.find(l => l.id === id);
+    leads = leads.filter(l => l.id !== id);
+    renderizarLeads();
+    persistir(sbTable('gh_leads').remove(id), function () { if (removido) leads.push(removido); renderizarLeads(); });
+  }
+  function renderizarLeads() {
+    const tbody = document.getElementById('tbody-leads');
+    if (!tbody) return;
+    const lista = [...leads].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    tbody.innerHTML = lista.length ? lista.map(l => `
+      <tr>
+        <td>${fmtData(l.data)}</td>
+        <td>${l.nome}</td>
+        <td>${l.origem || '—'}</td>
+        <td><span class="badge ${l.convertido ? 'badge-success' : 'badge-warning'}">${l.convertido ? 'Convertido' : 'Em aberto'}</span></td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="editarLead('${l.id}')" title="Editar" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon" onclick="deletarLead('${l.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum lead cadastrado ainda</td></tr>`;
+
+    const total = leads.length;
+    const convertidos = leads.filter(l => l.convertido).length;
+    const taxa = total ? (convertidos / total * 100) : null;
+    const resumo = document.getElementById('digital-leads-resumo');
+    if (resumo) resumo.innerHTML = `
+      <div class="dashboard-card"><div class="dashboard-card-label">Leads Captados</div><div class="dashboard-card-value">${total}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Convertidos</div><div class="dashboard-card-value">${convertidos}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Taxa de Conversão</div><div class="dashboard-card-value">${taxa !== null ? taxa.toFixed(1) + '%' : '—'}</div></div>
+    `;
+  }
+
+  // ---- Ferramentas/Templates Digitais Padronizados ----
+  function salvarFerramenta() {
+    const nome = document.getElementById('ferr-nome').value.trim();
+    const categoria = document.getElementById('ferr-categoria').value.trim();
+    const ativo = document.getElementById('ferr-ativo').value === 'sim';
+    const descricao = document.getElementById('ferr-descricao').value.trim();
+    if (!nome) { alert('Informe o nome da ferramenta/template'); document.getElementById('ferr-nome').focus(); return; }
+
+    const payload = { nome, categoria: categoria || null, ativo, descricao: descricao || null };
+    const campoLocal = { nome, categoria: categoria || null, ativo, descricao: descricao || null };
+
+    if (ferramentaEditandoId) {
+      const f = ferramentasDigitais.find(f => f.id === ferramentaEditandoId);
+      if (f) {
+        const anterior = Object.assign({}, f);
+        Object.assign(f, campoLocal);
+        persistir(sbTable('gh_ferramentas_digitais').update(f.id, payload), function () { Object.assign(f, anterior); renderizarFerramentas(); });
+      }
+    } else {
+      const nova = Object.assign({ id: crypto.randomUUID() }, campoLocal);
+      ferramentasDigitais.push(nova);
+      persistir(sbTable('gh_ferramentas_digitais').insert(Object.assign({ id: nova.id }, payload)), function () { ferramentasDigitais = ferramentasDigitais.filter(f => f.id !== nova.id); renderizarFerramentas(); });
+    }
+    cancelarEdicaoFerramenta();
+    renderizarFerramentas();
+  }
+  function editarFerramenta(id) {
+    const f = ferramentasDigitais.find(f => f.id === id);
+    if (!f) return;
+    ferramentaEditandoId = id;
+    document.getElementById('ferr-nome').value = f.nome;
+    document.getElementById('ferr-categoria').value = f.categoria || '';
+    document.getElementById('ferr-ativo').value = f.ativo ? 'sim' : 'nao';
+    document.getElementById('ferr-descricao').value = f.descricao || '';
+    document.getElementById('ferr-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Edição';
+    document.getElementById('ferr-btn-cancelar').style.display = '';
+  }
+  function cancelarEdicaoFerramenta() {
+    ferramentaEditandoId = null;
+    document.getElementById('ferr-nome').value = '';
+    document.getElementById('ferr-categoria').value = '';
+    document.getElementById('ferr-ativo').value = 'sim';
+    document.getElementById('ferr-descricao').value = '';
+    document.getElementById('ferr-btn-salvar').innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Ferramenta';
+    document.getElementById('ferr-btn-cancelar').style.display = 'none';
+  }
+  function deletarFerramenta(id) {
+    if (!confirm('Remover esta ferramenta/template?')) return;
+    const removida = ferramentasDigitais.find(f => f.id === id);
+    ferramentasDigitais = ferramentasDigitais.filter(f => f.id !== id);
+    renderizarFerramentas();
+    persistir(sbTable('gh_ferramentas_digitais').remove(id), function () { if (removida) ferramentasDigitais.push(removida); renderizarFerramentas(); });
+  }
+  function renderizarFerramentas() {
+    const tbody = document.getElementById('tbody-ferramentas');
+    if (!tbody) return;
+    const lista = [...ferramentasDigitais].sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
+    tbody.innerHTML = lista.length ? lista.map(f => `
+      <tr>
+        <td>${f.nome}</td>
+        <td>${f.categoria || '—'}</td>
+        <td><span class="badge ${f.ativo ? 'badge-success' : 'badge-danger'}">${f.ativo ? 'Ativa' : 'Descontinuada'}</span></td>
+        <td>
+          <div class="btn-acao-row">
+            <button class="btn btn-icon" onclick="editarFerramenta('${f.id}')" title="Editar" style="background:#fff;border:1px solid var(--border);color:var(--text-secondary)"><i class="ti ti-pencil"></i></button>
+            <button class="btn btn-icon" onclick="deletarFerramenta('${f.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button>
+          </div>
+        </td>
+      </tr>`).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhuma ferramenta/template cadastrado ainda</td></tr>`;
+
+    const resumo = document.getElementById('digital-ferramentas-resumo');
+    if (resumo) resumo.innerHTML = `
+      <div class="dashboard-card"><div class="dashboard-card-label">Ferramentas/Templates Ativos</div><div class="dashboard-card-value">${ferramentasDigitais.filter(f => f.ativo).length}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Total Cadastrado</div><div class="dashboard-card-value">${ferramentasDigitais.length}</div></div>
+    `;
+  }
+
+  // ---- TI & Segurança (Uptime mensal + Incidentes) ----
+  function salvarUptime() {
+    const mesInput = document.getElementById('uptime-mes').value; // YYYY-MM
+    const percentual = parseFloat(document.getElementById('uptime-percentual').value);
+    const observacao = document.getElementById('uptime-observacao').value.trim();
+    if (!mesInput) { alert('Informe o mês'); return; }
+    if (isNaN(percentual) || percentual < 0 || percentual > 100) { alert('Informe um percentual entre 0 e 100'); return; }
+    const mes = mesInput + '-01';
+
+    const existente = uptimeMensal.find(u => u.mes === mes);
+    const payload = { mes, percentual, observacao: observacao || null };
+
+    if (existente) {
+      const anterior = Object.assign({}, existente);
+      Object.assign(existente, { percentual, observacao: observacao || null });
+      persistir(sbTable('gh_uptime_mensal').update(existente.id, payload), function () { Object.assign(existente, anterior); renderizarTi(); });
+    } else {
+      const novo = Object.assign({ id: crypto.randomUUID() }, payload);
+      uptimeMensal.push(novo);
+      persistir(sbTable('gh_uptime_mensal').insert(Object.assign({ id: novo.id }, payload)), function () { uptimeMensal = uptimeMensal.filter(u => u.id !== novo.id); renderizarTi(); });
+    }
+    document.getElementById('uptime-mes').value = '';
+    document.getElementById('uptime-percentual').value = '';
+    document.getElementById('uptime-observacao').value = '';
+    renderizarTi();
+  }
+  function deletarUptime(id) {
+    if (!confirm('Remover este lançamento de uptime?')) return;
+    const removido = uptimeMensal.find(u => u.id === id);
+    uptimeMensal = uptimeMensal.filter(u => u.id !== id);
+    renderizarTi();
+    persistir(sbTable('gh_uptime_mensal').remove(id), function () { if (removido) uptimeMensal.push(removido); renderizarTi(); });
+  }
+
+  function salvarIncidente() {
+    const data = document.getElementById('inc-data').value || hojeISO();
+    const severidade = document.getElementById('inc-severidade').value;
+    const resolvido = document.getElementById('inc-resolvido').value === 'sim';
+    const descricao = document.getElementById('inc-descricao').value.trim();
+    if (!descricao) { alert('Descreva o incidente'); document.getElementById('inc-descricao').focus(); return; }
+
+    const payload = { data, severidade, resolvido, descricao };
+    const novo = Object.assign({ id: crypto.randomUUID() }, payload);
+    incidentesSeguranca.push(novo);
+    persistir(sbTable('gh_incidentes_seguranca').insert(Object.assign({ id: novo.id }, payload)), function () { incidentesSeguranca = incidentesSeguranca.filter(i => i.id !== novo.id); renderizarTi(); });
+
+    document.getElementById('inc-data').value = '';
+    document.getElementById('inc-severidade').value = 'baixa';
+    document.getElementById('inc-resolvido').value = 'nao';
+    document.getElementById('inc-descricao').value = '';
+    renderizarTi();
+  }
+  function alternarResolvidoIncidente(id) {
+    const i = incidentesSeguranca.find(i => i.id === id);
+    if (!i) return;
+    const anterior = i.resolvido;
+    i.resolvido = !i.resolvido;
+    renderizarTi();
+    persistir(sbTable('gh_incidentes_seguranca').update(id, { resolvido: i.resolvido }), function () { i.resolvido = anterior; renderizarTi(); });
+  }
+  function deletarIncidente(id) {
+    if (!confirm('Remover este incidente?')) return;
+    const removido = incidentesSeguranca.find(i => i.id === id);
+    incidentesSeguranca = incidentesSeguranca.filter(i => i.id !== id);
+    renderizarTi();
+    persistir(sbTable('gh_incidentes_seguranca').remove(id), function () { if (removido) incidentesSeguranca.push(removido); renderizarTi(); });
+  }
+
+  function renderizarTi() {
+    const tbodyUp = document.getElementById('tbody-uptime');
+    if (tbodyUp) {
+      const listaUp = [...uptimeMensal].sort((a, b) => (b.mes || '').localeCompare(a.mes || ''));
+      tbodyUp.innerHTML = listaUp.length ? listaUp.map(u => {
+        const [ano, mes] = (u.mes || '').split('-');
+        const nomeMes = ano && mes ? new Date(ano, mes - 1, 1).toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }) : '—';
+        return `<tr><td style="text-transform:capitalize">${nomeMes}</td><td>${fmtVal(u.percentual)}%</td><td>${u.observacao || '—'}</td>
+          <td><button class="btn btn-icon" onclick="deletarUptime('${u.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button></td></tr>`;
+      }).join('') : `<tr><td colspan="4" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum uptime lançado ainda</td></tr>`;
+    }
+
+    const tbodyInc = document.getElementById('tbody-incidentes');
+    if (tbodyInc) {
+      const listaInc = [...incidentesSeguranca].sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+      const sevCor = { baixa: 'badge-neutral', media: 'badge-warning', alta: 'badge-danger', critica: 'badge-danger' };
+      tbodyInc.innerHTML = listaInc.length ? listaInc.map(i => `
+        <tr>
+          <td>${fmtData(i.data)}</td>
+          <td>${i.descricao}</td>
+          <td><span class="badge ${sevCor[i.severidade] || 'badge-neutral'}">${i.severidade}</span></td>
+          <td><span class="badge ${i.resolvido ? 'badge-success' : 'badge-warning'}" style="cursor:pointer" onclick="alternarResolvidoIncidente('${i.id}')">${i.resolvido ? 'Resolvido' : 'Em aberto'}</span></td>
+          <td><button class="btn btn-icon" onclick="deletarIncidente('${i.id}')" title="Excluir" style="background:#fff;border:1px solid var(--border);color:#b91c1c"><i class="ti ti-trash"></i></button></td>
+        </tr>`).join('') : `<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum incidente registrado ainda</td></tr>`;
+    }
+
+    const mesAtualChave = new Date().toISOString().slice(0, 7) + '-01';
+    const uptimeMesAtual = uptimeMensal.find(u => u.mes === mesAtualChave);
+    const incidentesAbertos = incidentesSeguranca.filter(i => !i.resolvido).length;
+    const resumo = document.getElementById('digital-ti-resumo');
+    if (resumo) resumo.innerHTML = `
+      <div class="dashboard-card"><div class="dashboard-card-label">Uptime do Mês Atual</div><div class="dashboard-card-value">${uptimeMesAtual ? fmtVal(uptimeMesAtual.percentual) + '%' : '—'}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Incidentes em Aberto</div><div class="dashboard-card-value">${incidentesAbertos}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">Total de Incidentes</div><div class="dashboard-card-value">${incidentesSeguranca.length}</div></div>
+    `;
   }
 
   function trocarSubAbaStrategya(nome) {
@@ -11442,6 +12000,11 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     vendasParcelas = lsGet('vendasParcelas');
     contratos    = lsGet('contratos');
     configApp    = lsGet('config');
+    satisfacao   = lsGet('satisfacao');
+    leads        = lsGet('leads');
+    ferramentasDigitais = lsGet('ferramentasDigitais');
+    incidentesSeguranca = lsGet('incidentesSeguranca');
+    uptimeMensal = lsGet('uptimeMensal');
     try { aplicarConfigContratada(); } catch(e) { console.error('Erro ao aplicar dados da contratada:', e); }
     try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
