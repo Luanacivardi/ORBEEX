@@ -2207,6 +2207,10 @@
           <input type="checkbox" id="cob-incluir-modalidade" checked style="width:auto;cursor:pointer">
           Incluir modalidade no relatório
         </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-left:8px;cursor:pointer;user-select:none">
+          <input type="checkbox" id="cob-somente-total" style="width:auto;cursor:pointer">
+          Mostrar só o valor total (sem valor por lançamento)
+        </label>
       </div>
     </div>
     <div class="card">
@@ -6608,7 +6612,7 @@ ${corpoHTML}
         <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
         ${ctx.comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
         <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
-        <td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>
+        <td class="tr valor-cel">${ctx.somenteTotal ? '' : 'R$ ' + fmtVal((parseFloat(t.valor)||0))}</td>
       </tr>`;
     }).join('');
 
@@ -6757,11 +6761,12 @@ ${corpoHTML}
     const comModalidade = incluirModalidadeCobranca();
     const thModalidade = comModalidade ? '<th class="tc" style="width:80px">Modalidade</th>' : '';
     const colspanTotal = comModalidade ? 4 : 3;
+    const somenteTotal = somenteTotalCobranca();
 
     let blocos = '';
     Object.entries(porcl).forEach(([nomeCliente, ts], idx) => {
       blocos += construirBlocoFaturaCobranca(nomeCliente, ts, {
-        dataEmissao, dataVencimento, periodoFmt, comModalidade, thModalidade, colspanTotal,
+        dataEmissao, dataVencimento, periodoFmt, comModalidade, thModalidade, colspanTotal, somenteTotal,
         descontosPorId, modo: opts.modo, idx, projetoId: opts.projetoId || null,
         numeroDoc: proximoNumeroRelatorio(), tituloDoc: opts.tituloDoc
       });
@@ -6877,6 +6882,13 @@ ${corpoHTML}
   function incluirModalidadeCobranca() {
     const el = document.getElementById('cob-incluir-modalidade');
     return !el || el.checked;
+  }
+
+  // Quando marcado, o documento mostra só o total geral (no rodapé e na linha TOTAL GERAL),
+  // ocultando o valor de cada lançamento individual na tabela de serviços.
+  function somenteTotalCobranca() {
+    const el = document.getElementById('cob-somente-total');
+    return !!el && el.checked;
   }
 
   function atualizarResumoDesconto() {
