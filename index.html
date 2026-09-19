@@ -2208,7 +2208,7 @@
           Incluir modalidade no relatório
         </label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--text-secondary);margin-left:8px;cursor:pointer;user-select:none">
-          <input type="checkbox" id="cob-somente-total" style="width:auto;cursor:pointer">
+          <input type="checkbox" id="cob-somente-total" checked style="width:auto;cursor:pointer">
           Mostrar só o valor total (sem valor por lançamento)
         </label>
       </div>
@@ -6612,7 +6612,7 @@ ${corpoHTML}
         <td class="tc">${t.entrada||''} ${t.entrada && t.saida ? '–' : ''} ${t.saida||''}</td>
         ${ctx.comModalidade ? `<td class="tc">${t.modalidade === 'Home Office' ? '🏠 Home' : '🏢 Presencial'}</td>` : ''}
         <td class="tr">${(parseFloat(t.horas)||0).toFixed(1)}h</td>
-        <td class="tr valor-cel">${ctx.somenteTotal ? '' : 'R$ ' + fmtVal((parseFloat(t.valor)||0))}</td>
+        ${ctx.somenteTotal ? '' : `<td class="tr valor-cel">R$ ${fmtVal((parseFloat(t.valor)||0))}</td>`}
       </tr>`;
     }).join('');
 
@@ -6644,12 +6644,12 @@ ${corpoHTML}
       </div>
       <div class="sec-titulo"><i>📋</i> Serviços Prestados</div>
       <table class="srv-table">
-        <thead><tr><th class="dt-cel" style="width:84px">Data</th><th>Descrição da Atividade</th><th class="tc" style="width:76px">Horário</th>${ctx.thModalidade}<th class="tr" style="width:56px">Horas</th><th class="tr" style="width:86px">Valor R$</th></tr></thead>
+        <thead><tr><th class="dt-cel" style="width:84px">Data</th><th>Descrição da Atividade</th><th class="tc" style="width:76px">Horário</th>${ctx.thModalidade}<th class="tr" style="width:56px">Horas</th>${ctx.somenteTotal ? '' : '<th class="tr" style="width:86px">Valor R$</th>'}</tr></thead>
         <tbody>${linhas}
           <tr class="total-row">
             <td colspan="${ctx.colspanTotal}"><strong>TOTAL GERAL</strong></td>
             <td class="tr"><strong>${totalH.toFixed(1)}h</strong></td>
-            <td class="tr total-valor">R$ ${fmtVal(totalV)}</td>
+            ${ctx.somenteTotal ? '' : `<td class="tr total-valor">R$ ${fmtVal(totalV)}</td>`}
           </tr>
         </tbody>
       </table>
