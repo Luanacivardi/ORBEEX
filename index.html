@@ -10726,11 +10726,16 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     const entregas = satisfacao.filter(s => s.tipo === 'entrega_final');
     const media = arr => arr.length ? (arr.reduce((s, x) => s + (parseFloat(x.nota) || 0), 0) / arr.length) : null;
     const mediaRemoto = media(remotos);
-    const mediaNps = media(entregas);
+    // NPS de verdade (escala 0-10, igual à nota lançada): promotor 9-10, neutro 7-8, detrator 0-6.
+    // NPS = %promotores − %detratores, indo de -100 a 100 — não é a média das notas.
+    const promotores = entregas.filter(s => (parseFloat(s.nota) || 0) >= 9).length;
+    const detratores = entregas.filter(s => (parseFloat(s.nota) || 0) <= 6).length;
+    const nps = entregas.length ? Math.round((promotores / entregas.length - detratores / entregas.length) * 100) : null;
+    const corNps = nps === null ? 'var(--navy)' : nps >= 50 ? '#10b981' : nps >= 0 ? '#E8B84B' : '#ef4444';
     const resumo = document.getElementById('digital-satisfacao-resumo');
     if (resumo) resumo.innerHTML = `
       <div class="dashboard-card"><div class="dashboard-card-label">Nota Média — Atendimento Remoto</div><div class="dashboard-card-value">${mediaRemoto !== null ? mediaRemoto.toFixed(1) : '—'}</div></div>
-      <div class="dashboard-card"><div class="dashboard-card-label">Nota Média — Entrega Final (NPS)</div><div class="dashboard-card-value">${mediaNps !== null ? mediaNps.toFixed(1) : '—'}</div></div>
+      <div class="dashboard-card"><div class="dashboard-card-label">NPS — Entrega Final</div><div class="dashboard-card-value" style="color:${corNps}">${nps !== null ? nps : '—'}</div>${entregas.length ? `<div style="font-size:11px;color:var(--text-secondary);margin-top:2px">${promotores} promotor(es) · ${entregas.length - promotores - detratores} neutro(s) · ${detratores} detrator(es)</div>` : ''}</div>
       <div class="dashboard-card"><div class="dashboard-card-label">Avaliações Lançadas</div><div class="dashboard-card-value">${satisfacao.length}</div></div>
     `;
   }
