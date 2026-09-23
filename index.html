@@ -2768,13 +2768,20 @@
   function sbSetSession(s) { localStorage.setItem(SB_SESSION_KEY, JSON.stringify(s)); }
   function sbLogout() { localStorage.removeItem(SB_SESSION_KEY); window.location.href = 'login.html'; }
 
-  // Renova o access_token de forma síncrona usando o refresh_token
+  // Renova o access_token de forma síncrona usando o refresh_token.
+  // Importante: falha de REDE (offline, instabilidade) não pode ser tratada como sessão
+  // inválida — nesse caso mantém a sessão atual e deixa a próxima chamada tentar de novo.
+  // Só devolve null quando o servidor realmente recusou o refresh_token (login expirado de verdade).
   function sbRefreshSync(session) {
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', SUPABASE_URL + SB_AUTH + '?grant_type=refresh_token', false);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-    xhr.send(JSON.stringify({ refresh_token: session.refresh_token }));
+    try {
+      xhr.open('POST', SUPABASE_URL + SB_AUTH + '?grant_type=refresh_token', false);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('apikey', SUPABASE_ANON_KEY);
+      xhr.send(JSON.stringify({ refresh_token: session.refresh_token }));
+    } catch (e) {
+      return session; // erro de rede — não derruba a sessão
+    }
     if (xhr.status >= 200 && xhr.status < 300) {
       var novo = JSON.parse(xhr.responseText);
       var nova = {
@@ -2785,12 +2792,25 @@
       sbSetSession(nova);
       return nova;
     }
-    return null;
+    if (xhr.status === 0) return session; // sem conexão — não derruba a sessão
+    return null; // refresh_token recusado pelo servidor — sessão de fato inválida
+  }
+
+  // Garante que o access_token está (ou acaba de ficar) válido antes de qualquer chamada.
+  // Chamada em toda requisição (não só no carregamento inicial), pra que uma sessão aberta
+  // por muito tempo (ex.: preenchendo um registro) nunca chegue a expirar no meio do caminho.
+  function sbGarantirSessaoValida() {
+    var session = sbGetSession();
+    if (session && session.expires_at && session.expires_at < (Date.now() / 1000) + 120) {
+      var atualizada = sbRefreshSync(session);
+      if (atualizada) session = atualizada;
+    }
+    return session;
   }
 
   // ===== PERSISTÊNCIA (banco de dados via Supabase REST, tabelas relacionais gh_*) =====
   function sbAuthHeaders(extra) {
-    var session = sbGetSession();
+    var session = sbGarantirSessaoValida();
     var h = {
       'apikey': SUPABASE_ANON_KEY,
       'Authorization': 'Bearer ' + (session ? session.access_token : ''),
