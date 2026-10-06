@@ -10211,14 +10211,23 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     if (parcelasForm.some(p => !p.dataPrevista)) { alert('Preencha a data de vencimento de todas as parcelas'); return; }
 
     if (vendaEditandoId) {
-      // Edição: atualiza os dados da venda; parcelas em si não são reeditadas aqui (gerencie pelo expandir da lista)
+      // Edição: atualiza a venda e substitui as parcelas pelas do formulário (mantém "recebida" nas de mesmo número e valor)
       const v = vendas.find(v => v.id === vendaEditandoId);
       if (!v) return;
       const anterior = Object.assign({}, v);
       Object.assign(v, { clienteId: cliente.id, clienteNome: cliente.nome, data, descricao, valor });
+      const parcelasAntigas = vendasParcelas.filter(p => p.vendaId === v.id);
+      const parcelasNovas = parcelasForm.map(p => {
+        const velha = parcelasAntigas.find(o => o.numero === p.numero && Math.abs((parseFloat(o.valor) || 0) - p.valor) < 0.005);
+        return { id: crypto.randomUUID(), vendaId: v.id, numero: p.numero, valor: p.valor, dataPrevista: p.dataPrevista,
+                 recebido: !!(velha && velha.recebido), dataRecebimento: velha && velha.recebido ? velha.dataRecebimento : null };
+      });
+      vendasParcelas = vendasParcelas.filter(p => p.vendaId !== v.id).concat(parcelasNovas);
       persistir(
-        sbTable('gh_vendas').update(v.id, vendaParaLinha(v)),
-        function() { Object.assign(v, anterior); renderizarVendas(); }
+        sbTable('gh_vendas').update(v.id, vendaParaLinha(v))
+          .then(() => sbTable('gh_vendas_parcelas').removeMany(parcelasAntigas.map(p => p.id)))
+          .then(() => sbTable('gh_vendas_parcelas').insertMany(parcelasNovas.map(parcelaParaLinha))),
+        function() { Object.assign(v, anterior); vendasParcelas = vendasParcelas.filter(p => p.vendaId !== v.id).concat(parcelasAntigas); renderizarVendas(); }
       );
       cancelarEdicaoVenda();
     } else {
@@ -10248,9 +10257,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     document.getElementById('venda-data').value = v.data;
     document.getElementById('venda-valor').value = v.valor;
     document.getElementById('venda-descricao').value = v.descricao;
-    const qtdParcelas = vendasParcelas.filter(p => p.vendaId === id).length || 1;
-    document.getElementById('venda-num-parcelas').value = qtdParcelas;
+    const parcelasSalvas = vendasParcelas.filter(p => p.vendaId === id).sort((a, b) => a.numero - b.numero);
+    document.getElementById('venda-num-parcelas').value = parcelasSalvas.length || 1;
     vendaGerarParcelas();
+    parcelasSalvas.forEach((p, i) => {
+      const tr = document.querySelector('#venda-parcelas-body tr[data-parcela-idx="' + i + '"]');
+      if (!tr) return;
+      tr.querySelector('.parcela-data').value = p.dataPrevista;
+      tr.querySelector('.parcela-valor').value = (parseFloat(p.valor) || 0).toFixed(2);
+    });
     const btn = document.getElementById('venda-btn-salvar');
     btn.innerHTML = '<i class="ti ti-device-floppy"></i> Salvar Alterações';
     document.getElementById('venda-btn-cancelar').style.display = '';
