@@ -7078,8 +7078,26 @@ function imprimirCobranca() {
   let chartHoras = null, chartHistorico = null;
   let historico = lsGet('historico');
 
+  /* Histórico manual x horas lançadas: quando o mesmo mês/cliente já tem horas registradas (apontamentos),
+     o lançamento manual é o resumo do MESMO trabalho — somar os dois contava em dobro nos totais do Dashboard.
+     Vale o apontamento (dado detalhado); o histórico manual só entra onde não há horas lançadas. Nada é apagado. */
+  function chaveHistoricoMes(ano, mes, cliente) {
+    return ano + '-' + String(mes).padStart(2, '0') + '|' + String(cliente || '').trim().toLowerCase();
+  }
+  function historicoRedundante(h, chavesComHoras) {
+    return h.mes >= 1 && !!h.cliente && chavesComHoras.has(chaveHistoricoMes(h.ano, h.mes, h.cliente));
+  }
+  function chavesMesClienteComHoras() {
+    return new Set(tarefas.filter(t => t.data && t.clienteNome).map(t => chaveHistoricoMes(t.data.slice(0, 4), parseInt(t.data.slice(5, 7)), t.clienteNome)));
+  }
+  function historicoParaDashboard() {
+    const chaves = chavesMesClienteComHoras();
+    return historico.filter(h => !historicoRedundante(h, chaves));
+  }
+
  function renderizarDashboard() {
     popularAnos();
+    const historicoDash = historicoParaDashboard();
     const ano = parseInt(document.getElementById('dash-ano')?.value || new Date().getFullYear());
     const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const mesAtual = new Date().getMonth();
@@ -7092,7 +7110,7 @@ function imprimirCobranca() {
     const planConf = planAno.filter(p => p.confirmado);
     const tarAno   = tarefas.filter(t => t.data.startsWith(prefAno));
     const tarFat   = tarAno.filter(t => t.cobrado);
-    const histAno  = historico.filter(h => h.ano === ano);
+    const histAno  = historicoDash.filter(h => h.ano === ano);
     const hHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
     const vHistAno = histAno.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
 
@@ -7125,7 +7143,7 @@ function imprimirCobranca() {
     const _tMes       = tarefas.filter(t => t.data && t.data.startsWith(prefMes));
     const _idsRegAnoAtual = new Set(tarefas.filter(t => t.data && t.data.startsWith(anoAtual + '-')).map(t => t.planejamentoId).filter(Boolean));
     const _pMesPend   = planejamento.filter(p => p.inicio && p.inicio.startsWith(prefMes) && !_idsRegAnoAtual.has(p.id));
-    const _histMes    = historico.filter(h => h.ano === anoAtual && h.mes === mesAtual + 1);
+    const _histMes    = historicoDash.filter(h => h.ano === anoAtual && h.mes === mesAtual + 1);
     const _vHistMes   = _histMes.reduce((s,h)=>s+_nvMes(h.valor),0);
     const _hHistMes   = _histMes.reduce((s,h)=>s+_nvMes(h.horas),0);
     const _tMesVal    = _tMes.reduce((s,t)=>s+_nvMes(t.valor),0);
@@ -7278,7 +7296,7 @@ function imprimirCobranca() {
       const pM    = planAno.filter(p => p.inicio.startsWith(pref));
       const pMC   = pM.filter(p=>p.confirmado);
       const tM    = tarAno.filter(t => t.data.startsWith(pref));
-      const histM = historico.filter(h => h.ano === ano && h.mes === m+1);
+      const histM = historicoDash.filter(h => h.ano === ano && h.mes === m+1);
       const hHistM = histM.reduce((s,h)=>s+(parseFloat(h.horas)||0),0);
       const vHistM = histM.reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
       // Vendas de produtos: contam no mês do VENCIMENTO DA PARCELA (não da data da venda) — uma
@@ -7331,7 +7349,7 @@ function imprimirCobranca() {
       const idsRegA  = new Set(tA.map(t=>t.planejamentoId).filter(Boolean));
       const planPend = planejamento.filter(p=>p.inicio && p.inicio.startsWith(prefA) && !idsRegA.has(p.id)).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
       const regA     = tA.reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
-      const histA    = historico.filter(h=>h.ano===a).reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
+      const histA    = historicoDash.filter(h=>h.ano===a).reduce((s,h)=>s+(parseFloat(h.valor)||0),0);
       const fatAuto  = tA.filter(t=>t.cobrado).reduce((s,t)=>s+(parseFloat(t.valor)||0),0);
       // Planejado = mesma lógica do Funil (pendente do ano + registrado + histórico); Faturado = cobrado + histórico
       return { ano:a, fat:fatAuto+histA, plan:planPend+regA+histA };
@@ -7449,7 +7467,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
           cliMes[n].vConf += parseFloat(t.valor) || 0;
           if (t.cobrado) cliMes[n].vFat += parseFloat(t.valor) || 0;
         });
-        historico.filter(function(h){ return h.ano === ano && h.mes === (m+1); }).forEach(function(h) {
+        historicoDash.filter(function(h){ return h.ano === ano && h.mes === (m+1); }).forEach(function(h) {
           var n = h.cliente || 'Geral';
           if (!cliMes[n]) cliMes[n] = { vPlan:0, vConf:0, vFat:0 };
           var v = parseFloat(h.valor) || 0;
@@ -7684,14 +7702,15 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function renderizarTabHistorico() {
     const MESES_NOME = ['Anual','Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
     const lista = [...historico].sort((a,b)=>b.ano-a.ano||b.mes-a.mes);
+    const chavesComHoras = chavesMesClienteComHoras();
     document.getElementById('tbody-historico').innerHTML = lista.length
-      ? lista.map(h=>`<tr>
+      ? lista.map(h=>`<tr${historicoRedundante(h, chavesComHoras) ? ' style="opacity:.6" title="Não somado no Dashboard: este mês/cliente já tem horas lançadas"' : ''}>
           <td><strong>${h.ano}</strong></td>
           <td>${MESES_NOME[h.mes]}</td>
           <td>${h.cliente}</td>
           <td>${h.horas.toFixed(1)}h</td>
           <td>R$ ${fmtVal(h.valor)}</td>
-          <td style="color:var(--text-secondary);font-size:12px">${h.descricao||'—'}</td>
+          <td style="color:var(--text-secondary);font-size:12px">${historicoRedundante(h, chavesComHoras) ? '<span class="badge badge-warning">não somado — já há horas lançadas</span> ' : ''}${h.descricao||'—'}</td>
           <td><button class="btn btn-sm btn-danger" onclick="deletarHistorico('${h.id}')"><i class="ti ti-trash"></i></button></td>
         </tr>`).join('')
       : '<tr><td colspan="7" style="text-align:center;color:var(--text-secondary);padding:1.5rem">Nenhum registro histórico. Use o formulário acima para adicionar.</td></tr>';
