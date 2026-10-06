@@ -3149,7 +3149,7 @@
 let clienteEditandoId = null;
 
   function adicionarCliente() {
-    const nome = document.getElementById('cliente-nome').value;
+    const nome = nomeClienteOficial(document.getElementById('cliente-nome').value);
     const projeto = document.getElementById('cliente-projeto').value;
     const taxa = parseFloat(document.getElementById('cliente-taxa').value);
     const obs = document.getElementById('cliente-obs').value;
@@ -7139,7 +7139,7 @@ function imprimirCobranca() {
     // (indicadores em barras removidos a pedido — os totais do ANO seguem no Resumo Mensal)
 
   // ── KPIs principais ─────────────────────────────────────
-    const mrrStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').reduce((s,a)=>s+(a.valorMensal||0),0);
+    const mrrStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').reduce((s,a)=>s+(parseFloat(a.valorMensal)||0),0);
     const qtdAssinStrategya = strategyaAssinaturas.filter(a => a.status === 'ativa').length;
     const chaveMesAtual = anoAtual + '-' + String(mesAtual + 1).padStart(2,'0');
     const vDespesasLancadasMes = despesas.filter(d => d.data && d.data.startsWith(chaveMesAtual)).reduce((s,d)=>s+(parseFloat(d.valor)||0),0);
@@ -7652,7 +7652,7 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
   function adicionarHistorico() {
     const ano  = parseInt(document.getElementById('hist-ano').value);
     const mes  = parseInt(document.getElementById('hist-mes').value);
-    const cli  = document.getElementById('hist-cliente').value.trim();
+    const cli  = nomeClienteOficial(document.getElementById('hist-cliente').value.trim());
     const hrs  = parseFloat(document.getElementById('hist-horas').value) || 0;
     const val  = parseFloat(document.getElementById('hist-valor').value) || 0;
     const desc = document.getElementById('hist-descricao').value.trim();
@@ -12015,6 +12015,69 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     });
   }
 
+  /* ===== Unificação de nomes de clientes =====
+     O nome do cliente é copiado (denormalizado) para tarefas, planejamento, despesas, vendas etc.
+     Renomear o cliente não atualizava essas cópias, e o histórico manual aceita texto livre —
+     então o mesmo cliente aparecia com nomes diferentes (ex.: "Tedesco" e "Tedesco Armazenagem")
+     e se dividia em linhas separadas no Dashboard e nos relatórios. */
+  const NOMES_OFICIAIS_CLIENTES = [
+    { padrao: /tedesco/i,   nome: 'Tedesco Armazenagem' },
+    { padrao: /maxicorte/i, nome: 'Maxicorte Industria e comércio de aço' }
+  ];
+  function nomeClienteOficial(nome) {
+    if (!nome) return nome;
+    const oficial = NOMES_OFICIAIS_CLIENTES.find(o => o.padrao.test(nome));
+    return oficial ? oficial.nome : nome;
+  }
+
+  /* Ajusta em memória e grava no banco só o que está diferente (idempotente: depois da 1ª vez não há o que gravar).
+     Registros com cliente_id herdam o nome atual do cadastro do cliente; os sem id (ex.: histórico manual) usam a regra de nomes oficiais. */
+  function unificarNomesClientes() {
+    const pendentes = {};
+    const agendar = (tabela, coluna, nome, id) => {
+      const chave = tabela + '|' + coluna + '|' + nome;
+      (pendentes[chave] = pendentes[chave] || { tabela, coluna, nome, ids: [] }).ids.push(id);
+    };
+
+    const nomePorId = new Map();
+    clientes.forEach(c => {
+      const oficial = nomeClienteOficial(c.nome);
+      if (oficial !== c.nome) { c.nome = oficial; agendar('gh_clientes', 'nome', oficial, c.id); }
+      nomePorId.set(String(c.id), c.nome);
+    });
+
+    [
+      [tarefas,              'gh_tarefas',              true],
+      [planejamento,         'gh_planejamento',         true],
+      [anotacoes,            'gh_anotacoes',            true],
+      [despesas,             'gh_despesas',             true],
+      [despesasRecorrentes,  'gh_despesas_recorrentes', true],
+      [orcamentosConsult,    'gh_orcamentos_consult',   true],
+      [vendas,               'gh_vendas',               true],
+      [satisfacao,           'gh_satisfacao',           true],
+      [orcamentos,           'gh_orcamentos',           false],
+      [strategyaAssinaturas, 'gh_strategya_assinaturas', false]
+    ].forEach(([lista, tabela, temClienteId]) => {
+      lista.forEach(r => {
+        if (!r.clienteNome) return;
+        const doCadastro = temClienteId && r.clienteId != null ? nomePorId.get(String(r.clienteId)) : null;
+        const nome = doCadastro || nomeClienteOficial(r.clienteNome);
+        if (nome !== r.clienteNome) { r.clienteNome = nome; agendar(tabela, 'cliente_nome', nome, r.id); }
+      });
+    });
+
+    historico.forEach(h => {
+      const nome = nomeClienteOficial(h.cliente);
+      if (nome !== h.cliente) { h.cliente = nome; agendar('gh_historico', 'cliente', nome, h.id); }
+    });
+
+    Object.values(pendentes).forEach(p => {
+      for (let i = 0; i < p.ids.length; i += 80) {
+        persistir(sbTable(p.tabela).updateMany(p.ids.slice(i, i + 80), { [p.coluna]: p.nome }));
+      }
+    });
+  }
+
   carregarDadosServidor().then(function() {
     if (window.__SRV_ERRO__) {
       alert('⚠️ Não foi possível carregar os dados essenciais do servidor (Supabase). Verifique sua conexão e recarregue a página.\n\nOs dados NÃO serão salvos até a conexão ser restabelecida.');
@@ -12045,6 +12108,9 @@ const totPlan = dadosMensais.reduce((s,d)=>s+d.vPlan,0);
     ferramentasDigitais = lsGet('ferramentasDigitais');
     incidentesSeguranca = lsGet('incidentesSeguranca');
     uptimeMensal = lsGet('uptimeMensal');
+    if (!window.__SRV_ERRO__) {
+      try { unificarNomesClientes(); } catch(e) { console.error('Erro ao unificar nomes de clientes:', e); }
+    }
     try { aplicarConfigContratada(); } catch(e) { console.error('Erro ao aplicar dados da contratada:', e); }
     try { gerarDespesasRecorrentesPendentes(); } catch(e) { console.error('Erro ao gerar despesas recorrentes:', e); }
     try { inicializar(); } catch(e) { console.error('Erro na inicialização:', e); }
