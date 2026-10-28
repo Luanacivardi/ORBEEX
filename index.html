@@ -799,6 +799,21 @@
     .dash-kpis-grandes .dash-kpi-label { font-size: 11px; }
     .dash-kpis-grandes .dash-kpi-value { font-size: 21px; }
     .dash-kpis-grandes .dash-kpi-sub { font-size: 10.5px; }
+    /* Layout dos KPIs: card grande (Consultoria prevista) à esquerda + grade de 6 cards à direita */
+    .dash-kpis-layout { display: grid; grid-template-columns: minmax(300px, 1fr) 2fr; gap: .8rem; margin-bottom: 1.5rem; align-items: stretch; }
+    .dash-kpis-layout .dash-kpis-grandes { grid-template-columns: 1fr; }
+    .dash-kpis-layout .dash-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 0; }
+    .dash-kpis-grandes .dash-kpi { height: 100%; display: flex; flex-direction: column; }
+    .dash-kpis-grandes .dash-kpi-value { font-size: 30px; }
+    .dash-kpi-horas { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: auto; padding-top: .9rem; }
+    .dash-kpi-horas > div { background: rgba(255,255,255,0.06); border-radius: 8px; padding: .55rem .7rem; }
+    .dash-kpi-horas .dkh-label { font-size: 10px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+    .dash-kpi-horas .dkh-valor { font-size: 19px; font-weight: 700; color: #fff; font-variant-numeric: tabular-nums; margin-top: 2px; }
+    .dash-kpi-progresso { margin-top: .7rem; }
+    .dash-kpi-progresso .dkp-linha { display: flex; justify-content: space-between; font-size: 10.5px; color: rgba(255,255,255,0.55); margin-bottom: 4px; }
+    .dash-kpi-progresso .dkp-linha b { color: #fff; }
+    @media (max-width: 1100px) { .dash-kpis-layout { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { .dash-kpis-layout .dash-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
     .dash-kpi-label { font-size: 9.5px; color: rgba(255,255,255,0.5); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
     .dash-kpi-value { font-size: 16px; font-weight: 700; color: var(--gold); line-height: 1.1; }
     .dash-kpi-sub { font-size: 9.5px; color: rgba(255,255,255,0.35); margin-top: 3px; }
@@ -2520,12 +2535,14 @@
         <label>Ano em análise:</label>
         <select id="dash-ano" onchange="renderizarDashboard()"></select>
       </div>
-      <span style="font-size:12px;color:var(--text-secondary)">Funil, tabela mensal, histórico e por-cliente seguem o ano selecionado. Os KPIs de mês (Faturado, Despesas, Lucro) referem-se sempre ao mês corrente.</span>
+      <span style="font-size:12px;color:var(--text-secondary)">Funil, tabela mensal, histórico e por-cliente seguem o ano selecionado. Os KPIs de mês (Consultoria prevista, Valor/hora, Produtos, Assinaturas, Total, Despesas) referem-se sempre ao mês corrente.</span>
     </div>
 
     <!-- KPIs principais (substituem o gráfico de faturamento mensal) -->
-    <div class="dash-kpis-grandes" id="dash-kpis-grandes" style="margin-bottom:1rem"></div>
-    <div class="dash-kpis" id="dash-kpis" style="margin-bottom:1.5rem"></div>
+    <div class="dash-kpis-layout">
+      <div class="dash-kpis-grandes" id="dash-kpis-grandes"></div>
+      <div class="dash-kpis" id="dash-kpis"></div>
+    </div>
 
     <!-- Tabela resumo mensal (substitui o gráfico de evolução de faturamento mensal) -->
     <div class="card" style="margin-bottom:1rem">
@@ -7153,6 +7170,16 @@ function imprimirCobranca() {
     const mesFat      = _tMes.filter(t=>t.cobrado).reduce((s,t)=>s+_nvMes(t.valor),0) + _vHistMes;
     const mesHConf    = _pMesPend.filter(p=>p.confirmado).reduce((s,p)=>s+_nvMes(p.horas),0) + _tMesHoras + _hHistMes;
     const mesHFat     = _tMes.filter(t=>t.cobrado).reduce((s,t)=>s+_nvMes(t.horas),0) + _hHistMes;
+    // Horas PREVISTAS do mês = planejamento ainda não registrado + horas registradas + histórico manual
+    const mesHPrev    = _pMesPend.reduce((s,p)=>s+_nvMes(p.horas),0) + _tMesHoras + _hHistMes;
+    // Horas REALIZADAS do mês = registradas com data ATÉ HOJE + histórico manual.
+    // Lançamentos com data futura (agenda já registrada) entram no previsto, mas ainda não foram trabalhados.
+    const _tMesAteHoje = _tMes.filter(t => t.data <= hojeISOStr);
+    const mesHReal    = _tMesAteHoje.reduce((s,t)=>s+_nvMes(t.horas),0) + _hHistMes;
+    const mesVReal    = _tMesAteHoje.reduce((s,t)=>s+_nvMes(t.valor),0) + _vHistMes;
+    // Valor-hora médio do mês = valor realizado ÷ horas realizadas
+    const valorHoraMes = mesHReal > 0 ? mesVReal / mesHReal : 0;
+    const pctHorasReal = mesHPrev > 0 ? (mesHReal / mesHPrev * 100) : 0;
 
     // (indicadores em barras removidos a pedido — os totais do ANO seguem no Resumo Mensal)
 
@@ -7174,30 +7201,28 @@ function imprimirCobranca() {
     // Horas faturadas neste mês (por data do serviço) e quanto delas já foi recebido
     const mesHorasRecebido = _tMes.filter(t=>t.recebido).reduce((s,t)=>s+_nvMes(t.valor),0);
 
-    // ── Faturamento Total do mês: soma de tudo que compõe a receita —
-    // consultoria CONFIRMADA no mês (não só o que já foi cobrado), produtos (parcelas
-    // com vencimento no mês) e assinaturas (MRR ativo). Serve de base também para o detalhamento percentual.
-    const vFaturamentoTotalMes = mesConf + vProdutosMesTotal + mrrStrategya;
-    const pctConsultoria  = vFaturamentoTotalMes > 0 ? (mesConf / vFaturamentoTotalMes * 100) : 0;
-    const pctProdutosFat  = vFaturamentoTotalMes > 0 ? (vProdutosMesTotal / vFaturamentoTotalMes * 100) : 0;
-    const pctAssinFat     = vFaturamentoTotalMes > 0 ? (mrrStrategya / vFaturamentoTotalMes * 100) : 0;
+    // Produtos: total a receber em aberto (todas as parcelas não recebidas, qualquer mês)
+    const vProdutosAReceberGeral = vendasParcelas.filter(p => !p.recebido).reduce((s,p)=>s+(parseFloat(p.valor)||0),0);
 
-    // Lucro do mês = valor CONFIRMADO do mês − despesas do mês
-    const vLucroMes = mesConf - vDespesasMes;
+    // ── Valor Total do mês = consultoria PREVISTA + produtos (parcelas com vencimento no mês) + assinaturas (MRR ativo)
+    const vTotalMes = mesPlan + vProdutosMesTotal + mrrStrategya;
+    const pctConsultoria  = vTotalMes > 0 ? (mesPlan / vTotalMes * 100) : 0;
+    const pctProdutosFat  = vTotalMes > 0 ? (vProdutosMesTotal / vTotalMes * 100) : 0;
+    const pctAssinFat     = vTotalMes > 0 ? (mrrStrategya / vTotalMes * 100) : 0;
 
-    const breakdownFaturamento = `
+    const breakdownTotal = `
       <details class="dash-kpi-breakdown">
         <summary>Ver percentual por item</summary>
         <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>Consultoria (confirmado)</span><b>R$ ${fmtVal(mesConf)} · ${pctConsultoria.toFixed(1)}%</b></div>
-          <div class="dash-kpi-breakdown-bar"><span style="width:${pctConsultoria.toFixed(1)}%;background:#10b981"></span></div>
+          <div class="dkb-linha"><span>Consultoria (prevista)</span><b>R$ ${fmtVal(mesPlan)} · ${pctConsultoria.toFixed(1)}%</b></div>
+          <div class="dash-kpi-breakdown-bar"><span style="width:${pctConsultoria.toFixed(1)}%;background:#E8B84B"></span></div>
         </div>
         <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>Produtos</span><b>R$ ${fmtVal(vProdutosMesTotal)} · ${pctProdutosFat.toFixed(1)}%</b></div>
+          <div class="dkb-linha"><span>Produtos digitais</span><b>R$ ${fmtVal(vProdutosMesTotal)} · ${pctProdutosFat.toFixed(1)}%</b></div>
           <div class="dash-kpi-breakdown-bar"><span style="width:${pctProdutosFat.toFixed(1)}%;background:#2563eb"></span></div>
         </div>
         <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>Assinaturas</span><b>R$ ${fmtVal(mrrStrategya)} · ${pctAssinFat.toFixed(1)}%</b></div>
+          <div class="dkb-linha"><span>Assinaturas STRATEGYA</span><b>R$ ${fmtVal(mrrStrategya)} · ${pctAssinFat.toFixed(1)}%</b></div>
           <div class="dash-kpi-breakdown-bar"><span style="width:${pctAssinFat.toFixed(1)}%;background:#0891b2"></span></div>
         </div>
       </details>`;
@@ -7243,41 +7268,27 @@ function imprimirCobranca() {
         }).join('')}
       </details>` : '';
 
-    // ── Composição do Lucro: Valor Confirmado − Despesas do Mês = Lucro
-    const pctDespesasSobreConf = mesConf > 0 ? (vDespesasMes / mesConf * 100) : 0;
-    const pctLucroSobreConf    = mesConf > 0 ? (Math.max(0, vLucroMes) / mesConf * 100) : 0;
-    const breakdownLucro = `
-      <details class="dash-kpi-breakdown">
-        <summary>Ver composição do lucro</summary>
-        <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>Valor Confirmado</span><b>R$ ${fmtVal(mesConf)}</b></div>
-          <div class="dash-kpi-breakdown-bar"><span style="width:100%;background:#E8B84B"></span></div>
-        </div>
-        <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>(−) Despesas do Mês</span><b>R$ ${fmtVal(vDespesasMes)} · ${pctDespesasSobreConf.toFixed(1)}%</b></div>
-          <div class="dash-kpi-breakdown-bar"><span style="width:${Math.min(100, pctDespesasSobreConf).toFixed(1)}%;background:#ef4444"></span></div>
-        </div>
-        <div class="dash-kpi-breakdown-item">
-          <div class="dkb-linha"><span>(=) Lucro</span><b>R$ ${fmtVal(vLucroMes)} · ${pctLucroSobreConf.toFixed(1)}%</b></div>
-          <div class="dash-kpi-breakdown-bar"><span style="width:${Math.min(100, pctLucroSobreConf).toFixed(1)}%;background:${vLucroMes >= 0 ? '#10b981' : '#ef4444'}"></span></div>
-        </div>
-      </details>`;
-
-    // Destaque: Faturamento Total do mês (consultoria confirmada + produtos + assinaturas) e os
-    // três componentes que o formam — em cards grandes. O resto (planejado, ticket médio, despesas,
-    // lucro etc.) segue em cards menores.
+    const refMes = MESES[mesAtual]+'/'+anoAtual;
+    // Card grande: Faturamento Total Previsto — Consultoria, com horas previstas x realizadas
     const kpisGrandes = [
-      { label:'Faturamento Total do Mês — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(vFaturamentoTotalMes), sub: 'Consultoria (confirmado) + Produtos + Assinaturas', cor:'#E8B84B', extra: breakdownFaturamento },
-      { label:'Consultoria Confirmada',        value:'R$ '+fmtVal(mesConf),        sub: fmtVal(mesHConf)+'h confirmadas no mês', cor:'#10b981' },
-      { label:'Valor em Venda de Produtos',    value:'R$ '+fmtVal(vProdutosMesTotal), sub: `Parcelas vencendo neste mês · Recebido <b>R$ ${fmtVal(vProdutosMesRecebido)}</b> · A receber R$ ${fmtVal(vProdutosMesAReceber)}`, cor:'#2563eb' },
-      { label:'Valor Assinaturas',             value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s) — STRATEGYA', cor:'#0891b2' },
+      { label:'Faturamento Total Previsto — Consultoria · '+refMes, value:'R$ '+fmtVal(mesPlan),
+        sub: 'Planejado + horas registradas + histórico do mês', cor:'#E8B84B',
+        extra: `<div class="dash-kpi-horas">
+            <div><div class="dkh-label">Horas previstas</div><div class="dkh-valor">${fmtVal(mesHPrev)}h</div></div>
+            <div><div class="dkh-label">Horas realizadas</div><div class="dkh-valor">${fmtVal(mesHReal)}h</div></div>
+          </div>
+          <div class="dash-kpi-progresso">
+            <div class="dkp-linha"><span>Realizado sobre o previsto</span><b>${pctHorasReal.toFixed(1)}%</b></div>
+            <div class="dash-kpi-breakdown-bar"><span style="width:${Math.min(100, pctHorasReal).toFixed(1)}%;background:#E8B84B"></span></div>
+          </div>` },
     ];
     const kpisPequenos = [
-      { label:'Valor Planejado — '+MESES[mesAtual]+'/'+anoAtual, value:'R$ '+fmtVal(mesPlan), sub: 'Tudo que está programado para o mês (planejamento + registrado + histórico)', cor:'#93c5fd' },
-      { label:'Valor Faturado até o Dia',      value:'R$ '+fmtVal(mesFat),         sub: `${fmtVal(mesHFat)}h faturadas · Recebido no caixa R$ ${fmtVal(mesHorasRecebido)}`, cor:'#10b981' },
-      { label:'Ticket Médio Geral / Hora',     value:'R$ '+fmtVal(ticketHora),     sub: hMesReal>0 ? (fmtVal(hMesReal)+'h realizadas · '+MESES[mesAtual]+'/'+anoAtual) : 'Sem horas no mês', cor:'#8b5cf6' },
-      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + MESES[mesAtual] + '/' + anoAtual, cor:'#ef4444', extra: breakdownDespesas },
-      { label:'Valor de Lucro',                value:'R$ '+fmtVal(vLucroMes),      sub: 'Valor Confirmado − Despesas do mês', cor: vLucroMes>=0?'#10b981':'#ef4444', extra: breakdownLucro },
+      { label:'Valor Hora Trabalho',           value:'R$ '+fmtVal(valorHoraMes),   sub: mesHReal>0 ? ('Média do mês · R$ '+fmtVal(mesVReal)+' ÷ '+fmtVal(mesHReal)+'h') : 'Sem horas realizadas no mês', cor:'#8b5cf6' },
+      { label:'Horas Trabalhadas no Mês',      value: fmtVal(mesHReal)+'h',        sub: 'Registradas até hoje · '+refMes, cor:'#93c5fd' },
+      { label:'Produtos Digitais a Receber',   value:'R$ '+fmtVal(vProdutosMesAReceber), sub: `Parcelas do mês: R$ ${fmtVal(vProdutosMesTotal)} · Recebido R$ ${fmtVal(vProdutosMesRecebido)} · Em aberto (geral) R$ ${fmtVal(vProdutosAReceberGeral)}`, cor:'#2563eb' },
+      { label:'Assinaturas STRATEGYA',         value:'R$ '+fmtVal(mrrStrategya),   sub: qtdAssinStrategya + ' assinatura(s) ativa(s)', cor:'#0891b2' },
+      { label:'Valor Total — '+refMes,         value:'R$ '+fmtVal(vTotalMes),      sub: 'Consultoria prevista + Produtos + Assinaturas', cor:'#10b981', extra: breakdownTotal },
+      { label:'Despesas do Mês',               value:'R$ '+fmtVal(vDespesasMes),   sub: (vDespesasRecorrentesPrevistas > 0 ? 'Lançadas + previstas · ' : '') + refMes, cor:'#ef4444', extra: breakdownDespesas },
     ];
     const renderKpi = (k) => `<div class="dash-kpi" style="border-left-color:${k.cor}">
       <div class="dash-kpi-label">${k.label}</div>
